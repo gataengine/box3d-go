@@ -117,7 +117,7 @@ each; both point at the same Go file.
 | src/solver.h | solver.go | todo | |  |
 | src/solver_set.c | solver_set.go | todo | |  |
 | src/solver_set.h | solver_set.go | todo | |  |
-| src/sphere.c | sphere.go | todo | |  |
+| src/sphere.c | sphere.go | ported | efca0c1 | exercised by test_collision/test_shape (later) |
 | src/spherical_joint.c | spherical_joint.go | todo | |  |
 | src/table.c | table.go | tested | efca0c1 | hashSet keeps upstream slot order |
 | src/table.h | table.go | tested | efca0c1 |  |

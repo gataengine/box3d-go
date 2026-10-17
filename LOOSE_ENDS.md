@@ -77,3 +77,5 @@ site. Upstream bugs are ported as is and listed here too.
 | hull.go | `b3CollideMoverAndHull` proxy `&mover->center1` with count 2 | `[]Vec3{mover.Center1, mover.Center2}` | no pointer arithmetic across fields |
 | hull.go | unrolled SoA copies in `b3MakeTransformedBoxHull` | loops over the same indices | same stores, same order |
 | hull.go | `memmove` in `b3SimplifyHull2D` | `copy` | same semantics |
+| sphere.go | `( b3ShapeProxy ){ &shape->center, 1, … }` | `spherePoints(shape)` = `unsafe.Slice(&shape.Center, 1)` | no allocation, aliases the shape as in C |
+| sphere.go | `4.0f / 3.0f * B3_PI * …` | `fourThirds := float32(4.0 / 3.0)` then run-time multiplies | Go folds constant chains exactly (one rounding); C rounds each step |
