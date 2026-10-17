@@ -65,8 +65,8 @@ each; both point at the same Go file.
 | src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
 | src/distance.c | distance.go | verified | efca0c1 | GJK, shape cast, TOI; covered by hull_golden_test.go |
 | src/distance_joint.c | distance_joint.go | todo | |  |
-| src/dynamic_tree.c | dynamic_tree.go | todo | |  |
-| src/dynamic_tree.h | dynamic_tree.go | todo | |  |
+| src/dynamic_tree.c | dynamic_tree.go | verified | efca0c1 | insert/rotate, churn, moved marks, sweep and fallback refit, partial/full rebuild, save/load bytes, query/closest/ray/box cast order in dynamic_tree_golden_test.go (C scalar and NEON builds agree) |
+| src/dynamic_tree.h | dynamic_tree.go | verified | efca0c1 | node flag helpers, treeView |
 | src/height_field.c | height_field.go | todo | |  |
 | src/hull.c | hull.go | verified | efca0c1 | quickhull builder, box hulls, 2D hull; hull_golden_test.go matches C bytes/hashes |
 | src/hull.h | hull.go | verified | efca0c1 | hullMap = verstable[*HullData, int] |
@@ -143,7 +143,7 @@ each; both point at the same Go file.
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
 | test/test_determinism.c | determinism_test.go | todo | |  |
 | test/test_distance.c | distance_test.go | tested | efca0c1 |  |
-| test/test_dynamic_tree.c | dynamic_tree_test.go | todo | |  |
+| test/test_dynamic_tree.c | dynamic_tree_test.go | tested | efca0c1 |  |
 | test/test_hash.c | hash_test.go | todo | |  |
 | test/test_height_field.c | height_field_test.go | todo | |  |
 | test/test_hull.c | hull_test.go | tested | efca0c1 |  |

@@ -1,0 +1,232 @@
+empty | 2 32 -1 0 16 0 1 0 00000000 00000000 00000000 00000000 00000000 00000000 00000000 1648 d3c0edc3 00596a23 cb3df36c
+insert 0 | 2 32 -1 1 16 1 1 0 00000000 c12515f4 40db3d0b 400c7512 c10dcf94 40f562bd 40923097 1648 97f95e7d 00596a23 df8777ad
+insert 1 | 4 32 -1 2 16 2 1 1 00000000 c12515f4 40db3d0b c1005d93 40c945c1 410e172c 40923097 1648 6f0be190 7c5c7ee3 2480ee57
+insert 2 | 6 32 -1 3 16 3 1 2 3dd1d2c0 c12515f4 c0643892 c1005d93 40d63ae9 410e172c 40923097 1648 f9f5d86d 0577c409 47359647
+insert 15 | 32 32 -1 16 16 -1 0 5 3fcddd8f c12515f4 c11e71cc c1248124 41175789 41229664 410dd7d0 1648 843cfc54 69af0463 a9648dd2
+insert 16 | 34 48 -1 17 24 17 0 6 40074b23 c12515f4 c11e71cc c1248124 4124dd28 41229664 4110aa4e 2416 fc59335a 390ab863 95791ae8
+insert 100 | 202 244 -1 101 121 101 0 10 41121920 c12a6e77 c131193f c12ade19 4131734f 412c5346 412a2629 11800 2f5ba085 3fd2263d ac344b11
+inserted | 1200 1240 -1 600 609 600 0 13 41d5a705 c1310d4b c131193f c12f3f7b 4131734f 412f1bda 41318105 59368 bc801417 b1e20a81 c03d909f
+inserted query 0 | 9 9451117c 40 9
+inserted query 1 | 1 2c1dae1e 43 1
+inserted query 2 | 1 2c0b719d 17 1
+inserted query 3 | 0 00001505 18 0
+inserted query 4 | 2 0d8dd5bd 31 2
+inserted query 5 | 1 0b6336d7 17 1
+inserted query 6 | 0 00001505 9 0
+inserted query 7 | 1 2c0b719d 8 1
+inserted query 8 | 3 03d561c2 35 3
+inserted query 9 | 20 4c32bf80 44 20
+inserted query 10 | 2 9bcaa151 14 2
+inserted query 11 | 0 00001505 51 0
+inserted closest 0 | 3 138cf7e6 52 3
+inserted closest 1 | 2 ed2d4431 54 2
+inserted closest 2 | 3 bcf0a8a0 32 3
+inserted closest 3 | 1 befdbcba 26 1
+inserted closest 4 | 1 a3c010de 42 1
+inserted closest 5 | 0 7c5d2045 2 0
+inserted closest 6 | 2 ed13217b 30 2
+inserted closest 7 | 3 6e5ca8f2 106 3
+inserted closest 8 | 4 eb310514 62 4
+inserted closest 9 | 3 fb384ef5 68 3
+inserted closest 10 | 4 db15db65 58 4
+inserted closest 11 | 2 a1f79b49 40 2
+inserted ray 0 | 0 00001505 1 0
+inserted ray 1 | 1 febe68a7 31 1
+inserted ray 2 | 2 1a727763 18 2
+inserted ray 3 | 0 00001505 1 0
+inserted ray 4 | 0 00001505 22 0
+inserted ray 5 | 0 00001505 1 0
+inserted ray 6 | 2 5970b18e 18 2
+inserted ray 7 | 0 00001505 11 0
+inserted ray 8 | 1 b16b4071 14 1
+inserted ray 9 | 1 15ac77af 19 1
+inserted ray 10 | 1 0ff0f3ed 20 1
+inserted ray 11 | 1 bdbcc778 16 1
+inserted boxcast 0 | 1 b80143b6 15 1
+inserted boxcast 1 | 1 6c024bb5 14 1
+inserted boxcast 2 | 0 00001505 12 0
+inserted boxcast 3 | 7 5d8cfbd2 48 7
+inserted boxcast 4 | 5 bebd5070 52 5
+inserted boxcast 5 | 4 43d4281d 24 4
+inserted boxcast 6 | 5 fd5998ef 35 5
+inserted boxcast 7 | 0 00001505 10 0
+inserted boxcast 8 | 0 00001505 1 0
+inserted boxcast 9 | 0 00001505 1 0
+inserted boxcast 10 | 0 00001505 1 0
+inserted boxcast 11 | 0 00001505 1 0
+inserted view 0 | 12 c71a0b79 54 12
+rebuild full | 600
+rebuilt | 1200 1240 -1 600 609 600 1 12 41bd5e60 c1310d4b c131193f c12f3f7b 4131734f 412f1bda 41318105 167448 c42b1260 39142ae5 0f063f0d
+rebuilt query 0 | 2 04f7c7c7 40 2
+rebuilt query 1 | 1 d1123b9a 43 1
+rebuilt query 2 | 4 1f675035 18 4
+rebuilt query 3 | 0 00001505 26 0
+rebuilt query 4 | 3 6d9e6730 21 3
+rebuilt query 5 | 2 4ec375de 25 2
+rebuilt query 6 | 1 e0e110d8 16 1
+rebuilt query 7 | 1 5a1b1c5b 25 1
+rebuilt query 8 | 2 b9913d2b 41 2
+rebuilt query 9 | 13 c2a5eaaa 33 13
+rebuilt query 10 | 1 3bc80a5a 14 1
+rebuilt query 11 | 0 00001505 29 0
+rebuilt closest 0 | 1 4a5fbc41 36 1
+rebuilt closest 1 | 1 4d1cc716 28 1
+rebuilt closest 2 | 1 456b4611 22 1
+rebuilt closest 3 | 1 c6a37855 20 1
+rebuilt closest 4 | 4 fd712131 38 4
+rebuilt closest 5 | 0 7c5d2045 48 0
+rebuilt closest 6 | 5 80552f10 58 5
+rebuilt closest 7 | 4 26e36138 64 4
+rebuilt closest 8 | 1 cf575c9a 18 1
+rebuilt closest 9 | 1 ff43d81a 120 1
+rebuilt closest 10 | 1 2b55e1f2 18 1
+rebuilt closest 11 | 1 c1c7ee0d 32 1
+rebuilt ray 0 | 0 00001505 9 0
+rebuilt ray 1 | 0 00001505 1 0
+rebuilt ray 2 | 0 00001505 32 0
+rebuilt ray 3 | 1 9a2dcd97 18 1
+rebuilt ray 4 | 0 00001505 14 0
+rebuilt ray 5 | 1 7853d2bc 28 1
+rebuilt ray 6 | 0 00001505 1 0
+rebuilt ray 7 | 1 2086f883 18 1
+rebuilt ray 8 | 1 a0d53bdb 22 1
+rebuilt ray 9 | 1 747023fe 14 1
+rebuilt ray 10 | 0 00001505 1 0
+rebuilt ray 11 | 0 00001505 1 0
+rebuilt boxcast 0 | 1 f49b9158 21 1
+rebuilt boxcast 1 | 0 00001505 1 0
+rebuilt boxcast 2 | 0 00001505 1 0
+rebuilt boxcast 3 | 0 00001505 9 0
+rebuilt boxcast 4 | 0 00001505 1 0
+rebuilt boxcast 5 | 0 00001505 17 0
+rebuilt boxcast 6 | 5 828508ba 20 5
+rebuilt boxcast 7 | 8 d6f61783 67 8
+rebuilt boxcast 8 | 0 00001505 1 0
+rebuilt boxcast 9 | 1 9fd7e65a 35 1
+rebuilt boxcast 10 | 0 00001505 5 0
+rebuilt boxcast 11 | 0 00001505 1 0
+rebuilt view 0 | 26 43f1e7de 95 26
+destroyed | 1200 1240 742 480 609 595 1 12 41a902fd c1310d4b c131193f c12f3f7b 4131734f 412f1bda 412bc515 167448 c78d8672 da74c8e8 85c47883
+moved | 1200 1240 742 480 609 595 0 13 41ac7f4a c12b90d3 c131193f c12d89b0 4131734f 412f1bda 412a2a32 167448 db9962d4 7153b264 fee46c25
+enlarged | 1200 1240 742 480 609 595 0 13 41b2fc46 c1305da0 c1327e9f c1304896 4136401c 412f1bda 412ef6ff 167448 3a7c308e 7153b264 fee46c25
+enlarged moved | 120 be14b025
+refit unordered | 1200 1240 742 480 609 595 0 13 41b2fc46 c1305da0 c1327e9f c1304896 4136401c 412f1bda 412ef6ff 167448 3a7c308e 7153b264 fee46c25
+rebuild partial | 309
+partial | 960 1240 -1 480 609 595 1 12 41b446ff c1305da0 c1327e9f c1304896 4136401c 412f1bda 412ef6ff 167448 c874ae4d 998c5527 1c88c80d
+partial query 0 | 2 966ca0d4 10 2
+partial query 1 | 4 7be85db6 56 4
+partial query 2 | 1 9629bbb7 22 1
+partial query 3 | 0 00001505 17 0
+partial query 4 | 5 24a3c2e6 31 5
+partial query 5 | 1 73d61953 11 1
+partial query 6 | 0 00001505 1 0
+partial query 7 | 0 00001505 8 0
+partial query 8 | 0 00001505 6 0
+partial query 9 | 2 bbe30d58 12 2
+partial query 10 | 0 00001505 9 0
+partial query 11 | 0 00001505 30 0
+partial closest 0 | 6 97b8c27c 42 6
+partial closest 1 | 1 df0e17a2 20 1
+partial closest 2 | 1 ea965749 30 1
+partial closest 3 | 3 ac686966 66 3
+partial closest 4 | 1 07e252a5 22 1
+partial closest 5 | 1 8726b293 56 1
+partial closest 6 | 1 6cca4c02 20 1
+partial closest 7 | 0 7ced31c1 958 0
+partial closest 8 | 2 6474f888 30 2
+partial closest 9 | 2 4e8447ab 64 2
+partial closest 10 | 3 ef713529 26 3
+partial closest 11 | 1 1584814a 74 1
+partial ray 0 | 0 00001505 1 0
+partial ray 1 | 1 6c2521b3 10 1
+partial ray 2 | 0 00001505 1 0
+partial ray 3 | 0 00001505 4 0
+partial ray 4 | 0 00001505 12 0
+partial ray 5 | 1 119487f4 10 1
+partial ray 6 | 2 2f8248f7 16 2
+partial ray 7 | 0 00001505 10 0
+partial ray 8 | 0 00001505 1 0
+partial ray 9 | 0 00001505 1 0
+partial ray 10 | 0 00001505 10 0
+partial ray 11 | 0 00001505 5 0
+partial boxcast 0 | 0 00001505 4 0
+partial boxcast 1 | 0 00001505 8 0
+partial boxcast 2 | 0 00001505 1 0
+partial boxcast 3 | 1 457b8d98 14 1
+partial boxcast 4 | 8 60ddf55d 35 8
+partial boxcast 5 | 0 00001505 1 0
+partial boxcast 6 | 2 ed7cf8d2 12 2
+partial boxcast 7 | 0 00001505 1 0
+partial boxcast 8 | 2 1f4584ac 17 2
+partial boxcast 9 | 0 00001505 1 0
+partial boxcast 10 | 0 00001505 1 0
+partial boxcast 11 | 0 00001505 1 0
+partial view 0 | 21 842cc807 79 21
+recreated | 1200 1240 -1 600 609 600 0 12 41c66b7d c1305da0 c1327e9f c1304896 4136401c 412f1bda 412ff047 167448 4d61c33e f165732d d7d1dae9
+rebuild recreated | 343
+recreated rebuilt | 1200 1240 -1 600 609 600 1 15 41d1d994 c1305da0 c1327e9f c1304896 4136401c 412f1bda 412ff047 167448 6ba949c1 40379c07 9cb97d2c
+marked | 1200 1240 -1 600 609 600 1 15 41d1d994 c1305da0 c1327e9f c1304896 4136401c 412f1bda 412ff047 167448 c1cbd1c9 40379c07 9cb97d2c
+marked moved | 87 d4831163
+refit sweep | 1200 1240 -1 600 609 600 1 15 41d6ee67 c1305da0 c1356f76 c13189b0 4136401c 4131dceb 412ff047 167448 61d2d1e3 40379c07 9cb97d2c
+rebuild marked | 295
+marked rebuilt | 1200 1240 -1 600 609 600 1 15 41d42dfe c1305da0 c1356f76 c13189b0 4136401c 4131dceb 412ff047 167448 52213c8b 9610990d 6c261979
+marked query 0 | 1 76190597 20 1
+marked query 1 | 2 38987e2d 62 2
+marked query 2 | 2 8f2479e9 24 2
+marked query 3 | 0 00001505 28 0
+marked query 4 | 2 662ff40c 16 2
+marked query 5 | 1 437145d0 13 1
+marked query 6 | 2 f0ad9910 23 2
+marked query 7 | 0 00001505 2 0
+marked query 8 | 3 dab6a999 47 3
+marked query 9 | 1 bde3ad4d 20 1
+marked query 10 | 1 51703a6e 38 1
+marked query 11 | 0 00001505 14 0
+marked closest 0 | 1 5995e1db 42 1
+marked closest 1 | 2 044a9dd0 34 2
+marked closest 2 | 1 dc24805e 22 1
+marked closest 3 | 2 b2040e2c 52 2
+marked closest 4 | 3 8c736c42 34 3
+marked closest 5 | 0 7c5d2045 18 0
+marked closest 6 | 1 b3cee4fd 20 1
+marked closest 7 | 1 45c7fec0 68 1
+marked closest 8 | 2 369916da 28 2
+marked closest 9 | 3 815577ff 22 3
+marked closest 10 | 3 c0ebd26d 32 3
+marked closest 11 | 2 d60331ab 54 2
+marked ray 0 | 0 00001505 14 0
+marked ray 1 | 0 00001505 1 0
+marked ray 2 | 0 00001505 3 0
+marked ray 3 | 1 a278cfe2 13 1
+marked ray 4 | 0 00001505 1 0
+marked ray 5 | 0 00001505 8 0
+marked ray 6 | 0 00001505 1 0
+marked ray 7 | 0 00001505 23 0
+marked ray 8 | 0 00001505 9 0
+marked ray 9 | 0 00001505 12 0
+marked ray 10 | 0 00001505 19 0
+marked ray 11 | 2 d2c0fa4a 13 2
+marked boxcast 0 | 5 326efc3b 54 5
+marked boxcast 1 | 0 00001505 5 0
+marked boxcast 2 | 0 00001505 25 0
+marked boxcast 3 | 0 00001505 1 0
+marked boxcast 4 | 1 e9e3a99c 8 1
+marked boxcast 5 | 0 00001505 1 0
+marked boxcast 6 | 5 5a54f874 44 5
+marked boxcast 7 | 0 00001505 10 0
+marked boxcast 8 | 0 00001505 1 0
+marked boxcast 9 | 6 4b28c55e 34 6
+marked boxcast 10 | 6 b7f4338e 29 6
+marked boxcast 11 | 1 51bba9a0 17 1
+marked view 0 | 5 45f95599 48 5
+internal moved | 67 ab14b2a8
+cleared | 1200 1240 -1 600 609 600 0 15 41cf2e6d c1305da0 c1327e9f c13189b0 4136401c 4131dceb 41300b7b 167448 395b5730 310f70d7 a26a4fc4
+saved | 57928 7dc5820c
+loaded | 1200 1200 -1 600 609 600 0 15 41cf2e6d c1b05da0 c1b27e9f c1b189b0 41b6401c 41b1dceb 41b00b7b 57928 965b5730 310f70d7 a26a4fc4
+loaded rebuilt | 1200 1200 -1 600 609 600 1 12 41c8a21a c1b05da0 c1b27e9f c1b189b0 41b6401c 41b1dceb 41b00b7b 164728 c4eb59b7 fee354e5 f2ab598d
+single | 1200 1240 768 1 609 598 0 0 00000000 410089a2 c0f926bf 40cf8162 4116d926 c0bb18ab 40fa6fa6 167448 61b79b1e 4baba753 2770ae56
+rebuild single | 1
+single rebuilt | 2 1240 -1 1 609 598 1 0 00000000 410089a2 c0f926bf 40cf8162 4116d926 c0bb18ab 40fa6fa6 167448 3d50888c 00596a23 2770ae56
+refilled | 82 1240 -1 41 609 558 0 9 3fea0774 c03b755e c0f926bf c04ecd84 4116d926 402b5609 40fa6fa6 167448 7d804409 cde51b19 36ba2e87
+rebuild refilled | 1
+refilled rebuilt | 82 1240 -1 41 609 558 1 9 3fea0775 c03b755e c0f926bf c04ecd84 4116d926 402b5609 40fa6fa6 167448 eb8b3a09 5b7d1d45 9a672351
