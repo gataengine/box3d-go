@@ -107,11 +107,11 @@ scalar lane primitives `mulW` / `addW` / `subW` (simd_scalar.go), and with their
 `b3FloatW` lanes in registers and inlines the whole kernel; the Go port passes four-float structs
 through small functions with float32 conversions (needed against FMA fusion). The planned SIMD
 backend (spec: "a `simd`-package backend behind a build tag") or a register-friendlier scalar
-`floatW` is where the speed is; both are outside this milestone.
+`floatW` is where the speed is; both are outside the port's current scope.
 
 ## No allocations in Step
 
-Before this milestone the stack and arena allocators returned a fresh `make` for every request
+Before milestone 6 the stack and arena allocators returned a fresh `make` for every request
 and several C stack locals escaped to the heap. Now:
 
 - `stackAlloc` / `bump` hand out slices of per-element-type backing buffers owned by the world's

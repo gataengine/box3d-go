@@ -108,7 +108,9 @@ runs upstream's scalar 4-lane backend, `GetSIMDWidth()` is 4), Tracy, and the sa
   match bit for bit for math, collision, broad phase, solver, every joint type and a full world
   scene, at 1, 2 and 4 workers. Results do not depend on the worker count.
 - Verified on darwin/arm64 and darwin/amd64, under the default build, `box3d_noassert`,
-  `box3d_validate` and `-race`.
+  `box3d_validate` and `-race`; and on windows/amd64 and linux/amd64 (default and
+  `box3d_validate`; linux also with `GOAMD64=v3` on AVX2/FMA hardware) through the monorepo's
+  `tools/xcheck`. The goldens are the same on every platform.
 - FMA rule: Go fuses `a + b*c` into a fused multiply-add on arm64 (and amd64 v3); upstream builds
   with `-ffp-contract=off`. Every multiply that feeds an add is wrapped in an explicit `float32()`
   conversion (`mulAdd` / `mulSub`). `fma_guard_test.go` compiles the package for arm64 and

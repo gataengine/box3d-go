@@ -17,37 +17,35 @@ public symbol to its Go name by the naming rules below and checks the package's 
 files declare it. `-v` prints the whole mapping. Exit status 2 means something is missing.
 Runs on bash 3.2 (macOS `/bin/bash`) and Linux bash 5; needs perl.
 
-Current result (darwin/arm64 and linux/amd64 give identical output):
+Current result (darwin/arm64, 2026-10-17):
 
 ```
-b3_api: total=596 mapped=592 omitted=3 missing=1
-  MISSING b3GetGraphColor -> GetGraphColor
+b3_api: total=596 mapped=593 omitted=3 missing=0
 b3_inline: total=103 mapped=103 omitted=0 missing=0
 types: total=146 mapped=144 omitted=2 missing=0
 enums: total=194 mapped=194 omitted=0 missing=0
 constants: total=46 mapped=45 omitted=1 missing=0
 ---
-go_exported_funcs_and_methods=735
-mapped=1078 omitted=6 missing=1
+go_exported_funcs_and_methods=736
+mapped=1079 omitted=6 missing=0
 ```
 
 | symbol class | upstream | mapped | intentionally omitted | missing |
 |---|---:|---:|---:|---:|
-| `B3_API` functions | 596 | 592 | 3 | 1 |
+| `B3_API` functions | 596 | 593 | 3 | 0 |
 | `B3_INLINE` functions of the public headers | 103 | 103 | 0 | 0 |
 | public types (`typedef struct/enum/union`, plain and function typedefs) | 146 | 144 | 2 | 0 |
 | enum values (`b3_staticBody`, …) | 194 | 194 | 0 | 0 |
 | `B3_` constants with a value | 46 | 45 | 1 | 0 |
-| **total** | **1085** | **1078** | **6** | **1** |
+| **total** | **1085** | **1079** | **6** | **0** |
 
 The audit checks names, not behaviour; behaviour is covered by the ported upstream tests and the
 goldens (see Determinism below and `PROGRESS.md`).
 
 ### Missing
 
-| symbol | state | to do |
-|---|---|---|
-| `b3GetGraphColor( int index )` (types.h, defined in constraint_graph.c) | ported as unexported `getGraphColor` in constraint_graph.go | export it as `GetGraphColor` (samples use it to colour the constraint graph overlay) |
+None: every public symbol is either ported or listed under "Intentionally not ported" below
+(`b3GetGraphColor` is exported as `GetGraphColor`).
 
 ### Intentionally not ported
 
@@ -118,12 +116,16 @@ These follow the spec's translation rules; every instance is in `LOOSE_ENDS.md`.
 
 ## Determinism and byte compatibility
 
-From `PROGRESS.md` (milestone 5 complete):
+From `PROGRESS.md` (port complete, milestones 1-6 done):
 
 - `test_determinism.c` passes with upstream's float golden hashes verbatim — ragdoll at 1–5
   workers, wave pile 1–4, query spawn 1–4, mesh drop 1 and 4, cross-platform at 1 — on
   darwin/arm64 and darwin/amd64 (Rosetta), and under `box3d_noassert`, `box3d_validate` and
   `-race`.
+- Cross-platform: the whole suite (415 specs, every golden and `test_determinism.c` hash) passes
+  unchanged on darwin/arm64, windows/amd64 and linux/amd64, the last also with `GOAMD64=v3`
+  (AVX2/FMA hardware) and with `box3d_validate` (413 specs, the two broad phase golden specs skip
+  by design), via `tools/xcheck` on 2026-10-17. No platform-specific goldens.
 - Go-vs-C goldens (generators in `testdata/*_gen.c`, built against the submodule with
   `-ffp-contract=off`) match bit for bit for foundation math, hulls, manifolds, mesh / height
   field / compound geometry, broad phase, dynamic tree, contact solver, solver kernels, every joint

@@ -3,7 +3,14 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **6 — Benchmarks, parity audit, docs**. Part A: shared/benchmarks.c and benchmark/main.c are ported (bench_test.go, results in PERFORMANCE.md) and a warm `World.Step` allocates nothing at 1 and 4 workers (step_alloc_test.go). Milestone 5 (Determinism and replay)
+- Status: **port complete** — milestones 1-6 are done. Milestone 6 (Benchmarks, parity audit,
+  docs) is complete: shared/benchmarks.c and benchmark/main.c are ported (bench_test.go, results
+  in PERFORMANCE.md), a warm `World.Step` allocates nothing at 1 and 4 workers
+  (step_alloc_test.go), `tools/parity_audit.sh` reports every public upstream symbol mapped or
+  intentionally omitted (mapped=1079 omitted=6 missing=0, PARITY_REPORT.md) and README.md
+  documents the API. Cross-platform: the full suite (415 specs, all goldens) passes on
+  darwin/arm64, windows/amd64 and linux/amd64 (also `GOAMD64=v3` and `box3d_validate`) via
+  tools/xcheck, 2026-10-17. Milestone 5 (Determinism and replay)
   is complete: recording.c, replay.c, world_snapshot.c and recording_ops.inl are ported (snapshots
   are Go-native as the spec decides; C snapshot images are rejected by the layout hash before the
   world is touched), test_recording.c passes 21/21, test_name_cache.c 3/3 (NameRoundTrip and
