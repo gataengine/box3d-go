@@ -90,8 +90,9 @@ var graphColors = [GraphColorCount]HexColor{
 	ColorHotPink, ColorTomato, ColorKhaki, ColorSilver,
 }
 
-// getGraphColor is b3GetGraphColor.
-func getGraphColor(index int) HexColor {
+// GetGraphColor is b3GetGraphColor: get the visualization color assigned to a constraint graph
+// color slot. The last index (GraphColorCount - 1) is the overflow color.
+func GetGraphColor(index int) HexColor {
 	assert(0 <= index && index < GraphColorCount, "0 <= index && index < B3_GRAPH_COLOR_COUNT")
 	return graphColors[index]
 }
