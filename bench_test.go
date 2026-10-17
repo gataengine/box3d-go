@@ -27,6 +27,9 @@ import (
 // The SAT benchmark (BOX3D_INTERNAL_BENCHMARKS), Tracy, -nc, profile recording (-s) and the
 // commented-out smash and tumbler entries are not ported. Run the benchmarks with
 // -tags box3d_noassert to match upstream's release build, which compiles B3_ASSERT out.
+// BOX3D_BENCH_WIDTH (4 or 8, default: the native width) forces the SIMD width with SetSIMDWidth
+// for the whole benchmark, as main.c's -simd=<4|8> does (static builds only); a width the CPU or
+// build cannot run fails the benchmark rather than measure another one.
 
 // benchmarkScene is Benchmark.
 type benchmarkScene struct {
@@ -76,6 +79,24 @@ func benchmarkWorkerCounts(b *testing.B) []int {
 	return counts
 }
 
+// setBenchmarkSIMDWidth applies BOX3D_BENCH_WIDTH and restores the previous setting when b ends.
+func setBenchmarkSIMDWidth(b *testing.B) {
+	spec := strings.TrimSpace(os.Getenv("BOX3D_BENCH_WIDTH"))
+	if spec == "" {
+		return
+	}
+	width, err := strconv.Atoi(spec)
+	if err != nil || (width != 4 && width != 8) {
+		b.Fatalf("BOX3D_BENCH_WIDTH: want 4 or 8, got %q", spec)
+	}
+	saved := int(atomicLoadInt(&simdWidth))
+	b.Cleanup(func() { SetSIMDWidth(saved) })
+	SetSIMDWidth(width)
+	if got := GetSIMDWidth(); got != width {
+		b.Fatalf("BOX3D_BENCH_WIDTH=%d: this CPU and build run width %d", width, got)
+	}
+}
+
 // findBenchmarkScene is FindBenchmark (exact name, as the table holds lower case names).
 func findBenchmarkScene(name string) *benchmarkScene {
 	for i := range benchmarkScenes {
@@ -97,6 +118,8 @@ func runBenchmarkScene(b *testing.B, name string) {
 	saved := benchmarkDebug
 	benchmarkDebug = false
 	b.Cleanup(func() { benchmarkDebug = saved })
+
+	setBenchmarkSIMDWidth(b)
 
 	stepCount := benchmark.totalStepCount
 
@@ -156,6 +179,7 @@ func runBenchmarkScene(b *testing.B, name string) {
 			b.ReportMetric(float64(b.Elapsed().Microseconds())/float64(b.N)/float64(stepCount-1), "us/step")
 			b.ReportMetric(float64(counters.BodyCount), "bodies")
 			b.ReportMetric(float64(counters.ContactCount), "contacts")
+			b.ReportMetric(float64(GetSIMDWidth()), "width")
 		})
 	}
 }

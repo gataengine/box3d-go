@@ -1,8 +1,11 @@
 # Performance
 
 Spec scope: the only performance goal of the port is **no allocations in `World.Step`**. Speed
-beyond that is a non-goal for now (scalar lanes first, a SIMD backend later). This file records
-where the port stands against upstream so later work has a baseline.
+beyond that was a non-goal for the port itself (scalar lanes first); the opt-in SIMD backend
+(`GOEXPERIMENT=simd`, `-tags box3d_simd`, see README.md) followed, measured in
+[SIMD backend](#simd-backend) against upstream C with its SIMD on. This file records where the
+port stands against upstream so later work has a baseline. The Environment, Methodology and
+Results sections below are the default build (scalar lanes) against C with SIMD off.
 
 ## Environment
 
@@ -98,16 +101,203 @@ Reading the table:
   queries are outside the no-allocation goal and still allocate their callback contexts). Once a
   scene is warm, `World.Step` itself allocates nothing: see below.
 
+## SIMD backend
+
+Upstream C with its SIMD on against the Go SIMD build, on the Mac (NEON, width 4) and on
+gata-win (AVX2, width 8, and forced width 4).
+
+### Environment
+
+| | |
+|---|---|
+| Mac | as above (M1 Max, macOS 15.7.4, go1.27.1); C built with `-DBOX3D_DISABLE_SIMD=OFF` (NEON). Not idle: background desktop load of about 4 cores (load average 25-95) during the runs, see below |
+| gata-win | AMD Ryzen 9 5900X (12 cores / 24 threads, AVX2, no AVX-512), 64 GB, Windows 11 Pro 10.0.22621, go1.27.1 windows/amd64, otherwise idle (benchmarks under xcheck's host lock) |
+| C on gata-win | upstream `efca0c1` (a `git archive` of the submodule), TDM-GCC 10.3.0 (tdm64-1), no CMake on the host, so compiled with the flags CMake would pass: `gcc -O3 -DNDEBUG -std=gnu17 -ffp-contract=off -D_WIN32_WINNT=0x0A00`, `src/*.c`, `shared/*.c` with `BOX3D_INTERNAL_BENCHMARKS` (static linkage, as CMake's static build), `benchmark/main.c`. Default SIMD settings: SSE2 and the AVX2 kernels (`wide8.c` via `B3_AVX2_BEGIN`), runtime width 8. `_WIN32_WINNT` makes `CreateSemaphoreExW` visible to TDM's headers (without it timer.c gets an implicit 32-bit declaration) |
+| Upstream CSVs | `amd7950x_avx2` (Ryzen 9 7950X, AVX2) and `m2air_neon` (M2 Air, NEON): other hardware, for shape only |
+
+### Methodology
+
+- C on the Mac: `cmake -S third_party/box3d -B <scratch>/box3d-bench-simd -DCMAKE_BUILD_TYPE=Release
+  -DBOX3D_BENCHMARKS=ON -DBOX3D_SAMPLES=OFF -DBOX3D_UNIT_TESTS=OFF -DBOX3D_DISABLE_SIMD=OFF
+  -DBOX3D_VALIDATE=OFF` (upstream's CMakeLists adds `-ffp-contract=off` for clang and gcc itself),
+  then `benchmark -t=8 -w=N -r=2` for N = 1, 4, 8. On gata-win the same runs with `-simd=8`
+  (the native width) and `-simd=4` (needs the static build).
+- Go: `BOX3D_BENCH_WORKERS=1,4,8 GOEXPERIMENT=simd go test -tags box3d_simd,box3d_noassert
+  -run '^$' -bench . -benchtime 1x -count 2 .`, on gata-win through `tools/xcheck` at the
+  native width 8 and with `BOX3D_BENCH_WIDTH=4` (bench_test.go: `SetSIMDWidth(4)` for the whole
+  benchmark, restored afterwards; the `width` metric of each line confirms the width). The Go
+  default build on gata-win is the same command without `GOEXPERIMENT` and `box3d_simd`.
+- Figures are the minimum over the runs, total ms for the timed steps of one run, as in
+  [Methodology](#methodology). On the Mac the C set was run before and again after the Go set
+  (4 runs per cell, minimum taken) because of the background load; "Go default" on the Mac is
+  the [Results](#results) table (a spot check today: convex_pile 36,791, large_pyramid 22,249,
+  rain 5,196 ms at 1 worker, within 4% of it).
+- Bodies and contacts at the end of each run are the same as in the default build (and C).
+
+### Mac (M1 Max), width 4
+
+| benchmark | workers | Go SIMD ms | C SIMD (NEON, this Mac) ms | Go SIMD / C SIMD | Go default ms | Go default / Go SIMD | C scalar ms | upstream m2air neon ms |
+|---|---|---|---|---|---|---|---|---|
+| convex_pile | 1 | 11,995.3 | 4,997.6 | 2.40 | 36,656.0 | 3.06 | 5,994.8 | 15,032.6 |
+| convex_pile | 4 | 3,552.4 | 1,813.1 | 1.96 | 11,006.7 | 3.10 | 1,925.0 | 4,296.5 |
+| convex_pile | 8 | 2,842.4 | 1,396.0 | 2.04 | 8,321.3 | 2.93 | 1,536.5 | — |
+| joint_grid | 1 | 2,860.0 | 889.9 | 3.21 | 2,987.3 | 1.04 | 903.6 | 1,089.8 |
+| joint_grid | 4 | 823.1 | 296.0 | 2.78 | 932.7 | 1.13 | 275.5 | 309.3 |
+| joint_grid | 8 | 592.7 | 213.7 | 2.77 | 685.2 | 1.16 | 232.2 | — |
+| junkyard | 1 | 28,291.0 | 10,492.0 | 2.70 | 80,771.4 | 2.86 | 12,338.9 | 13,501.4 |
+| junkyard | 4 | 8,303.4 | 4,446.1 | 1.87 | 22,150.9 | 2.67 | 4,241.8 | 4,253.7 |
+| junkyard | 8 | 6,260.7 | 3,010.4 | 2.08 | 15,505.8 | 2.48 | 3,432.4 | — |
+| large_pyramid | 1 | 3,240.1 | 1,232.7 | 2.63 | 21,405.3 | 6.61 | 1,932.1 | 1,810.7 |
+| large_pyramid | 4 | 1,095.1 | 494.6 | 2.21 | 6,316.7 | 5.77 | 668.4 | 563.5 |
+| large_pyramid | 8 | 872.2 | 366.2 | 2.38 | 4,298.2 | 4.93 | 557.0 | — |
+| large_world | 1 | 19.2 | 4.3 | 4.49 | 61.6 | 3.20 | 5.9 | 9.0 |
+| large_world | 4 | 20.9 | 9.9 | 2.12 | 76.6 | 3.66 | 14.7 | 15.0 |
+| large_world | 8 | 27.3 | 19.3 | 1.42 | 84.2 | 3.08 | 17.6 | — |
+| many_pyramids | 1 | 4,069.6 | 1,198.8 | 3.39 | 21,317.8 | 5.24 | 1,855.1 | 1,917.4 |
+| many_pyramids | 4 | 988.2 | 425.1 | 2.32 | 5,342.2 | 5.41 | 690.3 | 621.3 |
+| many_pyramids | 8 | 679.4 | 396.0 | 1.72 | 3,636.9 | 5.35 | 579.7 | — |
+| mesh_drop | 1 | 2,671.9 | 1,349.8 | 1.98 | 9,844.9 | 3.68 | 1,582.8 | — |
+| mesh_drop | 4 | 894.2 | 464.9 | 1.92 | 2,840.3 | 3.18 | 577.2 | — |
+| mesh_drop | 8 | 664.6 | 343.8 | 1.93 | 1,775.1 | 2.67 | 464.3 | — |
+| rain | 1 | 2,863.7 | 1,649.4 | 1.74 | 4,843.6 | 1.69 | 1,721.3 | 1,954.8 |
+| rain | 4 | 1,202.9 | 721.7 | 1.67 | 1,781.6 | 1.48 | 704.7 | 626.2 |
+| rain | 8 | 1,076.4 | 564.6 | 1.91 | 1,503.5 | 1.40 | 716.5 | — |
+| sleep | 1 | 1,637.8 | 589.6 | 2.78 | 12,544.0 | 7.66 | 980.5 | — |
+| sleep | 4 | 701.6 | 317.1 | 2.21 | 3,582.8 | 5.11 | 464.4 | — |
+| sleep | 8 | 639.7 | 299.1 | 2.14 | 2,702.8 | 4.23 | 422.0 | — |
+| spinner | 1 | 6,290.3 | 2,479.1 | 2.54 | 20,125.0 | 3.20 | 3,149.3 | — |
+| spinner | 4 | 3,118.9 | 1,427.2 | 2.19 | 8,227.6 | 2.64 | 1,665.0 | — |
+| spinner | 8 | 2,863.3 | 1,247.2 | 2.30 | 6,156.7 | 2.15 | 1,607.6 | — |
+| trees100 | 1 | 232.9 | 98.3 | 2.37 | 689.1 | 2.96 | 125.2 | 186.1 |
+| trees100 | 4 | 138.9 | 75.2 | 1.85 | 451.0 | 3.25 | 88.6 | 91.2 |
+| trees100 | 8 | 174.2 | 78.0 | 2.23 | 474.7 | 2.73 | 93.0 | — |
+| trees25 | 1 | 740.7 | 347.2 | 2.13 | 1,987.1 | 2.68 | 468.9 | 609.9 |
+| trees25 | 4 | 342.2 | 171.3 | 2.00 | 938.1 | 2.74 | 205.7 | 236.2 |
+| trees25 | 8 | 299.7 | 154.1 | 1.95 | 889.9 | 2.97 | 180.0 | — |
+| trees50 | 1 | 362.6 | 164.4 | 2.20 | 1,108.6 | 3.06 | 201.6 | 288.3 |
+| trees50 | 4 | 191.7 | 102.0 | 1.88 | 618.4 | 3.23 | 113.3 | 156.9 |
+| trees50 | 8 | 194.8 | 95.9 | 2.03 | 534.5 | 2.74 | 115.5 | — |
+| village | 1 | 5,148.6 | 1,930.0 | 2.67 | 21,835.4 | 4.24 | 3,143.3 | — |
+| village | 4 | 2,290.5 | 1,028.3 | 2.23 | 6,760.0 | 2.95 | 1,220.0 | — |
+| village | 8 | 1,928.3 | 882.7 | 2.18 | 5,613.7 | 2.91 | 1,071.5 | — |
+| washer | 1 | 37,474.3 | 16,107.3 | 2.33 | 130,195.4 | 3.47 | 19,810.8 | 21,065.2 |
+| washer | 4 | 12,142.2 | 6,907.1 | 1.76 | 38,227.4 | 3.15 | 7,563.5 | 7,675.2 |
+| washer | 8 | 9,429.2 | 4,383.1 | 2.15 | 29,613.4 | 3.14 | 5,976.1 | — |
+
+### gata-win (Ryzen 9 5900X), width 8 and width 4
+
+| benchmark | workers | Go SIMD w8 ms | C AVX2 w8 ms | Go / C (w8) | Go SIMD w4 ms | C w4 ms | Go / C (w4) | Go default ms | Go default / Go w8 | upstream amd7950x avx2 ms |
+|---|---|---|---|---|---|---|---|---|---|---|
+| convex_pile | 1 | 12,197.0 | 4,510.4 | 2.70 | 11,040.2 | 4,689.0 | 2.35 | 42,839.5 | 3.51 | 5,093.0 |
+| convex_pile | 4 | 3,493.1 | 1,360.3 | 2.57 | 3,178.3 | 1,416.6 | 2.24 | 11,712.8 | 3.35 | 1,439.3 |
+| convex_pile | 8 | 2,598.7 | 1,103.5 | 2.36 | 2,486.7 | 1,171.7 | 2.12 | 6,933.4 | 2.67 | 846.3 |
+| joint_grid | 1 | 1,536.1 | 1,032.9 | 1.49 | 1,516.9 | 1,026.7 | 1.48 | 1,526.8 | 0.99 | 1,332.9 |
+| joint_grid | 4 | 455.7 | 284.6 | 1.60 | 443.2 | 284.1 | 1.56 | 451.4 | 0.99 | 352.2 |
+| joint_grid | 8 | 410.9 | 219.0 | 1.88 | 408.8 | 216.5 | 1.89 | 405.2 | 0.99 | 185.4 |
+| junkyard | 1 | 28,260.6 | 10,706.3 | 2.64 | 28,343.5 | 11,423.4 | 2.48 | 86,628.0 | 3.07 | 11,236.9 |
+| junkyard | 4 | 8,334.5 | 3,331.2 | 2.50 | 8,543.4 | 3,554.0 | 2.40 | 25,130.4 | 3.02 | 3,147.6 |
+| junkyard | 8 | 5,890.6 | 2,606.2 | 2.26 | 6,229.3 | 2,773.2 | 2.25 | 14,437.5 | 2.45 | 1,823.0 |
+| large_pyramid | 1 | 3,836.9 | 892.4 | 4.30 | 4,251.7 | 1,134.9 | 3.75 | 25,410.9 | 6.62 | 1,099.9 |
+| large_pyramid | 4 | 1,160.7 | 271.5 | 4.28 | 1,281.2 | 331.2 | 3.87 | 7,296.1 | 6.29 | 302.6 |
+| large_pyramid | 8 | 983.2 | 311.9 | 3.15 | 1,020.9 | 349.0 | 2.93 | 4,066.1 | 4.14 | 175.8 |
+| large_world | 1 | 16.7 | 4.4 | 3.83 | 18.4 | 5.0 | 3.69 | 67.1 | 4.01 | 5.3 |
+| large_world | 4 | 23.5 | 9.1 | 2.58 | 25.0 | 10.0 | 2.48 | 76.4 | 3.26 | 8.8 |
+| large_world | 8 | 26.7 | 14.6 | 1.83 | 27.7 | 14.7 | 1.88 | 86.4 | 3.24 | 9.4 |
+| many_pyramids | 1 | 3,926.4 | 1,045.3 | 3.76 | 4,265.2 | 1,245.9 | 3.42 | 24,237.6 | 6.17 | 1,252.3 |
+| many_pyramids | 4 | 1,155.7 | 297.7 | 3.88 | 1,289.0 | 357.1 | 3.61 | 7,080.4 | 6.13 | 311.5 |
+| many_pyramids | 8 | 886.5 | 272.4 | 3.25 | 939.6 | 300.7 | 3.13 | 3,874.2 | 4.37 | 162.0 |
+| mesh_drop | 1 | 2,753.3 | 1,233.4 | 2.23 | 2,867.9 | 1,320.9 | 2.17 | 11,070.1 | 4.02 | 1,287.0 |
+| mesh_drop | 4 | 870.9 | 369.1 | 2.36 | 915.4 | 418.6 | 2.19 | 3,313.9 | 3.81 | 360.3 |
+| mesh_drop | 8 | 683.7 | 309.2 | 2.21 | 706.9 | 334.5 | 2.11 | 1,926.6 | 2.82 | 215.0 |
+| rain | 1 | 2,732.7 | 1,640.0 | 1.67 | 2,773.7 | 1,670.4 | 1.66 | 5,006.0 | 1.83 | 1,832.4 |
+| rain | 4 | 966.6 | 520.5 | 1.86 | 965.9 | 535.5 | 1.80 | 1,706.2 | 1.77 | 547.2 |
+| rain | 8 | 950.4 | 462.8 | 2.05 | 954.8 | 465.7 | 2.05 | 1,409.1 | 1.48 | 325.8 |
+| sleep | 1 | 2,101.5 | 497.9 | 4.22 | 2,358.2 | 636.7 | 3.70 | 14,620.4 | 6.96 | 625.7 |
+| sleep | 4 | 693.0 | 168.8 | 4.11 | 732.4 | 207.3 | 3.53 | 4,120.4 | 5.95 | 187.9 |
+| sleep | 8 | 668.4 | 212.7 | 3.14 | 695.0 | 236.3 | 2.94 | 2,514.6 | 3.76 | 125.6 |
+| spinner | 1 | 6,921.5 | 2,155.6 | 3.21 | 7,487.7 | 2,380.4 | 3.15 | 21,793.7 | 3.15 | 2,274.2 |
+| spinner | 4 | 2,428.9 | 813.9 | 2.98 | 2,635.0 | 913.6 | 2.88 | 6,923.4 | 2.85 | 782.7 |
+| spinner | 8 | 2,500.3 | 1,028.0 | 2.43 | 2,744.9 | 1,156.9 | 2.37 | 5,114.3 | 2.05 | 541.7 |
+| trees100 | 1 | 239.6 | 103.5 | 2.31 | 242.1 | 106.7 | 2.27 | 753.2 | 3.14 | 103.8 |
+| trees100 | 4 | 130.3 | 54.9 | 2.37 | 127.4 | 56.3 | 2.26 | 456.7 | 3.51 | 53.7 |
+| trees100 | 8 | 141.5 | 62.1 | 2.28 | 147.0 | 64.0 | 2.30 | 471.8 | 3.33 | 47.8 |
+| trees25 | 1 | 809.5 | 349.7 | 2.31 | 804.4 | 356.1 | 2.26 | 2,223.9 | 2.75 | 357.9 |
+| trees25 | 4 | 332.3 | 144.2 | 2.30 | 326.3 | 147.2 | 2.22 | 976.1 | 2.94 | 147.6 |
+| trees25 | 8 | 293.7 | 129.7 | 2.26 | 295.5 | 134.8 | 2.19 | 868.2 | 2.96 | 119.3 |
+| trees50 | 1 | 387.2 | 170.0 | 2.28 | 387.1 | 173.8 | 2.23 | 1,088.4 | 2.81 | 162.5 |
+| trees50 | 4 | 181.6 | 78.0 | 2.33 | 177.4 | 80.8 | 2.20 | 561.8 | 3.09 | 74.3 |
+| trees50 | 8 | 178.1 | 78.6 | 2.26 | 182.7 | 81.7 | 2.24 | 551.5 | 3.10 | 63.7 |
+| village | 1 | 5,273.2 | 1,878.4 | 2.81 | 5,552.3 | 2,096.5 | 2.65 | 22,878.0 | 4.34 | — |
+| village | 4 | 2,065.3 | 764.1 | 2.70 | 2,122.2 | 824.1 | 2.58 | 7,105.0 | 3.44 | — |
+| village | 8 | 1,957.2 | 778.5 | 2.51 | 2,057.2 | 850.4 | 2.42 | 4,727.3 | 2.42 | — |
+| washer | 1 | 39,432.3 | 14,440.9 | 2.73 | 39,260.0 | 15,568.6 | 2.52 | 139,475.5 | 3.54 | 15,659.7 |
+| washer | 4 | 11,625.8 | 4,440.8 | 2.62 | 11,840.8 | 4,799.1 | 2.47 | 40,375.8 | 3.47 | 4,424.7 |
+| washer | 8 | 9,104.2 | 3,904.6 | 2.33 | 9,612.1 | 4,254.0 | 2.26 | 24,056.0 | 2.64 | 2,534.4 |
+
+### Reading the tables
+
+- Go SIMD against C SIMD on the same machine: Mac median 2.5x slower at 1 worker (1.7-4.5x),
+  2.0x at 4, 2.1x at 8; gata-win at width 8 median 2.7x at 1 worker (1.5-4.3x), 2.6x at 4,
+  2.3x at 8, and at width 4 against C width 4 2.5x / 2.4x / 2.3x. Before the backend the gap to C
+  on the Mac was 6.4x (median, 1 worker, scalar against scalar), and C itself gains 1.27x
+  (median) from NEON over its scalar build there.
+- Go SIMD against the Go default build: Mac median 3.2x faster at 1 and 4 workers (1.04-7.7x),
+  gata-win 3.5x at 1 worker, 3.4x at 4, 2.8x at 8 (0.99-7.0x). Solver-bound stacking gains most
+  (large_pyramid 6.6x on both machines, sleep 7.7x / 7.0x, many_pyramids 5.2x / 6.2x).
+- No gain: joint_grid (1.0-1.2x) has no wide kernels; rain gains least (1.4-1.8x, joints and
+  ragdoll spawning). The largest remaining gaps to C are the same stacking scenes (large_pyramid,
+  many_pyramids, sleep 3.1-4.3x on gata-win), where the body gather/scatter dominates
+  ([Where the time goes](#where-the-time-goes)).
+- Width 8 against width 4 in Go on gata-win: median 2-4% faster. Width 8 is up to 12% faster
+  on large_pyramid, many_pyramids and sleep, about equal on joint_grid, rain and the trees
+  scenes, and 4-10% slower on convex_pile. C gains 6-8% from width 8 (median), 19-28% on the
+  stacking scenes at 1 and 4 workers. Not re-measured here: on linux (the gata-linux container,
+  AMD Renoir) the width 8 work measured large_pyramid at 1 worker as 24.2 ms/step at width 8
+  and 26.6 at width 4.
+- Mac multi-worker figures are noisy (the two C sets differ by up to 70% in single 4- and
+  8-worker cells, median 5%); the 1-worker figures and everything on gata-win are steadier.
+- gata-win scales worse from 4 to 8 workers than the upstream 7950X CSVs, in C as in Go
+  (large_pyramid C 272 ms at 4 workers, 312 at 8). C shows it too, so it is the machine or the
+  toolchain, not the port.
+
 ## Where the time goes
 
-CPU profile of large_pyramid at 1 worker (`go tool pprof -top`): 45% of samples are in the
-scalar lane primitives `mulW` / `addW` / `subW` (simd_scalar.go), and with their callers
-(`solveContactsW`, `pushContactsW`, `prepareConstraintW`, `warmStartContactsW`, `crossW`,
-`mulMVW`, `dotW`) the wide contact solver is the bulk of the step. The C compiler keeps
-`b3FloatW` lanes in registers and inlines the whole kernel; the Go port passes four-float structs
-through small functions with float32 conversions (needed against FMA fusion). The planned SIMD
-backend (spec: "a `simd`-package backend behind a build tag") or a register-friendlier scalar
-`floatW` is where the speed is; both are outside the port's current scope.
+Default build, before the SIMD backend: 45% of the large_pyramid samples (1 worker) were in the
+scalar lane primitives `mulW` / `addW` / `subW` (simd_scalar.go), four-float structs passed
+through small functions with float32 conversions (needed against FMA fusion); with their callers
+the wide contact solver was the bulk of the step.
+
+SIMD build, large_pyramid at 1 worker (`go test -tags box3d_simd,box3d_noassert -bench
+LargePyramid -benchtime 1x -cpuprofile`, `go tool pprof -top`; one run, about 3.5 s of samples):
+
+| | Mac, width 4 (NEON) | gata-win, width 8 (AVX2) | gata-win, width 4 (SSE) |
+|---|---|---|---|
+| ms/step | 16.4 | 19.1 | 21.3 |
+| body state gather (`gatherBodies*`, cum) | 18.7% (`bodyStateLoadW` 8.2%) | 22.7% | 38.2% (`bodyStateLoadW` 31.9% flat) |
+| body state scatter (`scatterBodies*`, cum, of which `storeBodyVelocity*`) | 9.8% (5.3%) | under 1% | 7.2% (6.3%) |
+| solve / push / warm start / prepare kernels (cum, gathers included) | 23.9% / 23.9% / 11.5% / 6.6% | 19.1% / 17.2% / 13.3% / 23.0% | 26.3% / 25.2% / 17.3% / 8.6% |
+| lane arithmetic, flat (`mulW*`, `addW*`, `subW*`, `crossW*`, `dotW`, `mulMVW*`, `blendW*`, …) | about 13% | about 12% | about 19% |
+| `setW8` field gathers in prepare / store impulses (flat) | — | 8.1% | — |
+| collide (`collideTask`, cum) | 13.1% | 6.8% | 8.2% |
+
+- The lane arithmetic is no longer where the time goes: it went from 45% to 12-19% of the
+  samples, mostly inlined. Moving body state between the `bodyState` arrays and the lanes is now
+  the largest single cost.
+- Width 4 on amd64 loads each body's state field by field (`bodyStateLoadW`), which takes a third
+  of the samples on gata-win; the width 8 path does the same work with a direct 256-bit load and
+  store (wide_lanes8_amd64.go), and upstream's SSE2 path loads 128 bits at a time. It is the main
+  difference between the two widths in Go on x86.
+- Width 8 spends 23% in `prepareConstraintW8`: its manifold and matrix gathers are `setW8` per
+  field and, like `gatherBodies8`, `transposeW8` and the other gathers, are not inlined.
+- Every width 8 kernel runs behind the `avx8` / `avx8Store` VZEROUPPER wrappers
+  (wide_lanes8_amd64.go), which is why `avx8.func1` holds 73% cumulative.
+
+A platform with no gain is reported, not tuned (spec). Follow-up candidates, none of them
+implemented: the direct 128-bit body-state load/store of the width 8 path for width 4 (both
+arm64 and amd64); inlining or flattening `gatherBodies8`, `transposeW8` and the `setW8`
+gathers of the width 8 prepare stage; `minIndexW8` / `symClampW8` (and amd64 `minIndexW` /
+`symClampW`) do not inline either, but are off the solver's hot path. joint_grid gains nothing
+(the joint solver has no wide kernels, upstream neither) and is reported as such.
 
 ## No allocations in Step
 

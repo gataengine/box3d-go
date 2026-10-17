@@ -97,11 +97,30 @@ Shape of the API:
   added later.
 
 Not ported: the allocator hooks (`b3SetAllocator`), double precision, Tracy, and the samples
-app. The default build runs upstream's scalar 4-lane backend (`GetSIMDWidth()` is 4); with
-`box3d_simd` (and `GOEXPERIMENT=simd`) it runs the NEON / SSE 4-lane one, and on amd64 with AVX2
-the AVX2 8-lane one (`GetSIMDWidth()` is 8; `box3d_no8` leaves it out, as upstream's
-`BOX3D_DISABLE_AVX2`). See
-[PARITY_REPORT.md](PARITY_REPORT.md#intentionally-not-ported).
+app. See [PARITY_REPORT.md](PARITY_REPORT.md#intentionally-not-ported).
+
+## SIMD backend
+
+The default build needs no Go experiment and runs upstream's scalar 4-lane code path
+(`GetSIMDWidth()` is 4). The SIMD backend on `simd/archsimd` is opt-in:
+
+```bash
+GOEXPERIMENT=simd go build -tags box3d_simd ./...            # NEON / SSE 4 lanes, AVX2 8 lanes
+GOEXPERIMENT=simd go build -tags box3d_simd,box3d_no8 ./...  # 4 lanes only (BOX3D_DISABLE_AVX2)
+```
+
+- arm64: the NEON 4-lane backend (`simd_neon.h`).
+- amd64: the SSE 4-lane backend (`simd_sse2.h`, VEX-encoded by archsimd) and, on CPUs with AVX2
+  (AVX-512 CPUs included), the AVX2 8-lane backend (`simd_avx2.h`), selected at start-up as
+  upstream does (`GetSIMDWidth()` is 8, `SetSIMDWidth(4)` switches back). The build requires
+  AVX: on an amd64 CPU without it the package panics at init and the default build is the one to
+  use. `box3d_no8` leaves the width 8 backend out.
+- Other architectures keep the scalar lanes in the SIMD build.
+
+Results are bit-identical to the default build at every width and worker count (same goldens,
+same determinism hashes, C recordings replay unchanged), and `World.Step` stays allocation-free.
+Speed against upstream C with its SIMD on is in [PERFORMANCE.md](PERFORMANCE.md#simd-backend).
+`box3d_simd` without `GOEXPERIMENT=simd` fails to compile with a message saying so.
 
 ## Determinism
 
@@ -129,13 +148,15 @@ the AVX2 8-lane one (`GetSIMDWidth()` is 8; `box3d_no8` leaves it out, as upstre
 | (none) | `B3_ASSERT` checks on (panic via the handler set with `SetAssertFcn`), `B3_VALIDATE` off, as upstream's default build |
 | `box3d_noassert` | compiles out `B3_ASSERT` (upstream's `NDEBUG`) |
 | `box3d_validate` | enables `B3_VALIDATE` and the `B3_ENABLE_VALIDATION` checks (slow; for debugging) |
-| `box3d_simd` | with `GOEXPERIMENT=simd`: the SIMD lane backend on `simd/archsimd` (arm64 NEON, amd64 AVX-encoded SSE; requires AVX on amd64), bit-exact with the default build; other architectures keep the scalar lanes |
+| `box3d_simd` | with `GOEXPERIMENT=simd`: the SIMD lane backend on `simd/archsimd` (arm64 NEON, amd64 AVX-encoded SSE and AVX2 width 8; requires AVX on amd64), bit-exact with the default build; other architectures keep the scalar lanes (see [SIMD backend](#simd-backend)) |
+| `box3d_no8` | with `box3d_simd`: leaves out the AVX2 width 8 backend (upstream's `BOX3D_DISABLE_AVX2`) |
 
 ```bash
 go test ./...
 go test -tags box3d_validate ./...
 go test -tags box3d_noassert ./...
 GOEXPERIMENT=simd go test -tags box3d_simd ./...
+GOEXPERIMENT=simd BOX3D_TEST_FORCE_WIDTH4=1 go test -tags box3d_simd ./...   # width 4 on AVX2 hosts
 ```
 
 ## Recording and replay

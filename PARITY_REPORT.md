@@ -111,7 +111,11 @@ These follow the spec's translation rules; every instance is in `LOOSE_ENDS.md`.
   upstream's byte image (C layout, 8-byte aligned, lane padding); the Go value is the header with
   the arrays following it in one allocation, and the accessors return slices into it.
 - **Compile-time options.** `B3_ASSERT` / `B3_VALIDATE` are the `box3d_noassert` /
-  `box3d_validate` build tags; the `#ifndef` overridable limits are fixed constants.
+  `box3d_validate` build tags; the `#ifndef` overridable limits are fixed constants. The SIMD
+  backends (`simd_neon.h`, `simd_sse2.h`, `simd_avx2.h`) are opt-in: the default build runs the
+  scalar lanes (upstream's `BOX3D_DISABLE_SIMD` code path), `GOEXPERIMENT=simd` with
+  `-tags box3d_simd` runs the NEON / SSE 4-lane backend and, on amd64 with AVX2, the AVX2 8-lane
+  one; `box3d_no8` is upstream's `BOX3D_DISABLE_AVX2`.
 - **Errors.** None added: upstream reports failure with null ids and bools, so does the port.
 
 ## Determinism and byte compatibility
@@ -132,6 +136,11 @@ From `PROGRESS.md` (port complete, milestones 1-6 done):
   type and a 240-step world scene, at 1, 2 and 4 workers. The C output is itself identical across
   NEON, SSE2, `BOX3D_DISABLE_SIMD` and `BOX3D_VALIDATE` builds, so the scalar Go lanes reproduce
   upstream's SIMD builds.
+- SIMD build (`GOEXPERIMENT=simd`, `-tags box3d_simd`): the same suite, every golden and
+  `test_determinism.c` hash unchanged, passes on darwin/arm64 (width 4, NEON), and on windows/amd64
+  and linux/amd64 at native width 8 (AVX2) and forced width 4 (`BOX3D_TEST_FORCE_WIDTH4=1`), via
+  `tools/xcheck` on 2026-10-17. `SIMDWidthTest` and `CrossWidthReplay` run (width 4 vs 8 bit for
+  bit) on amd64 and take upstream's native-width-4 skip elsewhere.
 - FMA: every multiply-add is split with explicit `float32()` rounding; `fma_guard_test.go` checks
   the compiled package for arm64 and amd64 v3.
 - Recording / replay: the `.b3rec` op stream and the geometry registry are byte identical to C
@@ -146,6 +155,7 @@ cd libs/box3d-go
 go vet ./... && go test ./...
 go test -tags box3d_validate ./...
 go test -tags box3d_noassert ./...
+GOEXPERIMENT=simd go test -tags box3d_simd ./...
 ```
 
 Every upstream `test/test_*.c` file has a `*_test.go` counterpart with every assertion; see the
