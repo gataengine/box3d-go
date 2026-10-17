@@ -19,7 +19,7 @@ each; both point at the same Go file.
 | include/box3d/collision.h | collision.go | todo | |  |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
 | include/box3d/constants.h | constants.go | todo | |  |
-| include/box3d/id.h | id.go | todo | |  |
+| include/box3d/id.h | id.go | tested | efca0c1 |  |
 | include/box3d/math_functions.h | math_functions.go | todo | |  |
 | include/box3d/types.h | types.go | todo | |  |
 | src/aabb.c | aabb.go | todo | |  |
@@ -135,7 +135,7 @@ each; both point at the same Go file.
 | test/test_hash.c | hash_test.go | todo | |  |
 | test/test_height_field.c | height_field_test.go | todo | |  |
 | test/test_hull.c | hull_test.go | todo | |  |
-| test/test_id.c | id_test.go | todo | |  |
+| test/test_id.c | id_test.go | tested | efca0c1 |  |
 | test/test_joint.c | joint_test.go | todo | |  |
 | test/test_large_world.c | large_world_test.go | todo | |  |
 | test/test_macros.h | test_macros_test.go | ported | efca0c1 | ENSURE / ENSURE_SMALL helpers |
