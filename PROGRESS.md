@@ -22,8 +22,8 @@ each; both point at the same Go file.
 | include/box3d/id.h | id.go | tested | efca0c1 |  |
 | include/box3d/math_functions.h | math_functions.go | tested | efca0c1 |  |
 | include/box3d/types.h | types.go | ported | efca0c1 | blob header layout/accessors in M2 |
-| src/aabb.c | aabb.go | todo | |  |
-| src/aabb.h | aabb.go | todo | |  |
+| src/aabb.c | aabb.go | ported | efca0c1 | no upstream test (exercised by height_field in M2) |
+| src/aabb.h | aabb.go | ported | efca0c1 |  |
 | src/algorithm.h | — | n/a | | B3_SWAP becomes Go tuple assignment at call sites |
 | src/arena_allocator.c | arena_allocator.go | ported | efca0c1 | bookkeeping shell; typed stackAlloc[T]/bump[T] use make |
 | src/arena_allocator.h | arena_allocator.go | ported | efca0c1 |  |
