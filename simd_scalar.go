@@ -5,14 +5,22 @@
 // SPDX-License-Identifier: MIT
 // Go port: github.com/gataengine/box3d-go authors.
 
+//go:build !box3d_simd || !goexperiment.simd || !(amd64 || arm64)
+
 package box3d
 
 import "math"
 
 // PORT: upstream picks a lane backend at compile time (simd_neon.h, simd_sse2.h, simd_avx2.h or
-// this scalar fallback). The Go port uses the scalar backend only. The W4 suffix is dropped
-// (b3AddW4 → addW); laneCount is the B3_SIMD_WIDTH of this backend. A later backend built on a
-// Go SIMD package replaces this file behind a build tag without changing the lane API.
+// this scalar fallback). The Go port uses this scalar backend in the default build and on
+// architectures without a SIMD backend; the box3d_simd build on amd64 and arm64 uses simd_x4.go
+// instead, with the same lane API. The box3d_simd build without GOEXPERIMENT=simd also keeps
+// this file, so its only compile error is the one of simd_experiment_guard.go. The W4 suffix is
+// dropped (b3AddW4 → addW); laneCount is the B3_SIMD_WIDTH of this backend.
+
+// simdBackend names the lane backend of this build ("scalar" or "x4"), for tests whose expected
+// values depend on it.
+const simdBackend = "scalar"
 
 // laneCount is the lane width of the scalar backend.
 const laneCount = 4
@@ -76,14 +84,6 @@ func storeW(data []float32, a floatW) {
 // negW is b3NegW4.
 func negW(a floatW) floatW {
 	return floatW{[laneCount]float32{-a.v[0], -a.v[1], -a.v[2], -a.v[3]}}
-}
-
-// absLane is the ternary a < 0.0f ? -a : a used by b3AbsW4.
-func absLane(a float32) float32 {
-	if a < 0.0 {
-		return -a
-	}
-	return a
 }
 
 // absW is b3AbsW4.
@@ -310,48 +310,6 @@ func minIndexW(a floatW, bitCount int) int {
 
 	bits := math.Float32bits(m)
 	return int(bits & ((uint32(1) << bitCount) - 1))
-}
-
-// aabbV is b3AABBV.
-type aabbV = AABB
-
-// loadAABBV is b3LoadAABBV.
-func loadAABBV(aabb *AABB) aabbV {
-	return *aabb
-}
-
-// overlapAABBV is b3OverlapAABBV.
-func overlapAABBV(a, b aabbV) bool {
-	return a.LowerBound.X <= b.UpperBound.X && a.LowerBound.Y <= b.UpperBound.Y && a.LowerBound.Z <= b.UpperBound.Z &&
-		b.LowerBound.X <= a.UpperBound.X && b.LowerBound.Y <= a.UpperBound.Y && b.LowerBound.Z <= a.UpperBound.Z
-}
-
-// overlapNode is b3OverlapNode.
-func overlapNode(av aabbV, node *TreeNode) bool {
-	return overlapAABBV(av, node.AABB)
-}
-
-// overlapV is b3OverlapV.
-func overlapV(a, b *AABB) bool {
-	return overlapAABBV(*a, *b)
-}
-
-// unionAABBV is b3UnionAABBV.
-func unionAABBV(a, b aabbV) aabbV {
-	return a.Union(b)
-}
-
-// unionPairV is b3UnionPairV.
-// PORT: the node pointer becomes a slice holding the pair.
-func unionPairV(pair []TreeNode) aabbV {
-	return pair[0].AABB.Union(pair[1].AABB)
-}
-
-// storeAABBV is b3StoreAABBV.
-func storeAABBV(aabb *AABB, value aabbV, condition bool) {
-	if condition {
-		*aabb = value
-	}
 }
 
 // transposeW is b3TransposeW4.

@@ -38,18 +38,18 @@ var _ = Describe("SIMDTest", func() {
 		ensure(out == [laneCount]float32{1.5, -3.0, 4.5, -6.0})
 
 		ensure(moveMaskW(greaterThanW(a, zeroW())) == 0b0101)
-		ensure(blendW(a, b, lessThanW(a, zeroW())) == setW(1.0, 0.5, 3.0, 0.5))
-		ensure(symClampW(a, splatW(2.5)) == setW(1.0, -2.0, 2.5, -2.5))
+		ensure(lanesOf(blendW(a, b, lessThanW(a, zeroW()))) == lanesOf(setW(1.0, 0.5, 3.0, 0.5)))
+		ensure(lanesOf(symClampW(a, splatW(2.5))) == lanesOf(setW(1.0, -2.0, 2.5, -2.5)))
 
 		// Index embedding in the low mantissa bits survives a min reduction.
 		e := embedIndexW(setW(4.0, 3.0, 2.0, 5.0), 8, 4)
 		ensure(minIndexW(e, 4) == 10)
 
 		c0, c1, c2, c3 := transposeW(setW(0, 1, 2, 3), setW(4, 5, 6, 7), setW(8, 9, 10, 11), setW(12, 13, 14, 15))
-		ensure(c0 == setW(0, 4, 8, 12))
-		ensure(c1 == setW(1, 5, 9, 13))
-		ensure(c2 == setW(2, 6, 10, 14))
-		ensure(c3 == setW(3, 7, 11, 15))
+		ensure(lanesOf(c0) == lanesOf(setW(0, 4, 8, 12)))
+		ensure(lanesOf(c1) == lanesOf(setW(1, 5, 9, 13)))
+		ensure(lanesOf(c2) == lanesOf(setW(2, 6, 10, 14)))
+		ensure(lanesOf(c3) == lanesOf(setW(3, 7, 11, 15)))
 	})
 
 	It("TriangleTests", func() {

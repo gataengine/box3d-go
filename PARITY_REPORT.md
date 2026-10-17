@@ -61,7 +61,7 @@ Present in Go but with reduced semantics (they map, so the audit counts them):
 | symbol | Go behaviour | reason |
 |---|---|---|
 | `b3IsDoublePrecision` | always `false` | double precision (`BOX3D_DOUBLE_PRECISION`) not ported; `Pos` / `WorldTransform` stay distinct types so it can be added |
-| `b3SetSIMDWidth`, `b3GetSIMDWidth`, `b3IsAVX2Available` | width is always 4 (`laneCount`); `SetSIMDWidth(8)` stores 4 as on a CPU without AVX2; `IsAVX2Available` is `false` | scalar lane backend only; SIMD width 8 (`wide8.c`, AVX2) not ported |
+| `b3SetSIMDWidth`, `b3GetSIMDWidth`, `b3IsAVX2Available` | width is always 4 (`laneCount`); `SetSIMDWidth(8)` stores 4 as on a CPU without AVX2; `IsAVX2Available` is `false` | 4-lane backends only (scalar, or NEON / SSE with `box3d_simd`); SIMD width 8 (`wide8.c`, AVX2) not ported |
 | `b3GetByteCount` | always 0 | allocators dropped |
 | `b3RoundDownFloat`, `b3RoundUpFloat` | take `float32` instead of `double` | double precision not ported |
 

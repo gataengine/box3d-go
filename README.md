@@ -97,7 +97,8 @@ Shape of the API:
   added later.
 
 Not ported: the allocator hooks (`b3SetAllocator`), double precision, SIMD width 8 (the solver
-runs upstream's scalar 4-lane backend, `GetSIMDWidth()` is 4), Tracy, and the samples app. See
+runs upstream's scalar 4-lane backend, or with `box3d_simd` its NEON / SSE one;
+`GetSIMDWidth()` is 4), Tracy, and the samples app. See
 [PARITY_REPORT.md](PARITY_REPORT.md#intentionally-not-ported).
 
 ## Determinism
@@ -126,11 +127,13 @@ runs upstream's scalar 4-lane backend, `GetSIMDWidth()` is 4), Tracy, and the sa
 | (none) | `B3_ASSERT` checks on (panic via the handler set with `SetAssertFcn`), `B3_VALIDATE` off, as upstream's default build |
 | `box3d_noassert` | compiles out `B3_ASSERT` (upstream's `NDEBUG`) |
 | `box3d_validate` | enables `B3_VALIDATE` and the `B3_ENABLE_VALIDATION` checks (slow; for debugging) |
+| `box3d_simd` | with `GOEXPERIMENT=simd`: the SIMD lane backend on `simd/archsimd` (arm64 NEON, amd64 AVX-encoded SSE; requires AVX on amd64), bit-exact with the default build; other architectures keep the scalar lanes |
 
 ```bash
 go test ./...
 go test -tags box3d_validate ./...
 go test -tags box3d_noassert ./...
+GOEXPERIMENT=simd go test -tags box3d_simd ./...
 ```
 
 ## Recording and replay

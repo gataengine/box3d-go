@@ -9,8 +9,8 @@
 
 package box3d
 
-// PORT: only the scalar backend is ported (see simd_scalar.go). The b3V32 helpers below are the
-// non-SSE2 branch of simd.h and simd.c; the SSE2 branch computes the same values.
+// PORT: the b3V32 helpers below are the non-SSE2 branch of simd.h and simd.c in every build (see
+// simd_aabb.go for the same choice on b3AABBV); the SSE2 branch computes the same values.
 
 // ---- simd.h ----
 
@@ -105,6 +105,15 @@ func getV(a v32, index int) float32 {
 
 func splatV(x float32) v32 {
 	return v32{x, x, x}
+}
+
+// absLane is the ternary a < 0.0f ? -a : a used by b3AbsV (and by b3AbsW4 in
+// simd_scalar.go).
+func absLane(a float32) float32 {
+	if a < 0.0 {
+		return -a
+	}
+	return a
 }
 
 func absV(a v32) v32 {
