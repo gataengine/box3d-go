@@ -86,3 +86,17 @@ site. Upstream bugs are ported as is and listed here too.
 | shape.go | `b3Shape.type`, `b3Shape.materials`, `userData`, `userShape` | field `typ`; `materials` is a `[]SurfaceMaterial` (nil for single material shapes); `void*` → `any` | `type` is a Go keyword; pointer + count is a slice |
 | shape.go | `b3GetShapeMaterials` `(b3SurfaceMaterial*)&shape->material` | `unsafe.Slice(&shape.material, 1)` | presents the inline material as a one element slice without copying, as in C |
 | shape.go | `b3GetMeshTriangle` (static inline in shape.h) | not yet ported | needs the mesh blob accessors that land with mesh.c |
+| simd_scalar.go | `B3_SIMD_NONE` (core.h) | `var simdNone = true`; kernels with a `#if defined( B3_SIMD_NONE )` variant port both variants and branch on it | the scalar backend is upstream's no-SIMD configuration; a variable so tests can run the lane variant too |
+| convex_manifold.go | `b3ClipSegment( b3ClipVertex segment[2], … )`, `b3ClipSegmentToHullFace` | `*[2]clipVertex` | C array parameter is a pointer |
+| convex_manifold.go | `( b3ShapeProxy ){ &center, 1, 0.0f }` in `b3CollideHullAndSphere` | `unsafe.Slice(&center, 1)` | aliases the local as in C, no allocation |
+| convex_manifold.go | `#else` variant of `b3ReduceManifoldPoints` (`B3_MAX_MANIFOLD_POINTS` > 4, 2D hull simplification) | not ported | `MaxManifoldPoints` is fixed at 4, so upstream compiles it out too |
+| convex_manifold.go | `b3CollideHullsAtWidth` edge contact: `edgeManifold.points = &edgePoint`, then copy out and restore the point buffer | `edgeManifold.Points` is the caller's buffer and the struct is copied out directly | same result (the edge builder writes the point only when it reports one); a local buffer copied into `*manifold` escapes to the heap |
+| convex_manifold.go | `b3ComputeSeparatingAxisAtWidth`, `b3CollideHullsAtWidth` `simdWidth` | ignored; always the one lane kernel | width 8 not ported |
+| convex_manifold.go, convex_manifold_wide.go | `_Static_assert`s | constant expressions that overflow unless the condition holds | Go has no static assert |
+| convex_manifold_wide.go | `B3_WIDE( b3ComputeSeparatingAxis )` compiled per width in wide4.c / wide8.c | `computeSeparatingAxisW`, compiled once; `_Alignas` dropped; float pointers are slices | spec: scalar lanes, width suffix dropped |
+| convex_manifold_wide.go | `b3GetSupportWide( …, &support, &vertexIndex )`, `b3GetFaceSeparation( …, &vertexIndex )` | returns `(support, vertexIndex)` / `(separation, vertexIndex)` | out-parameters become returns |
+| convex_manifold_wide.go | `int x = a >= b;` in `b3TestEdgeCandidateSorted` | `boolInt(a >= b)` | Go bools do not convert to int |
+| sat_test.go | `kRoot2`, `kAxisY`, `kAxisZ`, `ExactQuat`, `ExactRotation` (also in test_manifold.c) | defined once for the package (`exactQuat` in hull_test.go) | one package holds all test files |
+| sat_test.go, manifold_test.go | `g_seed` / `NextFloat` / `NextDirection` | `satSeed`/`satNextFloat`/…, `manifoldSeed`/`manifoldNextFloat`/… | one package holds all test files |
+| sat_test.go, manifold_test.go | `NextFloat()` calls inside initializer lists and argument lists | explicit temporaries in left to right order | C leaves the order unspecified; clang (the reference build) evaluates left to right |
+| sat_test.go | `printf` statistics | `GinkgoWriter.Printf` | shown with `-ginkgo.v` |

@@ -1,0 +1,821 @@
+// Port of src/convex_manifold_wide.inl from Box3D (https://github.com/erincatto/box3d)
+// at commit efca0c184d40fd6a82016983f1601c4d23965867.
+//
+// SPDX-FileCopyrightText: 2026 Erin Catto
+// SPDX-License-Identifier: MIT
+// Go port: github.com/gataengine/box3d-go authors.
+
+package box3d
+
+import "math"
+
+// PORT: upstream compiles this file once per SIMD width (wide4.c, wide8.c) with B3_WIDE name
+// mangling. The Go port compiles it once against the lane layer (simd_scalar.go); the width
+// suffix is dropped (b3ComputeSeparatingAxisW4 → computeSeparatingAxisW). The _Alignas
+// qualifiers on the stack arrays are dropped (Go arrays need no alignment for the lane layer).
+
+// _Static_assert( B3_SIMD_WIDTH <= B3_HULL_SOA_PADDING, "hull SoA padding must cover the SIMD width" );
+// PORT: _Static_assert becomes a constant expression that overflows unless it holds.
+const _ uint = hullSoaPadding - laneCount
+
+// roundUpToSIMDWidth is b3RoundUpToSIMDWidth.
+func roundUpToSIMDWidth(count int) int {
+	return (count + laneCount - 1) &^ (laneCount - 1)
+}
+
+// negativeTransformFromSoA is b3NegativeTransformFromSoA.
+// Transform a SoA point/normal stream (already split into X/Y/Z) by out = -(R*v (+t)).
+// The inputs come straight from the hull's stored SoA arrays, so there's no transpose here.
+// PORT: the float pointers become slices.
+func negativeTransformFromSoA(R Matrix3, p Vec3, inX, inY, inZ []float32, n int,
+	outX, outY, outZ []float32, isPoint bool) {
+	// row-column
+	r0 := vec3W{splatW(R.Cx.X), splatW(R.Cy.X), splatW(R.Cz.X)}
+	r1 := vec3W{splatW(R.Cx.Y), splatW(R.Cy.Y), splatW(R.Cz.Y)}
+	r2 := vec3W{splatW(R.Cx.Z), splatW(R.Cy.Z), splatW(R.Cz.Z)}
+
+	t := vec3W{zeroW(), zeroW(), zeroW()}
+	if isPoint {
+		t = splatVW(p)
+	}
+
+	for i := 0; i < n; i += laneCount {
+		v := loadVW(inX[i:], inY[i:], inZ[i:])
+
+		// Rotate one vector per lane
+		out := vec3W{dotW(r0, v), dotW(r1, v), dotW(r2, v)}
+
+		if isPoint {
+			out = addVW(out, t)
+		}
+
+		storeVW(outX[i:], outY[i:], outZ[i:], negVW(out))
+	}
+}
+
+// _Static_assert( B3_MAX_HULL_VERTICES == 128, "must be 128" );
+const (
+	_ uint = MaxHullVertices - 128
+	_ uint = 128 - MaxHullVertices
+)
+
+// hullBitCount is B3_HULL_BIT_COUNT.
+const hullBitCount = 7
+
+// getSupportWide is b3GetSupportWide.
+// SIMD support point calculation using a SoA vertex array padded with repeats of the first vertex
+// to a multiple of 8.
+//
+// This minimizes (bias - dot), where the caller is expected to provide a bias that makes this always positive.
+// It can be direction dependent. The bias should be just big enough to ensure the value is positive because
+// an excessive bias causes a precision loss in the support calculation.
+//
+// The vertex index is embedded in the low B3_HULL_BIT_COUNT mantissa bits of the value. By minimizing a value that
+// is always positive, the minimum carries the smallest index so that padded SoA values will never win. This is the
+// purpose of using the bias instead of maximizing the dot directly.
+//
+// The support is then recomputed exactly as dot(normal, vertex), without the embedded index.
+// todo consider using this for GJK
+// PORT: the support and vertexIndex out-parameters become return values.
+func getSupportWide(normal Vec3, vx, vy, vz []float32, n int, bias float32) (support float32, vertexIndex int) {
+	normalW := splatVW(normal)
+	biasV := splatW(bias)
+
+	// Start the minimum at a large value.
+	minValue := splatW(float32(math.Inf(1)))
+
+	// Tail lanes hold vertex 0 with index bits >= vertexCount, so they never become the min value.
+	for i := 0; i < n; i += laneCount {
+		v := loadVW(vx[i:], vy[i:], vz[i:])
+		d := dotW(normalW, v)
+
+		// This is always positive.
+		value := subW(biasV, d)
+		augmentedValue := embedIndexW(value, i, hullBitCount)
+		minValue = minW(minValue, augmentedValue)
+	}
+
+	// One horizontal min, the winning lane's value and index bits ride through.
+	vi := minIndexW(minValue, hullBitCount)
+
+	// Exact support for the chosen vertex.
+	vertexIndex = vi
+
+	// Dot product
+	support = float32(normal.X*vx[vi]) + float32(normal.Y*vy[vi]) + float32(normal.Z*vz[vi])
+	return support, vertexIndex
+}
+
+// getFaceSeparation is b3GetFaceSeparation.
+// PORT: the vertexIndex out-parameter becomes the second return value.
+func getFaceSeparation(direction Vec3, planeSeparation float32, vx, vy, vz []float32, n int,
+	center, extents Vec3) (float32, int) {
+	bias := Dot(direction, center) + float32(1.0625*Dot(Abs(direction), extents))
+	support, vertexIndex := getSupportWide(direction, vx, vy, vz, n, bias)
+	return planeSeparation - support, vertexIndex
+}
+
+// getFaceDots is b3GetFaceDots.
+// Wide dot(n, d) for all face normals n of the hull, padded to the SIMD width.
+func getFaceDots(hull *HullData, d Vec3, dots []float32) {
+	faceStride := getHullSoaStride(int(hull.FaceCount))
+	nx := GetHullSoaNormals(hull)
+	ny := nx[faceStride:]
+	nz := ny[faceStride:]
+
+	dW := splatVW(d)
+
+	wideFaceCount := roundUpToSIMDWidth(int(hull.FaceCount))
+	for i := 0; i < wideFaceCount; i += laneCount {
+		// dot product per lane
+		m := dotW(loadVW(nx[i:], ny[i:], nz[i:]), dW)
+		storeW(dots[i:], m)
+	}
+}
+
+// parallelTol is B3_PARALLEL_TOL.
+const parallelTol float32 = 1e-4
+
+// boolInt is the C conversion of a comparison result to int (0 or 1).
+func boolInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+// testEdgeCandidateSorted is b3TestEdgeCandidateSorted.
+// Inscribed sphere edge test. https://box2d.org/posts/2026/09/inscribed-spheres/
+// The implementation here is a mix of the versions from Cairn Overturf and Dirk Gregorius:
+// https://gist.github.com/cairnc/dee7a2866da0709f2d9a77b6493b57b5
+// https://gist.github.com/dgregorius/e6751b5c00937cd21af63cba3c53c861
+// This benchmarks faster than the version from the blog post.
+func testEdgeCandidateSorted(a1, a2, c, bound float32) int {
+	// We want to maximize
+	//
+	//   f(t) = dot(d, nlerp(n1, n2, t))
+	//
+	// over t in [0, 1], where
+	//
+	//   a1 = dot(n1, d)
+	//   a2 = dot(n2, d)
+	//   c  = dot(n1, n2).
+	//
+	// The maximum can occur either at an endpoint or at an interior
+	// critical point where f'(t) = 0.
+
+	// Since the endpoint values are a1 and a2, only the larger endpoint
+	// needs to be tested against the bound.
+	hi := MaxFloat(a1, a2)
+	lo := MinFloat(a1, a2)
+	exterior := boolInt(hi >= bound)
+
+	// Differentiating f(t) gives
+	//
+	//           a2 - c*a1 - (1 - c)*(a1 + a2)*t
+	//   f'(t) = --------------------------------------
+	//           ((1 - t)^2 + t^2 + 2*c*t*(1 - t))^(3/2)
+	//
+	// The denominator is positive and the numerator is linear in t.
+	// An interior maximum therefore requires
+	//
+	//   f'(0) >= 0  ->  a2 >= c*a1
+	//   f'(1) <= 0  ->  a1 >= c*a2.
+	//
+	// After sorting these become
+	//
+	//   hi >= c*lo
+	//   lo >= c*hi.
+	//
+	// The second is always the stricter condition since
+	//
+	//   (hi - c*lo) - (lo - c*hi)
+	//       = (1 + c)*(hi - lo) >= 0.
+	//
+	// Thus both conditions reduce to u >= 0.
+	u := mulSub(lo, c, hi)
+	maxIsInterior := boolInt(u >= 0.0)
+
+	// Solving f'(t) = 0 and evaluating f(t) at tmax gives
+	//
+	//   f(tmax)^2 =
+	//       (a1^2 + a2^2 - 2*c*a1*a2) / (1 - c^2).
+	//
+	// After sorting,
+	//
+	//   hi^2 + lo^2 - 2*c*hi*lo
+	//       = hi^2*(1 - c^2) + u^2.
+	//
+	// Let s = 1 - c^2 and rearrange f(tmax) >= bound:
+	//
+	//   u^2 >= (bound^2 - hi^2)*s.
+	s := mulSub(1.0, c, c)
+	boundTerm := float32((bound - hi) * (bound + hi))
+	lhs := float32(u * u)
+	rhs := float32(boundTerm * s)
+	maxBeatsBound := boolInt(lhs >= rhs)
+
+	// The interior expression contains 1 - c^2 in its denominator.
+	// When this approaches zero the arc is degenerate or ill-conditioned,
+	// so conservatively keep the edge as a candidate.
+	nearlyParallel := boolInt(s < parallelTol)
+
+	interior := maxIsInterior & (maxBeatsBound | nearlyParallel)
+
+	return exterior | interior
+}
+
+// getFacePlaneSeparations is b3GetFacePlaneSeparations.
+// dot(n, otherCenter) - offset for all faces of the hull, padded to the SIMD width.
+func getFacePlaneSeparations(hull *HullData, otherCenter Vec3, separations []float32) {
+	getFaceDots(hull, otherCenter, separations)
+
+	planes := GetHullPlanes(hull)
+	faceCount := int(hull.FaceCount)
+	for i := range faceCount {
+		separations[i] -= planes[i].Offset
+	}
+}
+
+// edgeProbeMinTests is B3_EDGE_PROBE_MIN_TESTS.
+// The number of edge pair tests needed to make the extra culling pass worthwhile.
+const edgeProbeMinTests = 10
+
+// filterEdgeCandidates is b3FilterEdgeCandidates.
+// Re-test edge candidates against the plane separations of a probe point on the other hull
+func filterEdgeCandidates(hull *HullData, planeSeparations []float32, bound float32, edgeIndices []int,
+	count int) int {
+	halfEdges := GetHullEdges(hull)
+	cosines := GetHullEdgeCosines(hull)
+	keptCount := 0
+
+	for k := range count {
+		i := edgeIndices[k]
+		i1 := int(halfEdges[i].Face)
+		i2 := int(halfEdges[i+1].Face)
+		c := cosines[i>>1]
+		edgeIndices[keptCount] = i
+		keptCount += testEdgeCandidateSorted(planeSeparations[i1], planeSeparations[i2], c, bound)
+	}
+
+	return keptCount
+}
+
+// Temporary abbreviations for convenience.
+const (
+	wideNE = MaxHullEdges + laneCount    // NE
+	wideNF = MaxHullFaces + laneCount    // NF
+	wideNV = MaxHullVertices + laneCount // NV
+)
+
+// computeSeparatingAxisW is B3_WIDE( b3ComputeSeparatingAxis ).
+// SIMD separating axis test based on an implementation developed by Cairn Overturf.
+// See his article: https://cairnc.github.io/posts/improvements-to-the-separating-axis/
+func computeSeparatingAxisW(hullA, hullB *HullData, xfB Transform, earlyReturn bool) axisQuery {
+	R := MakeMatrixFromQuat(xfB.Q)
+	invR := Transpose(R)
+
+	speculativeDistance := SpeculativeDistance()
+
+	negInf := float32(math.Inf(-1))
+	res := axisQuery{
+		faceA: separatingAxis{
+			normal:     Vec3Zero,
+			separation: negInf,
+			indexA:     NullIndex,
+			indexB:     NullIndex,
+			typ:        FaceAxisA,
+		},
+		faceB: separatingAxis{
+			normal:     Vec3Zero,
+			separation: negInf,
+			indexA:     NullIndex,
+			indexB:     NullIndex,
+			typ:        FaceAxisB,
+		},
+		edge: separatingAxis{
+			normal:     Vec3Zero,
+			separation: negInf,
+			indexA:     NullIndex,
+			indexB:     NullIndex,
+			typ:        EdgePairAxis,
+		},
+		separatedFeature: InvalidAxis,
+	}
+
+	faceCountA := int(hullA.FaceCount)
+	planesA := GetHullPlanes(hullA)
+
+	vertexStrideB := getHullSoaStride(int(hullB.VertexCount))
+	vxB := GetHullSoaVertices(hullB)
+	vyB := vxB[vertexStrideB:]
+	vzB := vyB[vertexStrideB:]
+	wideVertexCountB := roundUpToSIMDWidth(int(hullB.VertexCount))
+
+	cB := hullB.AABB.Center()
+	hB := hullB.AABB.Extents()
+
+	// The hulls have a precomputed inner radius and centroid.
+	// A given axis cannot achieve a separation larger than:
+	// dot(axis, centerB - centerA) - innerRadiusA - innerRadiusB
+	// So this is the upper bound for the separation of a candidate axis.
+	// An axis can be skipped if it has an upper bound that is less than the current
+	// best separation. This lets me skip many of the candidates without computing
+	// support points.
+
+	deltaCenter := Sub(Add(MulMV(R, hullB.Center), xfB.P), hullA.Center)
+	centerDistance := Length(deltaCenter)
+	radius := hullA.InnerRadius + hullB.InnerRadius
+
+	// Adjust the radius to ensure the best axis isn't skipped.
+	radiusBound := radius - (LinearSlop() + float32(0.001*(centerDistance+radius)))
+
+	// Compute dot(normalA, centerDelta) for all face normals of hullA.
+	var dotA [wideNF]float32
+	getFaceDots(hullA, deltaCenter, dotA[:])
+
+	// Find the face of hullA that most aligns with centerDelta.
+	seedIndexA := 0
+	maxDotA := dotA[0]
+	for i := 1; i < faceCountA; i++ {
+		if dotA[i] > maxDotA {
+			maxDotA = dotA[i]
+			seedIndexA = i
+		}
+	}
+
+	// Use the seed to get a lower bound on the separation for the faces of hullA.
+	floorA := negInf
+	seedSeparationA := negInf
+	seedVertexB := 0
+	if earlyReturn {
+		plane := planesA[seedIndexA]
+		direction := Neg(MulMV(invR, plane.Normal))
+		planeSeparation := Dot(plane.Normal, xfB.P) - plane.Offset
+		seedSeparationA, seedVertexB = getFaceSeparation(direction, planeSeparation, vxB, vyB, vzB, wideVertexCountB, cB, hB)
+		floorA = MinFloat(seedSeparationA, speculativeDistance)
+	}
+
+	// Test A's face planes against B's vertices.
+	for i := range faceCountA {
+		// The bound offset ensures the seed will be evaluated.
+		if dotA[i]-radiusBound < MaxFloat(floorA, res.faceA.separation) {
+			continue
+		}
+
+		plane := planesA[i]
+		vertexIndex := seedVertexB
+		separation := seedSeparationA
+
+		// Avoid recomputing the seed face separation.
+		if earlyReturn == false || i != seedIndexA {
+			direction := Neg(MulMV(invR, plane.Normal))
+			planeSeparation := Dot(plane.Normal, xfB.P) - plane.Offset
+			separation, vertexIndex = getFaceSeparation(direction, planeSeparation, vxB, vyB, vzB, wideVertexCountB, cB, hB)
+		}
+
+		if separation > res.faceA.separation {
+			res.faceA.normal = plane.Normal
+			res.faceA.separation = separation
+			res.faceA.indexA = int32(i)
+			res.faceA.indexB = int32(vertexIndex)
+			if separation > speculativeDistance && earlyReturn {
+				res.separatedFeature = FaceAxisA
+				return res
+			}
+		}
+	}
+
+	validate(res.faceA.indexA != NullIndex, "res.faceA.indexA != B3_NULL_INDEX")
+
+	faceCountB := int(hullB.FaceCount)
+	planesB := GetHullPlanes(hullB)
+
+	vertexStrideA := getHullSoaStride(int(hullA.VertexCount))
+	vxA := GetHullSoaVertices(hullA)
+	vyA := vxA[vertexStrideA:]
+	vzA := vyA[vertexStrideA:]
+	wideVertexCountA := roundUpToSIMDWidth(int(hullA.VertexCount))
+
+	cA := hullA.AABB.Center()
+	hA := hullA.AABB.Extents()
+
+	// Similarly, find the face of hullB that most aligns with the vector pointing from centerB to centerA.
+	var dotB [wideNF]float32
+	getFaceDots(hullB, Neg(MulMV(invR, deltaCenter)), dotB[:])
+
+	seedIndexB := 0
+	maxDotB := dotB[0]
+	for i := 1; i < faceCountB; i++ {
+		if dotB[i] > maxDotB {
+			maxDotB = dotB[i]
+			seedIndexB = i
+		}
+	}
+
+	// Get a lower bound on the separation for the faces of hullB.
+	floorB := negInf
+	seedSeparationB := negInf
+	seedVertexA := 0
+	if earlyReturn {
+		plane := planesB[seedIndexB]
+		direction := Neg(MulMV(R, plane.Normal))
+		planeSeparation := Dot(direction, xfB.P) - plane.Offset
+		seedSeparationB, seedVertexA = getFaceSeparation(direction, planeSeparation, vxA, vyA, vzA, wideVertexCountA, cA, hA)
+
+		// Include the floor set by hull A faces.
+		floorB = MaxFloat(seedSeparationB, res.faceA.separation)
+		floorB = MinFloat(floorB, speculativeDistance)
+	}
+
+	// Test B's face planes against A's vertices.
+	for i := range faceCountB {
+		if dotB[i]-radiusBound < MaxFloat(floorB, res.faceB.separation) {
+			continue
+		}
+
+		plane := planesB[i]
+		direction := Neg(MulMV(R, plane.Normal))
+		vertexIndex := seedVertexA
+		separation := seedSeparationB
+
+		// Avoid recomputing the seed face separation.
+		if earlyReturn == false || i != seedIndexB {
+			planeSeparation := Dot(direction, xfB.P) - plane.Offset
+			separation, vertexIndex = getFaceSeparation(direction, planeSeparation, vxA, vyA, vzA, wideVertexCountA, cA, hA)
+		}
+
+		if separation > res.faceB.separation {
+			res.faceB.normal = direction
+			res.faceB.separation = separation
+			res.faceB.indexA = int32(vertexIndex)
+			res.faceB.indexB = int32(i)
+			if separation > speculativeDistance && earlyReturn {
+				res.separatedFeature = FaceAxisB
+				return res
+			}
+		}
+	}
+
+	// Transform B into A's space once, into SoA arrays. Extra space so tail can be set to zero.
+	// _Static_assert( ( B3_MAX_HULL_EDGES & ( B3_SIMD_WIDTH - 1 ) ) == 0, "must be multiple of SIMD width" );
+	// _Static_assert( ( B3_MAX_HULL_FACES & ( B3_HULL_SOA_PADDING - 1 ) ) == 0, "must be multiple of hull SoA padding" );
+	// _Static_assert( ( B3_MAX_HULL_VERTICES & ( B3_HULL_SOA_PADDING - 1 ) ) == 0, "must be multiple of hull SoA padding" );
+	// PORT: checked by the constant declarations below the function.
+
+	validate(earlyReturn == false ||
+		centerDistance >= MaxFloat(res.faceA.separation, res.faceB.separation)+radiusBound,
+		"earlyReturn == false || centerDistance >= b3MaxFloat( res.faceA.separation, res.faceB.separation ) + radiusBound")
+
+	// Gather edges of A that can feasibly create a separating axis that beats the maximum face separation.
+	halfEdgeCountA := int(hullA.EdgeCount)
+	halfEdgesA := GetHullEdges(hullA)
+	var edgeIndicesA [wideNE]int
+	na := 0
+
+	halfEdgeCountB := int(hullB.EdgeCount)
+	halfEdgesB := GetHullEdges(hullB)
+	var edgeIndicesB [MaxHullEdges]int
+	nb := 0
+
+	maxFaceSeparation := MaxFloat(res.faceA.separation, res.faceB.separation)
+	boundSlack := radius - radiusBound
+	thresholdA := negInf
+	thresholdB := negInf
+	if earlyReturn {
+		thresholdA = maxFaceSeparation + hullB.InnerRadius - boundSlack
+		thresholdB = maxFaceSeparation + hullA.InnerRadius - boundSlack
+	}
+
+	centerBinA := Add(MulMV(R, hullB.Center), xfB.P)
+	centerAinB := MulMV(invR, Sub(hullA.Center, xfB.P))
+
+	var planeDotA [wideNF]float32
+	var planeDotB [wideNF]float32
+	getFacePlaneSeparations(hullA, centerBinA, planeDotA[:])
+	getFacePlaneSeparations(hullB, centerAinB, planeDotB[:])
+
+	cosinesA := GetHullEdgeCosines(hullA)
+	cosinesB := GetHullEdgeCosines(hullB)
+
+	for i := 0; i < halfEdgeCountA; i += 2 {
+		i1 := int(halfEdgesA[i].Face)
+		i2 := int(halfEdgesA[i+1].Face)
+		c := cosinesA[i>>1]
+		edgeIndicesA[na] = i
+		na += testEdgeCandidateSorted(planeDotA[i1], planeDotA[i2], c, thresholdA)
+	}
+
+	for i := 0; i < halfEdgeCountB; i += 2 {
+		i1 := int(halfEdgesB[i].Face)
+		i2 := int(halfEdgesB[i+1].Face)
+		c := cosinesB[i>>1]
+		edgeIndicesB[nb] = i
+		nb += testEdgeCandidateSorted(planeDotB[i1], planeDotB[i2], c, thresholdB)
+	}
+
+	// Apply additional culling use the support points for the best face axes.
+	// The support vertices of the best faces are points on the other hull, so an edge pair axis cannot
+	// have a larger separation than the plane separation of these points over the arc of the edge.
+	// This can slow down boxes so skip this if there are not enough edge candidates.
+	if earlyReturn && nb*((na+3)>>2) >= edgeProbeMinTests {
+		probeBound := maxFaceSeparation - (float32(0.1*LinearSlop()) + float32(0.001*AbsFloat(centerDistance+radius)))
+
+		vertexB := seedVertexB
+		if res.faceA.indexB != NullIndex {
+			vertexB = int(res.faceA.indexB)
+		}
+		probeB := Vec3{vxB[vertexB], vyB[vertexB], vzB[vertexB]}
+		getFacePlaneSeparations(hullA, Add(MulMV(R, probeB), xfB.P), planeDotA[:])
+		na = filterEdgeCandidates(hullA, planeDotA[:], probeBound, edgeIndicesA[:], na)
+
+		vertexA := seedVertexA
+		if res.faceB.indexA != NullIndex {
+			vertexA = int(res.faceB.indexA)
+		}
+		probeA := Vec3{vxA[vertexA], vyA[vertexA], vzA[vertexA]}
+		getFacePlaneSeparations(hullB, MulMV(invR, Sub(probeA, xfB.P)), planeDotB[:])
+		nb = filterEdgeCandidates(hullB, planeDotB[:], probeBound, edgeIndicesB[:], nb)
+	}
+
+	if na == 0 || nb == 0 {
+		// No edge candidates found.
+		return res
+	}
+
+	// The alignments below are not necessary, but they don't hurt.
+
+	// B face normals in A space, negated.
+	var bFNx [wideNF]float32
+	var bFNy [wideNF]float32
+	var bFNz [wideNF]float32
+
+	// B vertices in A space, negated.
+	var bWx [wideNV]float32
+	var bWy [wideNV]float32
+	var bWz [wideNV]float32
+
+	faceStrideB := getHullSoaStride(faceCountB)
+	nxB := GetHullSoaNormals(hullB)
+	nyB := nxB[faceStrideB:]
+	nzB := nyB[faceStrideB:]
+
+	wideFaceCountB := roundUpToSIMDWidth(faceCountB)
+	negativeTransformFromSoA(R, xfB.P, nxB, nyB, nzB, wideFaceCountB, bFNx[:], bFNy[:], bFNz[:], false)
+	negativeTransformFromSoA(R, xfB.P, vxB, vyB, vzB, wideVertexCountB, bWx[:], bWy[:], bWz[:], true)
+
+	// Per A edge data, already in A's space so just gathered. n0 and n1 are the two face
+	// normals, d the edge vector av1-av0, v0 the first vertex. Tol is the
+	// parallel edge tolerance, scaled by the edge length.
+	var aN0x [wideNE]float32
+	var aN0y [wideNE]float32
+	var aN0z [wideNE]float32
+	var aN1x [wideNE]float32
+	var aN1y [wideNE]float32
+	var aN1z [wideNE]float32
+	// dir = av1 - av0
+	var aDx [wideNE]float32
+	var aDy [wideNE]float32
+	var aDz [wideNE]float32
+	var aV0x [wideNE]float32
+	var aV0y [wideNE]float32
+	var aV0z [wideNE]float32
+	var aTol [wideNE]float32
+
+	squaredTol := ParallelEdgeTol * ParallelEdgeTol
+	for k := range na {
+		edge := &halfEdgesA[edgeIndicesA[k]]
+		twin := &halfEdgesA[edgeIndicesA[k]+1]
+
+		A := planesA[edge.Face].Normal
+		B := planesA[twin.Face].Normal
+		aN0x[k] = A.X
+		aN0y[k] = A.Y
+		aN0z[k] = A.Z
+		aN1x[k] = B.X
+		aN1y[k] = B.Y
+		aN1z[k] = B.Z
+
+		v0 := int(edge.Origin)
+		v1 := int(twin.Origin)
+
+		aDx[k] = vxA[v1] - vxA[v0]
+		aDy[k] = vyA[v1] - vyA[v0]
+		aDz[k] = vzA[v1] - vzA[v0]
+		aV0x[k] = vxA[v0]
+		aV0y[k] = vyA[v0]
+		aV0z[k] = vzA[v0]
+
+		aTol[k] = squaredTol * (float32(aDx[k]*aDx[k]) + float32(aDy[k]*aDy[k]) + float32(aDz[k]*aDz[k]))
+	}
+
+	// Zero the tail lanes.
+	zero := zeroW()
+	zeroV := vec3W{zero, zero, zero}
+	storeVW(aN0x[na:], aN0y[na:], aN0z[na:], zeroV)
+	storeVW(aN1x[na:], aN1y[na:], aN1z[na:], zeroV)
+	storeVW(aDx[na:], aDy[na:], aDz[na:], zeroV)
+	storeVW(aV0x[na:], aV0y[na:], aV0z[na:], zeroV)
+
+	storeW(aTol[na:], zero)
+
+	linearSlop := LinearSlop()
+
+	// PORT: #if defined( B3_SIMD_NONE ) becomes a branch on simdNone (simd_scalar.go). Both
+	// variants are ported; the scalar lane backend is upstream's B3_SIMD_NONE configuration.
+	if simdNone {
+		// The SIMD emulated version of this code is very slow. This is a purely scalar version
+		// for platforms that don't have SIMD capability. It is much faster than SIMD emulation.
+		// WARNING: this math needs to match the SIMD version for cross platform determinism.
+
+		EPS := float32(-linearSlop * linearSlop)
+
+		for j := range nb {
+			edge := &halfEdgesB[edgeIndicesB[j]]
+			twin := &halfEdgesB[edgeIndicesB[j]+1]
+			f0 := int(edge.Face)
+			f1 := int(twin.Face)
+			v0 := int(edge.Origin)
+			v1 := int(twin.Origin)
+
+			C := Vec3{bFNx[f0], bFNy[f0], bFNz[f0]}
+			D := Vec3{bFNx[f1], bFNy[f1], bFNz[f1]}
+			bv0 := Vec3{bWx[v0], bWy[v0], bWz[v0]}
+			bv1 := Vec3{bWx[v1], bWy[v1], bWz[v1]}
+			DC := Sub(bv1, bv0)
+
+			for i := range na {
+				d := Vec3{aDx[i], aDy[i], aDz[i]}
+
+				// CBA = C.dir, DBA = D.dir, where dir = B_x_A
+				CBA := Dot(C, d)
+				DBA := Dot(D, d)
+				if CBA*DBA >= EPS {
+					continue
+				}
+
+				n0 := Vec3{aN0x[i], aN0y[i], aN0z[i]}
+				n1 := Vec3{aN1x[i], aN1y[i], aN1z[i]}
+
+				// ADC = n0.DC, BDC = n1.DC, where DC = D_x_C
+				ADC := Dot(n0, DC)
+				BDC := Dot(n1, DC)
+				if ADC*BDC >= EPS || CBA*BDC >= EPS {
+					continue
+				}
+
+				// Reject near parallel edges
+				maxCD := MaxFloat(CBA*CBA, DBA*DBA)
+				if maxCD <= aTol[i] {
+					continue
+				}
+
+				// t = -CBA / (DBA - CBA)
+				t := -CBA / (DBA - CBA)
+
+				// normal = lerp(t, C, D) = C + (D-C)*t
+				n := MulAdd(C, t, Sub(D, C))
+				len2 := Dot(n, n)
+
+				inv := 1.0 / sqrtf(len2)
+				n = MulSV(inv, n)
+
+				// separation = -dot(normal, av0 + bv0)
+				av0 := Vec3{aV0x[i], aV0y[i], aV0z[i]}
+				separation := -Dot(Add(av0, bv0), n)
+
+				if separation > res.edge.separation {
+					res.edge.normal = n
+					res.edge.separation = separation
+
+					// Half edge index
+					res.edge.indexA = int32(edgeIndicesA[i])
+					res.edge.indexB = int32(edgeIndicesB[j])
+
+					if separation > speculativeDistance && earlyReturn {
+						res.separatedFeature = EdgePairAxis
+						return res
+					}
+				}
+			}
+		}
+	} else {
+		// This tolerance can skip edges shorter than 1cm.
+		EPS := splatW(float32(-linearSlop * linearSlop))
+		INF := splatW(float32(math.Inf(1)))
+
+		for j := range nb {
+			edge := &halfEdgesB[edgeIndicesB[j]]
+			twin := &halfEdgesB[edgeIndicesB[j]+1]
+			f0 := int(edge.Face)
+			f1 := int(twin.Face)
+			v0 := int(edge.Origin)
+			v1 := int(twin.Origin)
+
+			nC := Vec3{bFNx[f0], bFNy[f0], bFNz[f0]}
+			nD := Vec3{bFNx[f1], bFNy[f1], bFNz[f1]}
+			pB := Vec3{bWx[v0], bWy[v0], bWz[v0]}
+			qB := Vec3{bWx[v1], bWy[v1], bWz[v1]}
+
+			C := splatVW(nC)
+			D := splatVW(nD)
+			DC := splatVW(Sub(qB, pB))
+			bv0 := splatVW(pB)
+
+			for i := 0; i < na; i += laneCount {
+				n0 := loadVW(aN0x[i:], aN0y[i:], aN0z[i:])
+				n1 := loadVW(aN1x[i:], aN1y[i:], aN1z[i:])
+				d := loadVW(aDx[i:], aDy[i:], aDz[i:])
+				av0 := loadVW(aV0x[i:], aV0y[i:], aV0z[i:])
+
+				tol := loadW(aTol[i:])
+
+				// CBA = C.dir, DBA = D.dir, where dir = B_x_A
+				CBA := dotW(C, d)
+				DBA := dotW(D, d)
+				// ADC = n0.DC, BDC = n1.DC, where DC = D_x_C
+				ADC := dotW(n0, DC)
+				BDC := dotW(n1, DC)
+
+				// Gauss map arc crossing test, CBA*DBA<eps and ADC*BDC<eps and CBA*BDC<eps
+				m1 := lessThanW(mulW(CBA, DBA), EPS)
+				m2 := lessThanW(mulW(ADC, BDC), EPS)
+				m3 := lessThanW(mulW(CBA, BDC), EPS)
+
+				// Reject near parallel edges. The arc lerp is ill conditioned when both of B's normals are nearly
+				// perpendicular to edge A, a scale invariant sine threshold relative to the edge length.
+				maxCD := maxW(mulW(CBA, CBA), mulW(DBA, DBA))
+				notParallel := greaterThanW(maxCD, tol)
+				mask := andW(andW(m1, m2), andW(m3, notParallel))
+
+				// Most A-edges fail the Gauss test, so skip the divide, sqrt and support work when no
+				// lane passed.
+				if anyTrueW(mask) == false {
+					continue
+				}
+
+				// t = -CBA / (DBA - CBA)
+				t := divW(negW(CBA), subW(DBA, CBA))
+
+				// normal = lerp(t, C, D) = C + (D-C)*t
+				n := mulAddSVW(C, t, subVW(D, C))
+
+				// normalize
+				len2 := dotW(n, n)
+				inv := divW(splatW(1.0), sqrtW(len2))
+				n = mulSVW(inv, n)
+
+				// support = dot(normal, av0 + bv0)
+				support := dotW(addVW(av0, bv0), n)
+
+				// Lanes that fail the Gauss test can never win.
+				support = blendW(INF, support, mask)
+				separation := negW(support)
+
+				// Test all supports against the running best at once. If none beats it, skip the
+				// store and scalar reduction.
+				improves := greaterThanW(separation, splatW(res.edge.separation))
+				if anyTrueW(improves) == false {
+					continue
+				}
+
+				var sA [laneCount]float32
+				var nxA [laneCount]float32
+				var nyA [laneCount]float32
+				var nzA [laneCount]float32
+				storeW(sA[:], separation)
+				storeVW(nxA[:], nyA[:], nzA[:], n)
+
+				// Reduce in lane order so ties keep the first edge and the early out takes the first
+				// improving support below zero. Padded tail lanes carry +INF support, so they never
+				// update or index edges out of range.
+				for lane := range laneCount {
+					ei := i + lane
+					s := sA[lane]
+					if s > res.edge.separation {
+						res.edge.normal = Vec3{nxA[lane], nyA[lane], nzA[lane]}
+						res.edge.separation = s
+
+						// Half edge index
+						res.edge.indexA = int32(edgeIndicesA[ei])
+						res.edge.indexB = int32(edgeIndicesB[j])
+
+						if s > speculativeDistance && earlyReturn {
+							res.separatedFeature = EdgePairAxis
+							return res
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return res
+}
+
+// The _Static_asserts inside b3ComputeSeparatingAxis.
+const (
+	_ uint = 0 - (MaxHullEdges & (laneCount - 1))
+	_ uint = 0 - (MaxHullFaces & (hullSoaPadding - 1))
+	_ uint = 0 - (MaxHullVertices & (hullSoaPadding - 1))
+)

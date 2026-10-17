@@ -17,6 +17,13 @@ import "math"
 // laneCount is the lane width of the scalar backend.
 const laneCount = 4
 
+// simdNone is B3_SIMD_NONE (core.h): upstream defines it when no SIMD instruction set is used,
+// which is the configuration this scalar backend reproduces. Kernels with an
+// `#if defined( B3_SIMD_NONE )` variant branch on it.
+// PORT: a variable rather than a constant so tests can also run the lane variants of those
+// kernels, which upstream requires to match the scalar variants bit for bit.
+var simdNone = true
+
 // scalar math
 
 // floatW is b3FloatW4: four float lanes.

@@ -58,8 +58,8 @@ each; both point at the same Go file.
 | src/contact_solver.h | contact_solver.go | todo | |  |
 | src/contact_solver_wide.inl | contact_solver_wide.go | todo | |  |
 | src/container.h | container.go | tested | efca0c1 | b3Array(T) is []T; generic arrayPush/arrayPop/… keep growth policy |
-| src/convex_manifold.c | convex_manifold.go | todo | |  |
-| src/convex_manifold_wide.inl | convex_manifold_wide.go | todo | |  |
+| src/convex_manifold.c | convex_manifold.go | ported | efca0c1 | sphere/capsule/hull collide functions, SAT dispatch; b3ComputeSeparatingAxis covered by test_sat (Collide* tests land with test_manifold) |
+| src/convex_manifold_wide.inl | convex_manifold_wide.go | tested | efca0c1 | computeSeparatingAxisW; both B3_SIMD_NONE and lane edge loops ported, selected by simdNone (simd_scalar.go) |
 | src/core.c | core.go | ported | efca0c1 |  |
 | src/core.h | core.go | ported | efca0c1 |  |
 | src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
@@ -77,7 +77,7 @@ each; both point at the same Go file.
 | src/joint.c | joint.go | todo | |  |
 | src/joint.h | joint.go | todo | |  |
 | src/manifold.c | manifold.go | verified | efca0c1 | findIncidentFace, clipPolygon, flipPair checked in hull_golden_test.go |
-| src/manifold.h | manifold.go | ported | efca0c1 | separating axis / clip types; b3ComputeSeparatingAxis* and b3CollideHullsAtWidth land with convex_manifold.c |
+| src/manifold.h | manifold.go | ported | efca0c1 | separating axis / clip types; b3ComputeSeparatingAxis*, b3CollideHullsAtWidth are in convex_manifold.go (W4 → computeSeparatingAxisW in convex_manifold_wide.go) |
 | src/math_functions.c | math_functions.go | tested | efca0c1 |  |
 | src/math_internal.h | math_internal.go | ported | efca0c1 | declared functions land with their .c files |
 | src/mesh.c | mesh.go | todo | |  |
@@ -111,7 +111,7 @@ each; both point at the same Go file.
 | src/simd.h | simd.go | ported | efca0c1 | b3V32 non-SSE2 path as `v32`; b3Vec3W4 as `vec3W` |
 | src/simd_avx2.h | — | n/a | | dropped: scalar lanes only (see spec, SIMD lane layer) |
 | src/simd_neon.h | — | n/a | | dropped: scalar lanes only |
-| src/simd_scalar.h | simd_scalar.go | ported | efca0c1 | `floatW{v [laneCount]float32}`, laneCount = 4; W4 suffix dropped |
+| src/simd_scalar.h | simd_scalar.go | ported | efca0c1 | `floatW{v [laneCount]float32}`, laneCount = 4; W4 suffix dropped; `simdNone` (B3_SIMD_NONE) lives here |
 | src/simd_sse2.h | — | n/a | | dropped: scalar lanes only |
 | src/simd_wide.h | simd_wide.go | ported | efca0c1 | name map only + wideAlignment |
 | src/solver.c | solver.go | todo | |  |
@@ -158,7 +158,7 @@ each; both point at the same Go file.
 | test/test_name_cache.c | name_cache_test.go | todo | |  |
 | test/test_recording.c | recording_test.go | todo | |  |
 | test/test_restitution.c | restitution_test.go | todo | |  |
-| test/test_sat.c | sat_test.go | todo | |  |
+| test/test_sat.c | sat_test.go | tested | efca0c1 | oracle stats print identical to the C build (NEON and BOX3D_DISABLE_SIMD) |
 | test/test_shape.c | shape_test.go | todo | |  |
 | test/test_table.c | table_test.go | tested | efca0c1 |  |
 | test/test_world.c | world_test.go | todo | |  |
