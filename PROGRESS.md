@@ -77,7 +77,7 @@ each; both point at the same Go file.
 | src/aabb.c | aabb.go | ported | efca0c1 | no upstream test (exercised by height_field in M2) |
 | src/aabb.h | aabb.go | ported | efca0c1 |  |
 | src/algorithm.h | — | n/a | | B3_SWAP becomes Go tuple assignment at call sites (hull.go) |
-| src/arena_allocator.c | arena_allocator.go | ported | efca0c1 | bookkeeping shell; typed stackAlloc[T]/bump[T] use make |
+| src/arena_allocator.c | arena_allocator.go | ported | efca0c1 | typed stackAlloc[T]/bump[T] backed by per-type slices reused across steps (no allocation in a warm Step, step_alloc_test.go) |
 | src/arena_allocator.h | arena_allocator.go | ported | efca0c1 |  |
 | src/bitset.c | bitset.go | tested | efca0c1 | countSetBits lives in table.go as upstream |
 | src/bitset.h | bitset.go | tested | efca0c1 |  |
@@ -208,9 +208,12 @@ each; both point at the same Go file.
 | shared/determinism.h | scenes_determinism_test.go | ported | efca0c1 | test scene helper |
 | shared/human.c | scenes_human_test.go | ported | efca0c1 | test scene helper (revolute, spherical, filter, motor, parallel joints); the #if 0 pose control block is not ported |
 | shared/human.h | scenes_human_test.go | ported | efca0c1 | test scene helper |
-| shared/benchmarks.c | scenes_benchmarks_test.go | ported | efca0c1 | partial: CreateJunkyard, GetJunkyardCapacity, StepJunkyard and the ground shape id (test_world.c needs them); the rest lands with the benchmarks (M6) |
-| shared/benchmarks.h | scenes_benchmarks_test.go | ported | efca0c1 | partial, see benchmarks.c |
+| shared/benchmarks.c | scenes_benchmarks_test.go | tested | efca0c1 | every scene (joint grid, large/wide/many pyramids, rain, large world, washer, trees, mesh drop, junkyard, convex pile, spinner, sleep, village) and its capacity/step/destroy helpers; BENCHMARK_DEBUG is the variable benchmarkDebug (tests: debug sizes, bench_test.go: release sizes); used by bench_test.go, step_alloc_test.go and test_world.c |
+| shared/benchmarks.h | scenes_benchmarks_test.go | tested | efca0c1 | see benchmarks.c; VillageCast / VillageCurtain are villageCast / villageCurtain |
 | shared/overflow_color.c | scenes_benchmarks_test.go | ported | efca0c1 | CreateOverflowColorPile (test_world.c TestOverflowColorPile); cosf / sinf are float64 math rounded to float32 |
 | shared/overflow_color.h | scenes_benchmarks_test.go | ported | efca0c1 | see overflow_color.c |
-| shared/stability.c | scenes_stability_test.go | ported | efca0c1 | partial: CreateMeshDrop, UpdateMeshDrop, DestroyMeshDrop (test_determinism.c MeshDropTest) |
-| shared/stability.h | scenes_stability_test.go | ported | efca0c1 | partial, see stability.c |
+| shared/sat_benchmark.c | — | n/a | efca0c1 | GJK versus SAT micro benchmark behind BOX3D_INTERNAL_BENCHMARKS (static linkage only); not ported |
+| shared/sat_benchmark.h | — | n/a | efca0c1 | see sat_benchmark.c |
+| benchmark/main.c | bench_test.go | tested | efca0c1 | one testing.B per registered benchmark, sub-benchmarks per worker count (BOX3D_BENCH_WORKERS, default 1,2,4,8), same step counts and timing (first step untimed), release scene sizes; the SAT benchmark, -s step recording, Tracy and the commented-out smash/tumbler entries are not ported; results in PERFORMANCE.md |
+| shared/stability.c | scenes_stability_test.go | verified | efca0c1 | complete (CreateMeshDrop, UpdateMeshDrop, DestroyMeshDrop are the whole file); test_determinism.c MeshDropTest golden |
+| shared/stability.h | scenes_stability_test.go | verified | efca0c1 | see stability.c |

@@ -24,7 +24,7 @@ import (
 // exactly as main.c times them. ns/op is therefore comparable with the ms column of upstream's
 // CSVs, which hold the minimum over 4 runs (use -count and take the minimum). Scenes are always
 // built with upstream's release (NDEBUG) sizes. Continuous collision is on (main.c's default).
-// The SAT benchmark (BOX3D_INTERNAL_BENCHMARKS), Tracy, profile recording (-s) and the
+// The SAT benchmark (BOX3D_INTERNAL_BENCHMARKS), Tracy, -nc, profile recording (-s) and the
 // commented-out smash and tumbler entries are not ported. Run the benchmarks with
 // -tags box3d_noassert to match upstream's release build, which compiles B3_ASSERT out.
 
