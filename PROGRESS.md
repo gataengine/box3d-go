@@ -9,7 +9,11 @@
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
   construction (byte images via their hashes), hull/sphere/capsule queries, mover planes, polygon clipping, GJK
   distance, shape cast and TOI match the C build on 86 golden lines (`hull_golden_test.go`,
-  darwin/arm64 and amd64).
+  darwin/arm64 and amd64). Every collide function of convex_manifold.c and triangle_manifold.c
+  (fresh, cached and manual SAT modes) and b3ComputeSeparatingAxis match the C build on 361
+  golden lines (`manifold_golden_test.go`, darwin/arm64 and amd64, with both the B3_SIMD_NONE and
+  the lane SAT edge loop). The C output itself is identical for the NEON, SSE2 (x86_64),
+  BOX3D_DISABLE_SIMD and BOX3D_VALIDATE builds.
 - Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
   allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
   header structs have C layout, offsets are byte offsets from the header as upstream, and the
@@ -58,8 +62,8 @@ each; both point at the same Go file.
 | src/contact_solver.h | contact_solver.go | todo | |  |
 | src/contact_solver_wide.inl | contact_solver_wide.go | todo | |  |
 | src/container.h | container.go | tested | efca0c1 | b3Array(T) is []T; generic arrayPush/arrayPop/… keep growth policy |
-| src/convex_manifold.c | convex_manifold.go | tested | efca0c1 | sphere/capsule/hull collide functions, SAT dispatch; covered by test_sat and test_manifold |
-| src/convex_manifold_wide.inl | convex_manifold_wide.go | tested | efca0c1 | computeSeparatingAxisW; both B3_SIMD_NONE and lane edge loops ported, selected by simdNone (simd_scalar.go) |
+| src/convex_manifold.c | convex_manifold.go | verified | efca0c1 | sphere/capsule/hull collide functions, SAT cache and manual modes; test_sat, test_manifold, manifold_golden_test.go |
+| src/convex_manifold_wide.inl | convex_manifold_wide.go | verified | efca0c1 | computeSeparatingAxisW; both B3_SIMD_NONE and lane edge loops ported, selected by simdNone (simd_scalar.go); both match the C goldens |
 | src/core.c | core.go | ported | efca0c1 |  |
 | src/core.h | core.go | ported | efca0c1 |  |
 | src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
@@ -123,7 +127,7 @@ each; both point at the same Go file.
 | src/table.c | table.go | tested | efca0c1 | hashSet keeps upstream slot order |
 | src/table.h | table.go | tested | efca0c1 |  |
 | src/timer.c | timer.go | tested | efca0c1 | no upstream test; timer_test.go (Go-only) |
-| src/triangle_manifold.c | triangle_manifold.go | tested | efca0c1 | triangle vs sphere/capsule/hull; triangle vertices are a slice |
+| src/triangle_manifold.c | triangle_manifold.go | verified | efca0c1 | triangle vs sphere/capsule/hull; triangle vertices are a slice; manifold_golden_test.go |
 | src/types.c | types.go | ported | efca0c1 |  |
 | src/verstable.h | verstable.go | ported | efca0c1 | generic `verstable[K, V]` (linear probing) with the API subset upstream uses; Go-only verstable_test.go |
 | src/weld_joint.c | weld_joint.go | todo | |  |
