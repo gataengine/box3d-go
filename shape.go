@@ -1,0 +1,122 @@
+// Port of src/shape.h (and later src/shape.c) from Box3D (https://github.com/erincatto/box3d)
+// at commit efca0c184d40fd6a82016983f1601c4d23965867.
+//
+// SPDX-FileCopyrightText: 2025 Erin Catto
+// SPDX-License-Identifier: MIT
+// Go port: github.com/gataengine/box3d-go authors.
+
+package box3d
+
+import "unsafe"
+
+// ---- shape.h ----
+
+// PORT: b3BroadPhase and b3World forward declarations are not needed in Go.
+
+// shapeFlags is b3ShapeFlags.
+type shapeFlags int32
+
+const (
+	enableSensorEvents    shapeFlags = 0x01
+	enableContactEvents   shapeFlags = 0x02
+	enableCustomFiltering shapeFlags = 0x04
+	enableHitEvents       shapeFlags = 0x08
+	enablePreSolveEvents  shapeFlags = 0x10
+	// 0x20 is free, it was the enlarged AABB flag before the broad-phase marked the tree
+	enableSpeculative shapeFlags = 0x40
+)
+
+// shape is b3Shape.
+type shape struct {
+	id             int32
+	bodyId         int32
+	prevShapeId    int32
+	nextShapeId    int32
+	sensorIndex    int32
+	proxyKey       int32
+	typ            ShapeType // PORT: type is a Go keyword
+	density        float32
+	explosionScale float32
+	aabbMargin     float32
+
+	aabb          AABB
+	localCentroid Vec3
+
+	materialCount int32
+	material      SurfaceMaterial
+	materials     []SurfaceMaterial // PORT: b3SurfaceMaterial* heap array; nil for a single material shape
+
+	filter    Filter
+	userData  any
+	userShape any
+
+	nameId     uint32
+	generation uint16
+
+	// b3ShapeFlags
+	flags uint8
+
+	// PORT: tagged union { capsule; sphere; hull; mesh; heightField; compound }. All members are
+	// present; only the one selected by typ is meaningful.
+	capsule     Capsule
+	sphere      Sphere
+	hull        *HullData
+	mesh        Mesh
+	heightField *HeightFieldData
+	compound    *CompoundData
+}
+
+// getShapeMaterials is b3GetShapeMaterials.
+// A single material shape keeps its material inline. Multi material meshes and compounds own a heap
+// array. Reach the materials the same way for both: a single material shape presents its inline
+// material as a one element array. Do not cache the pointer, the shapes array can move.
+func getShapeMaterials(shape *shape) []SurfaceMaterial {
+	if shape.materials != nil {
+		return shape.materials
+	}
+	return unsafe.Slice(&shape.material, 1)
+}
+
+// PORT: the functions declared in shape.h (b3CreateShapeProxy, b3DestroyShapeProxy,
+// b3DestroyShapeAllocations, b3ComputeShapeMass, b3ComputeShapeExtent, b3ComputeShapeMinExtent,
+// b3ComputeSweptSphereAABB, b3ComputeSweptCapsuleAABB, b3ComputeShapeAABB, b3ComputeFatShapeAABB,
+// b3ComputeSweptShapeAABB, b3GetShapeCentroid, b3GetShapeArea, b3GetShapeProjectedArea,
+// b3GetShapeUserMaterialId, b3MakeShapeProxy, b3MakeLocalProxy, b3ComputeProxyAABB, b3RayCastShape,
+// b3ShapeCastShape, b3OverlapShape, b3ShapeTimeOfImpact, b3CollideMover) are defined in shape.c
+// and land with it (milestone 3). b3CollideMoverAndSphere / Capsule / Hull / Mesh / HeightField,
+// the hull functions (b3FindHullSupportVertex, …) and the height field / mesh functions are defined
+// in sphere.c, capsule.c, hull.c, mesh.c and height_field.c and are ported with those files.
+
+// Height field
+
+// getHeightFieldTriangleCount is b3GetHeightFieldTriangleCount.
+func getHeightFieldTriangleCount(heightField *HeightFieldData) int {
+	cellCount := int(heightField.RowCount-1) * int(heightField.ColumnCount-1)
+	return 2 * cellCount
+}
+
+// Mesh
+
+// PORT: b3GetMeshTriangle (static inline in shape.h) needs the mesh blob accessors
+// (b3GetMeshTriangles, b3GetMeshFlags, b3GetMeshVertices) that land with mesh.c; it is ported
+// there, in this file, at this position.
+
+// shouldShapesCollide is b3ShouldShapesCollide.
+func shouldShapesCollide(filterA, filterB Filter) bool {
+	if filterA.GroupIndex == filterB.GroupIndex && filterA.GroupIndex != 0 {
+		return filterA.GroupIndex > 0
+	}
+
+	return (filterA.MaskBits&filterB.CategoryBits) != 0 && (filterA.CategoryBits&filterB.MaskBits) != 0
+}
+
+// shouldQueryCollide is b3ShouldQueryCollide.
+func shouldQueryCollide(shapeFilter *Filter, queryFilter *QueryFilter) bool {
+	return (shapeFilter.CategoryBits&queryFilter.MaskBits) != 0 &&
+		(shapeFilter.MaskBits&queryFilter.CategoryBits) != 0
+}
+
+// isConvex is b3IsConvex.
+func isConvex(typ ShapeType) bool {
+	return typ == SphereShape || typ == CapsuleShape || typ == HullShape
+}

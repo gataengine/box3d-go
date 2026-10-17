@@ -82,3 +82,7 @@ site. Upstream bugs are ported as is and listed here too.
 | manifold.go | `b3SeparatingAxis.type` | field `typ` | `type` is a Go keyword |
 | manifold.go | `#if B3_ENABLE_VALIDATION b3ValidatePolygon` | always compiled; the call is `validate(!validateEnabled \|\| validatePolygon(...))` so it is skipped when validation is off | `validate` evaluates its argument |
 | manifold.go | `b3ClipPolygon( out, polygon, count, … )` | slices plus the explicit count | pointer + count |
+| shape.go | `b3Shape` anonymous union `{ capsule; sphere; hull; mesh; heightField; compound }` | all members present; `typ` (the shape type) says which is valid | Go has no unions |
+| shape.go | `b3Shape.type`, `b3Shape.materials`, `userData`, `userShape` | field `typ`; `materials` is a `[]SurfaceMaterial` (nil for single material shapes); `void*` → `any` | `type` is a Go keyword; pointer + count is a slice |
+| shape.go | `b3GetShapeMaterials` `(b3SurfaceMaterial*)&shape->material` | `unsafe.Slice(&shape.material, 1)` | presents the inline material as a one element slice without copying, as in C |
+| shape.go | `b3GetMeshTriangle` (static inline in shape.h) | not yet ported | needs the mesh blob accessors that land with mesh.c |

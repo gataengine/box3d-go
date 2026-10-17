@@ -106,7 +106,7 @@ each; both point at the same Go file.
 | src/sensor.c | sensor.go | todo | |  |
 | src/sensor.h | sensor.go | todo | |  |
 | src/shape.c | shape.go | todo | |  |
-| src/shape.h | shape.go | todo | |  |
+| src/shape.h | shape.go | ported | efca0c1 | b3Shape (union members all present), b3ShapeFlags, filter/convex inlines, b3GetHeightFieldTriangleCount; b3GetMeshTriangle lands with mesh.c; declared functions land with shape.c (M3) |
 | src/simd.c | simd.go | ported | efca0c1 | also holds IsAVX2Available / Get/SetSIMDWidth; Go-only simd_test.go |
 | src/simd.h | simd.go | ported | efca0c1 | b3V32 non-SSE2 path as `v32`; b3Vec3W4 as `vec3W` |
 | src/simd_avx2.h | — | n/a | | dropped: scalar lanes only (see spec, SIMD lane layer) |
