@@ -122,6 +122,15 @@ same determinism hashes, C recordings replay unchanged), and `World.Step` stays 
 Speed against upstream C with its SIMD on is in [PERFORMANCE.md](PERFORMANCE.md#simd-backend).
 `box3d_simd` without `GOEXPERIMENT=simd` fails to compile with a message saying so.
 
+Maintaining the kernels: the width 8 kernels are generated copies. After editing the width-generic
+sources (`simd_wide.go`, `contact_solver_wide.go`, `convex_manifold_wide.go`) or the width 4 lane
+contract (`simd_scalar.go`, `wide_lanes.go`), run `go generate ./...` in `libs/box3d-go`:
+`tools/widegen` rewrites the `*8_gen.go` width 8 copies, and `go run ./tools/widegen -check` (and
+`TestWidegenUpToDate`) fails on drift. Width specific code is not generated: the helpers in
+`wide_lanes.go` have hand-written width 8 counterparts in `wide_lanes8_amd64.go` (and the lane ops
+`simd_x4*.go` have theirs in `simd_x8_amd64.go`) that must be updated by hand, mirroring upstream's
+`#if B3_SIMD_WIDTH == 8` branches.
+
 ## Determinism
 
 - Upstream's `test_determinism.c` passes with its float golden hashes verbatim: ragdoll at 1–5
