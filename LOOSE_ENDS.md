@@ -129,3 +129,14 @@ site. Upstream bugs are ported as is and listed here too.
 | mesh.go | `b3CollideMoverAndMesh( planes, capacity, shape, mover )` | `collideMoverAndMesh(planes []PlaneResult, shape, mover)`; capacity is `len(planes)` | pointer + count is a slice |
 | mesh.go | `area = 0.5f * b3Length( normal )` feeding `surfaceArea += area` | product wrapped in `float32()` | Go fused it into an FMA (FMA guard) |
 | mesh_test.go, mover_test.go | `MakeTwoMaterialMesh` (static in test_mover.c and test_compound.c), `FatVertex` | `moverMakeTwoMaterialMesh` / `compoundMakeTwoMaterialMesh`; `fatVertex` + `fatPositions` | one package holds all test files; strided base as a slice |
+| height_field.go | `b3HeightFieldData::clockwise` (`uint8_t`) set from `bool` | `Clockwise uint8` set to 0/1 and tested with `!= 0` | Go bools do not convert to integers |
+| height_field.go | `b3Alloc`/`b3Free` of the blob and the decompressed height scratch, `b3DestroyHeightField` | `blobAlloc` / `make`; `DestroyHeightField` is a no-op | GC owns memory |
+| height_field.go | `b3GetHeightFieldCellCorners( hf, row, column, b3Vec3 corners[4] )` | `corners *[4]Vec3` | C array parameter is a pointer |
+| height_field.go | `( b3ShapeProxy ){ &input->origin, 1, 0.0f }` in `b3RayCastHeightField` | `unsafe.Slice(&input.Origin, 1)` | aliases the input as in C, no allocation |
+| height_field.go | `b3CollideMoverAndHeightField( planes, capacity, shape, mover )` | `collideMoverAndHeightField(planes []PlaneResult, shape, mover)`; capacity is `len(planes)` | pointer + count is a slice |
+| height_field.go | `b3DumpHeightData` (`fopen`/`fprintf`), `b3LoadHeightField` (`fscanf`) | `os.Create` + `fmt.Fprintf` with the same formats (`%.9f` of the float promoted to double); `fmt.Fscan` (whitespace separated, float32 parse correctly rounded like `strtof`) | Go I/O; the golden test checks a dump/load round trip gives the C blob hash |
+| height_field.go | `_Static_assert( b3_concaveEdge3 == 4 * b3_concaveEdge1 )` and the inverse variant | overflowing constant pairs | Go has no static assert |
+| height_field.go | `gridFractionOffset = input->maxFraction * minFraction` (later added to a product) | product wrapped in `float32()` | Go fused it into an FMA through the inlined `mulAdd` (FMA guard) |
+| mesh.go | `xWidth`/`zWidth`/`hb`/`ht`/`hy` half-width products in the creators | wrapped in `float32()` | rule: products feeding adds are rounded explicitly |
+| height_field_test.go | `MakeFlatField` (static in test_height_field.c and test_mover.c), `BruteForceShapeCast`, `BruteForceRayCast`, `printf` mismatch lines | `makeFlatField` defined once (mover_test.go uses it), `heightFieldBruteForce*`, `GinkgoWriter.Printf` | one package holds all test files |
+| height_field_test.go | `FileRoundtrip` writes `test_height_field_roundtrip.dat` in the working directory | writes into `GinkgoT().TempDir()` | test hygiene |

@@ -1103,9 +1103,9 @@ func CreateGridMesh(xCount, zCount int, cellWidth float32, materialCount int, id
 	xWidth := cellWidth * float32(xCount)
 	zWidth := cellWidth * float32(zCount)
 
-	x := -0.5 * xWidth
+	x := float32(-0.5 * xWidth)
 	for ix := 0; ix <= xCount; ix++ {
-		z := -0.5 * zWidth
+		z := float32(-0.5 * zWidth)
 		for iz := 0; iz <= zCount; iz++ {
 			vertices[index] = Vec3{x, 0.0, z}
 			z += cellWidth
@@ -1192,13 +1192,13 @@ func CreateWaveMesh(xCount, zCount int, cellWidth, amplitude, rowFrequency, colu
 	omegaZ := 2.0 * Pi * rowFrequency * cellWidth
 	omegaX := 2.0 * Pi * columnFrequency * cellWidth
 
-	x := -0.5 * xWidth
+	x := float32(-0.5 * xWidth)
 	cs := CosSin{}
 	for ix := 0; ix <= xCount; ix++ {
 		cs = ComputeCosSin(omegaX * float32(ix))
 		rowHeight := cs.Sine
 
-		z := -0.5 * zWidth
+		z := float32(-0.5 * zWidth)
 		for iz := 0; iz <= zCount; iz++ {
 			cs = ComputeCosSin(omegaZ * float32(iz))
 			columnHeight := cs.Sine
@@ -1383,9 +1383,9 @@ func CreateHollowBoxMesh(center, extent Vec3) *MeshData {
 
 // CreatePlatformMesh creates a platform mesh. A truncated pyramid.
 func CreatePlatformMesh(center Vec3, height, topWidth, bottomWidth float32) *MeshData {
-	hb := 0.5 * bottomWidth
-	ht := 0.5 * topWidth
-	hy := 0.5 * height
+	hb := float32(0.5 * bottomWidth)
+	ht := float32(0.5 * topWidth)
+	hy := float32(0.5 * height)
 	vertices := [...]Vec3{
 		{ht, hy, ht}, {-ht, hy, ht}, {-hb, -hy, hb}, {hb, -hy, hb},
 		{ht, hy, -ht}, {-ht, hy, -ht}, {-hb, -hy, -hb}, {hb, -hy, -hb},

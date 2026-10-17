@@ -1,5 +1,6 @@
-// Go-only test: no upstream counterpart. Compares mesh creation (byte images through their byte
-// count and content hash), mesh queries, ray and shape casts and mover collision against the
+// Go-only test: no upstream counterpart. Compares mesh and height field creation (byte images
+// through their byte count and content hash, height field dump/load), triangle access, queries,
+// ray and shape casts, overlaps and mover collision against the
 // pinned upstream C sources (efca0c184d40fd6a82016983f1601c4d23965867) compiled with
 // -ffp-contract=off, bit for bit. The C output is identical for the NEON, SSE2,
 // BOX3D_DISABLE_SIMD and BOX3D_VALIDATE builds. See testdata/geometry_golden_gen.c; this file
@@ -14,6 +15,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,6 +37,9 @@ type geometryGoldenGen struct {
 	soupIndices   [soupN*soupN*6 + 9]int32
 	soupMaterials [soupN*soupN*2 + 3]uint8
 	heights       [(soupN + 1) * (soupN + 1)]float32
+
+	hfHeights   [hfColumns * hfRows]float32
+	hfMaterials [(hfColumns - 1) * (hfRows - 1)]uint8
 }
 
 func (g *geometryGoldenGen) rndInt(n uint32) uint32 {
@@ -377,10 +382,217 @@ func (g *geometryGoldenGen) meshSection() {
 	}
 }
 
-func (g *geometryGoldenGen) run() string {
+func (g *geometryGoldenGen) phf(h *HeightFieldData) {
+	if h == nil {
+		g.printf(" null")
+		return
+	}
+	g.printf(" %d %016x %d %d %d", h.ByteCount, h.Hash, h.ColumnCount, h.RowCount, h.Clockwise)
+	g.pf(h.MinHeight)
+	g.pf(h.MaxHeight)
+	g.pf(h.HeightScale)
+	g.pv(h.Scale)
+	g.pbox(h.AABB)
+}
+
+const (
+	hfColumns = 9 // HF_COLUMNS
+	hfRows    = 7 // HF_ROWS
+)
+
+func (g *geometryGoldenGen) randomFieldDef(clockwise bool) HeightFieldDef {
+	for i := range hfColumns * hfRows {
+		// Some heights fall outside the global range and get clamped
+		g.hfHeights[i] = 1.2 * g.rnd()
+	}
+	for i := range (hfColumns - 1) * (hfRows - 1) {
+		r := g.rndInt(8)
+		if r == 0 {
+			g.hfMaterials[i] = HeightFieldHole
+		} else {
+			g.hfMaterials[i] = uint8(r)
+		}
+	}
+
+	def := HeightFieldDef{}
+	def.Heights = g.hfHeights[:]
+	def.MaterialIndices = g.hfMaterials[:]
+	def.Scale = Vec3{0.75, 2.0, 1.25}
+	def.CountX = hfColumns
+	def.CountZ = hfRows
+	def.GlobalMinimumHeight = -1.0
+	def.GlobalMaximumHeight = 1.0
+	def.ClockwiseWinding = clockwise
+	return def
+}
+
+func (g *geometryGoldenGen) heightFieldQueries(name string, hf *HeightFieldData) {
+	bounds := hf.AABB
+	c := bounds.Center()
+	e := bounds.Extents()
+
+	g.printf("%s aabb |", name)
+	{
+		var xf Transform
+		xf.P = g.rv3(2.0, 2.0, 2.0, 0.0, 0.0, 0.0)
+		xf.Q = g.rq()
+		g.pbox(ComputeHeightFieldAABB(hf, xf))
+	}
+	g.printf("\n")
+
+	g.printf("%s triangles |", name)
+	{
+		materials := GetHeightFieldMaterialIndices(hf)
+		triangleCount := getHeightFieldTriangleCount(hf)
+		for i := 0; i < triangleCount; i += 1 + triangleCount/9 {
+			if materials[i>>1] == HeightFieldHole {
+				g.printf(" hole")
+				continue
+			}
+			g.ptri(getHeightFieldTriangle(hf, i))
+			g.printf(" %d", getHeightFieldMaterial(hf, i))
+		}
+	}
+	g.printf("\n")
+
+	for k := range 12 {
+		g.printf("%s ray %d |", name, k)
+		var ray RayCastInput
+		ray.Origin = g.rv3(1.2*e.X, mulAdd(1.0, 1.5, e.Y), 1.2*e.Z, c.X, c.Y, c.Z)
+		target := g.rv3(e.X, e.Y, e.Z, c.X, c.Y, c.Z)
+		ray.Translation = MulSV(2.0, Sub(target, ray.Origin))
+		ray.MaxFraction = 1.0
+		if k%4 == 3 {
+			ray.MaxFraction = 0.4
+		}
+		g.pco(RayCastHeightField(hf, &ray))
+		g.printf("\n")
+	}
+
+	for k := range 10 {
+		g.printf("%s cast %d |", name, k)
+		start := g.rv3(1.2*e.X, mulAdd(1.0, 1.5, e.Y), 1.2*e.Z, c.X, c.Y, c.Z)
+		var input ShapeCastInput
+		input.Proxy = g.rproxy(start, 0.3)
+		target := g.rv3(e.X, e.Y, e.Z, c.X, c.Y, c.Z)
+		input.Translation = MulSV(2.0, Sub(target, start))
+		input.MaxFraction = 1.0
+		input.CanEncroach = k%3 == 1
+		g.pco(ShapeCastHeightField(hf, &input))
+		g.printf("\n")
+	}
+
+	g.printf("%s overlap |", name)
+	for range 16 {
+		var xf Transform
+		xf.P = g.rv3(0.5, 0.5, 0.5, 0.0, 0.0, 0.0)
+		xf.Q = g.rq()
+		local := g.rv3(e.X, e.Y+0.5, e.Z, c.X, c.Y, c.Z)
+		world := TransformPoint(xf, local)
+		proxy := g.rproxy(world, 0.4)
+		g.pbool(OverlapHeightField(hf, xf, &proxy))
+	}
+	g.printf("\n")
+
+	for k := range 8 {
+		g.printf("%s mover %d |", name, k)
+		var mover Capsule
+		mover.Center1 = g.rv3(e.X, e.Y+0.3, e.Z, c.X, c.Y, c.Z)
+		mover.Center2 = Add(mover.Center1, g.rv3(0.3, 0.3, 0.3, 0.0, 0.4, 0.0))
+		mover.Radius = mulAdd(0.4, 0.3, g.rnd())
+		var planes [16]PlaneResult
+		capacity := 16
+		if k == 5 {
+			capacity = 2
+		}
+		count := collideMoverAndHeightField(planes[:capacity], hf, &mover)
+		g.pplanes(planes[:], count)
+		g.printf("\n")
+	}
+
+	g.printf("%s query |", name)
+	for range 6 {
+		var box AABB
+		p := g.rv3(e.X, e.Y, e.Z, c.X, c.Y, c.Z)
+		h := g.rv3(0.5, 0.5, 0.5, 0.8, 0.8, 0.8)
+		box.LowerBound = Sub(p, h)
+		box.UpperBound = Add(p, h)
+		g.resetQuery(-1)
+		QueryHeightField(hf, box, g.meshQueryFcn, nil)
+		g.pquery()
+	}
+	g.printf("\n")
+}
+
+func (g *geometryGoldenGen) heightFieldSection(dir string) {
+	var fields []*HeightFieldData
+
+	g.printf("hf creators |")
+	fields = append(fields, CreateGrid(6, 5, Vec3{1.0, 1.0, 1.0}, false))
+	fields = append(fields, CreateGrid(20, 18, Vec3{0.5, 2.0, 0.75}, true))
+	fields = append(fields, CreateWave(10, 12, Vec3{2.0, 1.5, 2.0}, 0.1, 0.03333, false))
+	fields = append(fields, CreateWave(19, 21, Vec3{1.0, 3.0, 1.5}, 0.07, 0.11, true))
+	for _, f := range fields {
+		g.phf(f)
+	}
+	g.printf("\n")
+
+	g.printf("hf random |")
+	{
+		saved := g.seed
+		def := g.randomFieldDef(false)
+		fields = append(fields, CreateHeightField(&def))
+		g.phf(fields[len(fields)-1])
+
+		g.seed = saved
+		def = g.randomFieldDef(true)
+		fields = append(fields, CreateHeightField(&def))
+		g.phf(fields[len(fields)-1])
+
+		// No material array
+		def.MaterialIndices = nil
+		def.ClockwiseWinding = false
+		g.phf(CreateHeightField(&def))
+
+		// Dump and load: the text format must round trip to the same blob
+		def = g.randomFieldDef(true)
+		direct := CreateHeightField(&def)
+		path := filepath.Join(dir, "geometry_golden_hf.dat")
+		DumpHeightData(&def, path)
+		loaded := LoadHeightField(path)
+		os.Remove(path)
+		g.phf(direct)
+		g.phf(loaded)
+		g.phf(LoadHeightField(filepath.Join(dir, "geometry_golden_missing.dat")))
+	}
+	g.printf("\n")
+
+	g.printf("hf flags |")
+	for _, f := range fields {
+		flags := GetHeightFieldFlags(f)
+		heights := GetHeightFieldCompressedHeights(f)
+		var sum uint32 = 0
+		for j := range getHeightFieldTriangleCount(f) {
+			sum = 31*sum + uint32(flags[j])
+		}
+		for j := range int(f.RowCount * f.ColumnCount) {
+			sum = 31*sum + uint32(heights[j])
+		}
+		g.printf(" %08x", sum)
+	}
+	g.printf("\n")
+
+	for i, f := range fields {
+		name := fmt.Sprintf("hf %d", i)
+		g.heightFieldQueries(name, f)
+	}
+}
+
+func (g *geometryGoldenGen) run(dir string) string {
 	g.seed = 31337
 
 	g.meshSection()
+	g.heightFieldSection(dir)
 
 	return g.sb.String()
 }
@@ -394,7 +606,7 @@ var _ = Describe("GeometryGoldenTest", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		var g geometryGoldenGen
-		got := g.run()
+		got := g.run(GinkgoT().TempDir())
 
 		wantLines := strings.Split(string(want), "\n")
 		gotLines := strings.Split(got, "\n")

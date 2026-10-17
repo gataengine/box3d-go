@@ -228,10 +228,10 @@ var _ = Describe("MoverTest", func() {
 	// b3PlaneResult::materialIndex follows different paths per shape type. Meshes
 	// report the per triangle material index. Compounds remap the child result
 	// through the child material table. Convex shapes report index 0.
-	PIt("MoverWorldMeshMaterials (needs mesh.c, body.c, shape.c, physics_world.c)")
-	PIt("MoverWorldCompoundMeshMaterials (needs mesh.c, compound.c, body.c, shape.c, physics_world.c)")
+	PIt("MoverWorldMeshMaterials (needs body.c, shape.c, physics_world.c)")
+	PIt("MoverWorldCompoundMeshMaterials (needs compound.c, body.c, shape.c, physics_world.c)")
 	PIt("MoverBodyMaterialIndices (needs body.c, shape.c, physics_world.c)")
-	PIt("MoverBodySkipsMeshAndCompound (needs mesh.c, compound.c, body.c, shape.c, physics_world.c)")
+	PIt("MoverBodySkipsMeshAndCompound (needs compound.c, body.c, shape.c, physics_world.c)")
 
 	// One sided mover collision.
 	// Mover queries keep only triangles facing the mover. The front side follows the
@@ -281,11 +281,74 @@ var _ = Describe("MoverTest", func() {
 
 		DestroyMesh(mesh)
 	})
-	PIt("MoverHeightFieldBackside (needs height_field.c)")
-	PIt("MoverHeightFieldReport (needs height_field.c)")
-	PIt("MoverHeightFieldClockwise (needs height_field.c)")
+	It("MoverHeightFieldBackside", func() {
+		materials := [4]uint8{0, 0, 0, 0}
+		hf := makeFlatField(materials[:], false)
+
+		var planes [4]PlaneResult
+
+		// Standing on the front (upper) face of the default winding
+		above := Capsule{Vec3{0.3, 0.15, 0.25}, Vec3{0.3, 0.35, 0.25}, 0.2}
+		count := collideMoverAndHeightField(planes[:4], hf, &above)
+		ensure(count == 1)
+		ensure(planes[0].Plane.Normal.Y > 0.99)
+		ensureSmall(planes[0].Plane.Offset-0.05, 1e-4)
+
+		// Under the surface is the back side and gets culled
+		below := Capsule{Vec3{0.3, -0.35, 0.25}, Vec3{0.3, -0.15, 0.25}, 0.2}
+		count = collideMoverAndHeightField(planes[:4], hf, &below)
+		ensure(count == 0)
+
+		DestroyHeightField(hf)
+	})
+
+	It("MoverHeightFieldReport", func() {
+		materials := [4]uint8{1, 2, 0, 0}
+		hf := makeFlatField(materials[:], false)
+
+		var planes [4]PlaneResult
+
+		// (0.3, 0.25) sits on the x + z <= 1 side of cell (0,0), which holds triangle 0
+		first := Capsule{Vec3{0.3, 0.15, 0.25}, Vec3{0.3, 0.35, 0.25}, 0.2}
+		count := collideMoverAndHeightField(planes[:4], hf, &first)
+		ensure(count == 1)
+		ensure(planes[0].TriangleIndex == 0)
+		ensure(planes[0].ChildIndex == 0)
+		ensure(planes[0].MaterialIndex == 1)
+
+		// (1.3, 0.3) sits on the x + z <= 2 side of cell (0,1), which holds triangle 2
+		second := Capsule{Vec3{1.3, 0.15, 0.3}, Vec3{1.3, 0.35, 0.3}, 0.2}
+		count = collideMoverAndHeightField(planes[:4], hf, &second)
+		ensure(count == 1)
+		ensure(planes[0].TriangleIndex == 2)
+		ensure(planes[0].MaterialIndex == 2)
+
+		DestroyHeightField(hf)
+	})
+
+	// A clockwise height field faces down, see HeightFieldWinding. Backside culling
+	// must respect the flag: below the surface is the front side, above is the back.
+	It("MoverHeightFieldClockwise", func() {
+		materials := [4]uint8{0, 0, 0, 0}
+		hf := makeFlatField(materials[:], true)
+
+		var planes [4]PlaneResult
+
+		below := Capsule{Vec3{0.3, -0.35, 0.25}, Vec3{0.3, -0.15, 0.25}, 0.2}
+		count := collideMoverAndHeightField(planes[:4], hf, &below)
+		ensure(count == 1)
+		ensure(planes[0].Plane.Normal.Y < -0.99)
+		ensureSmall(planes[0].Plane.Offset-0.05, 1e-4)
+		ensure(planes[0].TriangleIndex == 0 || planes[0].TriangleIndex == 1)
+
+		above := Capsule{Vec3{0.3, 0.15, 0.25}, Vec3{0.3, 0.35, 0.25}, 0.2}
+		count = collideMoverAndHeightField(planes[:4], hf, &above)
+		ensure(count == 0)
+
+		DestroyHeightField(hf)
+	})
 
 	// A mesh can be baked with more materials than the shape carries. The reported index must stay
 	// inside the shape's material array.
-	PIt("MoverWorldMeshMaterialClamp (needs mesh.c, body.c, shape.c, physics_world.c)")
+	PIt("MoverWorldMeshMaterialClamp (needs body.c, shape.c, physics_world.c)")
 })

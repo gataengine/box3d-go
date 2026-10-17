@@ -159,6 +159,32 @@ func GetMeshFlags(mesh *MeshData) []uint8 {
 // CreateGridMesh, CreateWaveMesh, CreateTorusMesh, CreateBoxMesh, CreateHollowBoxMesh,
 // CreatePlatformMesh, CreateMesh, DestroyMesh and GetHeight are implemented in mesh.go.
 
+// Height field
+
+// heightFieldBytes is the byte image of a height field: (uint8_t*)hf with hf->byteCount bytes.
+func heightFieldBytes(hf *HeightFieldData) []byte {
+	return blobBytes(unsafe.Pointer(hf), hf.ByteCount)
+}
+
+// GetHeightFieldCompressedHeights gets read only compressed heights. One uint16_t per grid point.
+// PORT: returns ColumnCount * RowCount heights (nil when the offset is 0).
+func GetHeightFieldCompressedHeights(hf *HeightFieldData) []uint16 {
+	return blobSlice[uint16](unsafe.Pointer(hf), hf.HeightsOffset, int(hf.ColumnCount)*int(hf.RowCount))
+}
+
+// GetHeightFieldMaterialIndices gets read only material indices. One uint8_t per cell.
+func GetHeightFieldMaterialIndices(hf *HeightFieldData) []uint8 {
+	return blobSlice[uint8](unsafe.Pointer(hf), hf.MaterialOffset, int(hf.ColumnCount-1)*int(hf.RowCount-1))
+}
+
+// GetHeightFieldFlags gets read only triangle flags. One uint8_t per triangle.
+func GetHeightFieldFlags(hf *HeightFieldData) []uint8 {
+	return blobSlice[uint8](unsafe.Pointer(hf), hf.FlagsOffset, 2*int(hf.ColumnCount-1)*int(hf.RowCount-1))
+}
+
+// CreateHeightField, CreateGrid, CreateWave, DestroyHeightField, DumpHeightData and
+// LoadHeightField are implemented in height_field.go.
+
 // Query
 
 // MeshQueryFcn is the query callback.

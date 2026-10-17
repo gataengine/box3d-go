@@ -5,10 +5,13 @@
 //      src/dynamic_tree.c src/aabb.c src/hull.c src/distance.c src/sphere.c src/capsule.c src/manifold.c
 //      src/math_functions.c src/core.c src/timer.c src/simd.c"
 // cc -O2 -ffp-contract=off -std=c17 -I include -I src -o $SCRATCH/geometry_golden $SRC
-// $SCRATCH/geometry_golden > ../../libs/box3d-go/testdata/geometry_golden.txt
+// (cd $SCRATCH && ./geometry_golden) > ../../libs/box3d-go/testdata/geometry_golden.txt
 //
 // Check the output against the no-SIMD build (add -DBOX3D_DISABLE_SIMD) and, on a Mac, the SSE2
 // build (-arch x86_64, runs under Rosetta). Both must be identical.
+//
+// The height field section writes and removes geometry_golden_hf.dat in the working directory, so
+// run the binary from $SCRATCH.
 //
 // Each line: a label, "|", outputs as hex words. Blobs (meshes, height fields, compounds) are
 // reported by byte count and content hash (the hash covers every byte of the image). Inputs come
@@ -476,6 +479,222 @@ static void meshSection( void )
 	}
 }
 
+static void phf( const b3HeightFieldData* h )
+{
+	if ( h == NULL )
+	{
+		printf( " null" );
+		return;
+	}
+	printf( " %d %016llx %d %d %d", h->byteCount, (unsigned long long)h->hash, h->columnCount, h->rowCount, h->clockwise );
+	pf( h->minHeight );
+	pf( h->maxHeight );
+	pf( h->heightScale );
+	pv( h->scale );
+	pbox( h->aabb );
+}
+
+#define HF_COLUMNS 9
+#define HF_ROWS 7
+static float s_hfHeights[HF_COLUMNS * HF_ROWS];
+static uint8_t s_hfMaterials[( HF_COLUMNS - 1 ) * ( HF_ROWS - 1 )];
+
+static b3HeightFieldDef randomFieldDef( bool clockwise )
+{
+	for ( int i = 0; i < HF_COLUMNS * HF_ROWS; ++i )
+	{
+		// Some heights fall outside the global range and get clamped
+		s_hfHeights[i] = 1.2f * rnd();
+	}
+	for ( int i = 0; i < ( HF_COLUMNS - 1 ) * ( HF_ROWS - 1 ); ++i )
+	{
+		uint32_t r = rndInt( 8 );
+		s_hfMaterials[i] = r == 0 ? B3_HEIGHT_FIELD_HOLE : (uint8_t)r;
+	}
+
+	b3HeightFieldDef def = { 0 };
+	def.heights = s_hfHeights;
+	def.materialIndices = s_hfMaterials;
+	def.scale = (b3Vec3){ 0.75f, 2.0f, 1.25f };
+	def.countX = HF_COLUMNS;
+	def.countZ = HF_ROWS;
+	def.globalMinimumHeight = -1.0f;
+	def.globalMaximumHeight = 1.0f;
+	def.clockwiseWinding = clockwise;
+	return def;
+}
+
+static void heightFieldQueries( const char* name, const b3HeightFieldData* hf )
+{
+	b3AABB bounds = hf->aabb;
+	b3Vec3 c = b3AABB_Center( bounds );
+	b3Vec3 e = b3AABB_Extents( bounds );
+
+	printf( "%s aabb |", name );
+	{
+		b3Transform xf;
+		xf.p = rv3( 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f );
+		xf.q = rq();
+		pbox( b3ComputeHeightFieldAABB( hf, xf ) );
+	}
+	printf( "\n" );
+
+	printf( "%s triangles |", name );
+	{
+		const uint8_t* materials = b3GetHeightFieldMaterialIndices( hf );
+		int triangleCount = b3GetHeightFieldTriangleCount( hf );
+		for ( int i = 0; i < triangleCount; i += 1 + triangleCount / 9 )
+		{
+			if ( materials[i >> 1] == B3_HEIGHT_FIELD_HOLE )
+			{
+				printf( " hole" );
+				continue;
+			}
+			ptri( b3GetHeightFieldTriangle( hf, i ) );
+			printf( " %d", b3GetHeightFieldMaterial( hf, i ) );
+		}
+	}
+	printf( "\n" );
+
+	for ( int k = 0; k < 12; ++k )
+	{
+		printf( "%s ray %d |", name, k );
+		b3RayCastInput ray;
+		ray.origin = rv3( 1.2f * e.x, 1.5f * e.y + 1.0f, 1.2f * e.z, c.x, c.y, c.z );
+		b3Vec3 target = rv3( e.x, e.y, e.z, c.x, c.y, c.z );
+		ray.translation = b3MulSV( 2.0f, b3Sub( target, ray.origin ) );
+		ray.maxFraction = k % 4 == 3 ? 0.4f : 1.0f;
+		pco( b3RayCastHeightField( hf, &ray ) );
+		printf( "\n" );
+	}
+
+	for ( int k = 0; k < 10; ++k )
+	{
+		printf( "%s cast %d |", name, k );
+		b3Vec3 start = rv3( 1.2f * e.x, 1.5f * e.y + 1.0f, 1.2f * e.z, c.x, c.y, c.z );
+		b3ShapeCastInput input;
+		input.proxy = rproxy( start, 0.3f );
+		b3Vec3 target = rv3( e.x, e.y, e.z, c.x, c.y, c.z );
+		input.translation = b3MulSV( 2.0f, b3Sub( target, start ) );
+		input.maxFraction = 1.0f;
+		input.canEncroach = k % 3 == 1;
+		pco( b3ShapeCastHeightField( hf, &input ) );
+		printf( "\n" );
+	}
+
+	printf( "%s overlap |", name );
+	for ( int k = 0; k < 16; ++k )
+	{
+		b3Transform xf;
+		xf.p = rv3( 0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 0.0f );
+		xf.q = rq();
+		b3Vec3 local = rv3( e.x, e.y + 0.5f, e.z, c.x, c.y, c.z );
+		b3Vec3 world = b3TransformPoint( xf, local );
+		b3ShapeProxy proxy = rproxy( world, 0.4f );
+		printf( " %d", b3OverlapHeightField( hf, xf, &proxy ) );
+	}
+	printf( "\n" );
+
+	for ( int k = 0; k < 8; ++k )
+	{
+		printf( "%s mover %d |", name, k );
+		b3Capsule mover;
+		mover.center1 = rv3( e.x, e.y + 0.3f, e.z, c.x, c.y, c.z );
+		mover.center2 = b3Add( mover.center1, rv3( 0.3f, 0.3f, 0.3f, 0.0f, 0.4f, 0.0f ) );
+		mover.radius = 0.4f + 0.3f * rnd();
+		b3PlaneResult planes[16];
+		int capacity = k == 5 ? 2 : 16;
+		int count = b3CollideMoverAndHeightField( planes, capacity, hf, &mover );
+		pplanes( planes, count );
+		printf( "\n" );
+	}
+
+	printf( "%s query |", name );
+	for ( int k = 0; k < 6; ++k )
+	{
+		b3AABB box;
+		b3Vec3 p = rv3( e.x, e.y, e.z, c.x, c.y, c.z );
+		b3Vec3 h = rv3( 0.5f, 0.5f, 0.5f, 0.8f, 0.8f, 0.8f );
+		box.lowerBound = b3Sub( p, h );
+		box.upperBound = b3Add( p, h );
+		resetQuery( -1 );
+		b3QueryHeightField( hf, box, MeshQueryFcn, NULL );
+		pquery();
+	}
+	printf( "\n" );
+}
+
+static void heightFieldSection( void )
+{
+	b3HeightFieldData* fields[8];
+	int fieldCount = 0;
+
+	printf( "hf creators |" );
+	fields[fieldCount++] = b3CreateGrid( 6, 5, (b3Vec3){ 1.0f, 1.0f, 1.0f }, false );
+	fields[fieldCount++] = b3CreateGrid( 20, 18, (b3Vec3){ 0.5f, 2.0f, 0.75f }, true );
+	fields[fieldCount++] = b3CreateWave( 10, 12, (b3Vec3){ 2.0f, 1.5f, 2.0f }, 0.1f, 0.03333f, false );
+	fields[fieldCount++] = b3CreateWave( 19, 21, (b3Vec3){ 1.0f, 3.0f, 1.5f }, 0.07f, 0.11f, true );
+	for ( int i = 0; i < fieldCount; ++i )
+	{
+		phf( fields[i] );
+	}
+	printf( "\n" );
+
+	printf( "hf random |" );
+	{
+		uint32_t saved = seed;
+		b3HeightFieldDef def = randomFieldDef( false );
+		fields[fieldCount++] = b3CreateHeightField( &def );
+		phf( fields[fieldCount - 1] );
+
+		seed = saved;
+		def = randomFieldDef( true );
+		fields[fieldCount++] = b3CreateHeightField( &def );
+		phf( fields[fieldCount - 1] );
+
+		// No material array
+		def.materialIndices = NULL;
+		def.clockwiseWinding = false;
+		phf( b3CreateHeightField( &def ) );
+
+		// Dump and load: the text format must round trip to the same blob
+		def = randomFieldDef( true );
+		b3HeightFieldData* direct = b3CreateHeightField( &def );
+		b3DumpHeightData( &def, "geometry_golden_hf.dat" );
+		b3HeightFieldData* loaded = b3LoadHeightField( "geometry_golden_hf.dat" );
+		remove( "geometry_golden_hf.dat" );
+		phf( direct );
+		phf( loaded );
+		phf( b3LoadHeightField( "geometry_golden_missing.dat" ) );
+	}
+	printf( "\n" );
+
+	printf( "hf flags |" );
+	for ( int i = 0; i < fieldCount; ++i )
+	{
+		const uint8_t* flags = b3GetHeightFieldFlags( fields[i] );
+		const uint16_t* heights = b3GetHeightFieldCompressedHeights( fields[i] );
+		uint32_t sum = 0;
+		for ( int j = 0; j < b3GetHeightFieldTriangleCount( fields[i] ); ++j )
+		{
+			sum = 31 * sum + flags[j];
+		}
+		for ( int j = 0; j < fields[i]->rowCount * fields[i]->columnCount; ++j )
+		{
+			sum = 31 * sum + heights[j];
+		}
+		printf( " %08x", sum );
+	}
+	printf( "\n" );
+
+	for ( int i = 0; i < fieldCount; ++i )
+	{
+		char name[32];
+		snprintf( name, sizeof( name ), "hf %d", i );
+		heightFieldQueries( name, fields[i] );
+	}
+}
+
 static void quietLog( const char* message )
 {
 	(void)message;
@@ -486,6 +705,7 @@ int main( void )
 	b3SetLogFcn( quietLog );
 
 	meshSection();
+	heightFieldSection();
 
 	return 0;
 }

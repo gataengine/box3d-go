@@ -15,7 +15,9 @@
   the lane SAT edge loop). The C output itself is identical for the NEON, SSE2 (x86_64),
   BOX3D_DISABLE_SIMD and BOX3D_VALIDATE builds. Mesh creation (blob byte count and hash),
   mesh triangles, AABBs, ray casts, shape casts, overlaps, mover planes and queries match the C
-  build on the lines of `geometry_golden_test.go` (darwin/arm64 and amd64; the C output is
+  build on the lines of `geometry_golden_test.go`, and so do height field creation (including a
+  dump/load round trip), triangles, casts, overlaps, mover planes and queries (darwin/arm64 and
+  amd64; the C output is
   identical for NEON, SSE2, BOX3D_DISABLE_SIMD and BOX3D_VALIDATE).
 - Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
   allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
@@ -35,7 +37,7 @@ each; both point at the same Go file.
 |---|---|---|---|---|
 | include/box3d/base.h | base.go | ported | efca0c1 | assert/validate via build tags; allocator API not ported |
 | include/box3d/box3d.h | body.go, shape.go, joint.go, physics_world.go, … | todo | | b3Type_* functions live in the file of the object they act on |
-| include/box3d/collision.h | collision.go | ported | efca0c1 | blob helpers + hull and mesh accessors done; height field accessors land with height_field.c |
+| include/box3d/collision.h | collision.go | ported | efca0c1 | blob helpers + hull, mesh and height field accessors done; compound functions are in compound.go |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
 | include/box3d/constants.h | constants.go | ported | efca0c1 |  |
 | include/box3d/id.h | id.go | tested | efca0c1 |  |
@@ -74,7 +76,7 @@ each; both point at the same Go file.
 | src/distance_joint.c | distance_joint.go | todo | |  |
 | src/dynamic_tree.c | dynamic_tree.go | verified | efca0c1 | insert/rotate, churn, moved marks, sweep and fallback refit, partial/full rebuild, save/load bytes, query/closest/ray/box cast order in dynamic_tree_golden_test.go (C scalar and NEON builds agree) |
 | src/dynamic_tree.h | dynamic_tree.go | verified | efca0c1 | node flag helpers, treeView |
-| src/height_field.c | height_field.go | todo | |  |
+| src/height_field.c | height_field.go | verified | efca0c1 | grid/wave/custom fields (holes, clockwise, clamping, no materials), dump/load round trip, triangles, materials, AABB, ray/shape casts, overlap, mover, queries in geometry_golden_test.go (blob hashes match C) |
 | src/hull.c | hull.go | verified | efca0c1 | quickhull builder, box hulls, 2D hull; hull_golden_test.go matches C bytes/hashes |
 | src/hull.h | hull.go | verified | efca0c1 | hullMap = verstable[*HullData, int] |
 | src/id_pool.c | id_pool.go | ported | efca0c1 | no upstream test |
@@ -152,7 +154,7 @@ each; both point at the same Go file.
 | test/test_distance.c | distance_test.go | tested | efca0c1 |  |
 | test/test_dynamic_tree.c | dynamic_tree_test.go | tested | efca0c1 |  |
 | test/test_hash.c | hash_test.go | todo | |  |
-| test/test_height_field.c | height_field_test.go | todo | |  |
+| test/test_height_field.c | height_field_test.go | tested | efca0c1 | round trip file in a temp dir |
 | test/test_hull.c | hull_test.go | tested | efca0c1 |  |
 | test/test_id.c | id_test.go | tested | efca0c1 |  |
 | test/test_joint.c | joint_test.go | todo | |  |
@@ -161,7 +163,7 @@ each; both point at the same Go file.
 | test/test_manifold.c | manifold_test.go | tested | efca0c1 | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | tested | efca0c1 | strided input via `fatPositions` (unsafe.Slice over the interleaved array) |
-| test/test_mover.c | mover_test.go | tested | efca0c1 | 14 of 22 tests; 8 pending (PIt) on height_field.c, compound.c, body.c, shape.c, physics_world.c (b3CollideMoverAndHeightField, b3World_CollideMover, b3Body_CollideMover) |
+| test/test_mover.c | mover_test.go | tested | efca0c1 | 17 of 22 tests; 5 pending (PIt) on body.c, shape.c, physics_world.c (b3World_CollideMover, b3Body_CollideMover) |
 | test/test_name_cache.c | name_cache_test.go | todo | |  |
 | test/test_recording.c | recording_test.go | todo | |  |
 | test/test_restitution.c | restitution_test.go | todo | |  |
