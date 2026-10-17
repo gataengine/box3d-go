@@ -1,4 +1,4 @@
-// Port of src/constraint_graph.h (and later src/constraint_graph.c) from Box3D
+// Port of src/constraint_graph.h and src/constraint_graph.c from Box3D
 // (https://github.com/erincatto/box3d) at commit efca0c184d40fd6a82016983f1601c4d23965867.
 //
 // SPDX-FileCopyrightText: 2025 Erin Catto
@@ -7,9 +7,9 @@
 
 package box3d
 
-// ---- constraint_graph.h ----
+import "math"
 
-// PORT: header types only; constraint_graph.c lands in milestone 3.
+// ---- constraint_graph.h ----
 
 // overflowIndex is B3_OVERFLOW_INDEX.
 // This holds constraints that cannot fit the graph color limit. This happens when a single dynamic body
@@ -68,36 +68,288 @@ type constraintGraph struct {
 
 // ---- constraint_graph.c ----
 
-// PORT: stubs until constraint_graph.c lands in milestone 3. Other milestone 3 files
-// (physics_world.c, solver_set.c and contact.c) call these; the owner of constraint_graph.c
-// replaces each stub with the real function, keeping the signature, in upstream order.
+// Solver using graph coloring. Islands are only used for sleep.
+// High-Performance Physical Simulations on Next-Generation Architecture with Many Cores
+// http://web.eecs.umich.edu/~msmelyan/papers/physsim_onmanycore_itj.pdf
+
+// Kinematic bodies have to be treated like dynamic bodies in graph coloring. Unlike static bodies, we cannot use a dummy solver
+// body for kinematic bodies. We cannot access a kinematic body from multiple threads efficiently because the SIMD solver body
+// scatter would write to the same kinematic body from multiple threads. Even if these writes don't modify the body, they will
+// cause horrible cache stalls. To make this feasible I would need a way to block these writes.
+
+// forceOverflow is B3_FORCE_OVERFLOW.
+// This is used for debugging by making all constraints be assigned to overflow.
+// PORT: the #if becomes a constant condition.
+const forceOverflow = 0
+
+var graphColors = [GraphColorCount]HexColor{
+	ColorRed, ColorOrange, ColorYellow, ColorLimeGreen, ColorSpringGreen,
+	ColorAqua, ColorDodgerBlue, ColorBlueViolet, ColorMagenta, ColorDeepPink,
+	ColorCrimson, ColorCoral, ColorGold, ColorGreenYellow, ColorMediumSeaGreen,
+	ColorTurquoise, ColorDeepSkyBlue, ColorCornflowerBlue, ColorMediumSlateBlue, ColorMediumOrchid,
+	ColorHotPink, ColorTomato, ColorKhaki, ColorSilver,
+}
+
+// getGraphColor is b3GetGraphColor.
+func getGraphColor(index int) HexColor {
+	assert(0 <= index && index < GraphColorCount, "0 <= index && index < B3_GRAPH_COLOR_COUNT")
+	return graphColors[index]
+}
 
 // createGraph is b3CreateGraph.
 func createGraph(graph *constraintGraph, bodyCapacity int) {
-	panic("box3d: b3CreateGraph not ported yet (constraint_graph.c, milestone 3)")
+	// PORT: _Static_assert becomes a constant expression that fails to compile when false.
+	const _ = uint(GraphColorCount - 2)                   // must have at least two constraint graph colors
+	const _ = uint(overflowIndex - (GraphColorCount - 1)) // bad over flow index
+	const _ = uint((GraphColorCount - 1) - overflowIndex) // bad over flow index
+
+	*graph = constraintGraph{}
+
+	bodyCapacity = MaxInt(bodyCapacity, 8)
+
+	// Initialize graph color bit set.
+	// No bitset for overflow color.
+	for i := 0; i < overflowIndex; i++ {
+		color := &graph.colors[i]
+		color.bodySet = createBitSet(uint32(bodyCapacity))
+		setBitCountAndClear(&color.bodySet, uint32(bodyCapacity))
+	}
 }
 
 // destroyGraph is b3DestroyGraph.
 func destroyGraph(graph *constraintGraph) {
-	panic("box3d: b3DestroyGraph not ported yet (constraint_graph.c, milestone 3)")
+	for i := 0; i < GraphColorCount; i++ {
+		color := &graph.colors[i]
+
+		// The bit set should never be used on the overflow color
+		assert(i != overflowIndex || color.bodySet.bits == nil, "i != B3_OVERFLOW_INDEX || color->bodySet.bits == NULL")
+
+		destroyBitSet(&color.bodySet)
+
+		arrayDestroy(&color.convexContacts)
+		arrayDestroy(&color.contacts)
+		arrayDestroy(&color.jointSims)
+	}
 }
 
 // addContactToGraph is b3AddContactToGraph.
+// Contacts are always created as non-touching. They get cloned into the constraint
+// graph once they are found to be touching.
 func addContactToGraph(world *world, contact *contact) {
-	panic("box3d: b3AddContactToGraph not ported yet (constraint_graph.c, milestone 3)")
+	assert(contact.manifoldCount > 0, "contact->manifoldCount > 0")
+	assert(contact.flags&contactTouchingFlag != 0, "contact->flags & b3_contactTouchingFlag")
+
+	graph := &world.constraintGraph
+	colorIndex := overflowIndex
+
+	bodyIdA := int(contact.edges[0].bodyId)
+	bodyIdB := int(contact.edges[1].bodyId)
+	bodyA := arrayGet(world.bodies, bodyIdA)
+	bodyB := arrayGet(world.bodies, bodyIdB)
+
+	typeA := bodyA.typ
+	typeB := bodyB.typ
+	assert(typeA == DynamicBody || typeB == DynamicBody, "typeA == b3_dynamicBody || typeB == b3_dynamicBody")
+
+	if forceOverflow == 0 {
+		if typeA == DynamicBody && typeB == DynamicBody {
+			// Dynamic constraint colors cannot encroach on colors reserved for static constraints
+			for i := 0; i < dynamicColorCount; i++ {
+				color := &graph.colors[i]
+				if getBit(&color.bodySet, uint32(bodyIdA)) || getBit(&color.bodySet, uint32(bodyIdB)) {
+					continue
+				}
+
+				setBitGrow(&color.bodySet, uint32(bodyIdA))
+				setBitGrow(&color.bodySet, uint32(bodyIdB))
+				colorIndex = i
+				break
+			}
+		} else if typeA == DynamicBody {
+			// Static constraint colors build from the end to get higher priority than dyn-dyn constraints
+			for i := overflowIndex - 1; i >= 1; i-- {
+				color := &graph.colors[i]
+				if getBit(&color.bodySet, uint32(bodyIdA)) {
+					continue
+				}
+
+				setBitGrow(&color.bodySet, uint32(bodyIdA))
+				colorIndex = i
+				break
+			}
+		} else if typeB == DynamicBody {
+			// Static constraint colors build from the end to get higher priority than dyn-dyn constraints
+			for i := overflowIndex - 1; i >= 1; i-- {
+				color := &graph.colors[i]
+				if getBit(&color.bodySet, uint32(bodyIdB)) {
+					continue
+				}
+
+				setBitGrow(&color.bodySet, uint32(bodyIdB))
+				colorIndex = i
+				break
+			}
+		}
+	}
+
+	isScalar := (contact.flags&simMeshContact) != 0 || colorIndex == overflowIndex
+
+	color := &graph.colors[colorIndex]
+	contact.colorIndex = int32(colorIndex)
+	if isScalar {
+		contact.localIndex = int32(len(color.contacts))
+	} else {
+		contact.localIndex = int32(len(color.convexContacts))
+	}
+	contact.encodedBodySimA = int32(encodeBodySimIndex(bodyA))
+	contact.encodedBodySimB = int32(encodeBodySimIndex(bodyB))
+
+	if isScalar {
+		assert(contact.manifoldCount < math.MaxUint16, "contact->manifoldCount < UINT16_MAX")
+		spec := contactSpec{
+			contactId:     contact.contactId,
+			manifoldStart: 0,
+			manifoldCount: uint16(contact.manifoldCount),
+		}
+		arrayPush(&color.contacts, spec)
+	} else {
+		arrayPush(&color.convexContacts, contact.contactId)
+	}
 }
 
 // removeContactFromGraph is b3RemoveContactFromGraph.
 func removeContactFromGraph(world *world, bodyIdA, bodyIdB, colorIndex, localIndex int, meshContact bool) {
-	panic("box3d: b3RemoveContactFromGraph not ported yet (constraint_graph.c, milestone 3)")
+	graph := &world.constraintGraph
+
+	assert(0 <= colorIndex && colorIndex < GraphColorCount, "0 <= colorIndex && colorIndex < B3_GRAPH_COLOR_COUNT")
+	color := &graph.colors[colorIndex]
+
+	if colorIndex != overflowIndex {
+		// This might clear a bit for a static body, but this has no effect
+		clearBit(&color.bodySet, uint32(bodyIdA))
+		clearBit(&color.bodySet, uint32(bodyIdB))
+	}
+
+	if meshContact || colorIndex == overflowIndex {
+		movedIndex := arrayRemoveSwap(&color.contacts, localIndex)
+		if movedIndex != NullIndex {
+			// Fix index on swapped contact
+			movedContactId := int(color.contacts[localIndex].contactId)
+			movedContact := arrayGet(world.contacts, movedContactId)
+			assert(movedContact.setIndex == awakeSet, "movedContact->setIndex == b3_awakeSet")
+			assert(int(movedContact.colorIndex) == colorIndex, "movedContact->colorIndex == colorIndex")
+			assert(int(movedContact.localIndex) == movedIndex, "movedContact->localIndex == movedIndex")
+			movedContact.localIndex = int32(localIndex)
+		}
+	} else {
+		movedIndex := arrayRemoveSwap(&color.convexContacts, localIndex)
+		if movedIndex != NullIndex {
+			// Fix index on swapped contact
+			movedContactId := int(color.convexContacts[localIndex])
+			movedContact := arrayGet(world.contacts, movedContactId)
+			assert(movedContact.setIndex == awakeSet, "movedContact->setIndex == b3_awakeSet")
+			assert(int(movedContact.colorIndex) == colorIndex, "movedContact->colorIndex == colorIndex")
+			assert(int(movedContact.localIndex) == movedIndex, "movedContact->localIndex == movedIndex")
+			assert((movedContact.flags&simMeshContact) == 0, "( movedContact->flags & b3_simMeshContact ) == 0")
+			movedContact.localIndex = int32(localIndex)
+		}
+	}
+}
+
+// assignJointColor is b3AssignJointColor.
+func assignJointColor(graph *constraintGraph, bodyIdA, bodyIdB int, typeA, typeB BodyType) int {
+	assert(typeA == DynamicBody || typeB == DynamicBody, "typeA == b3_dynamicBody || typeB == b3_dynamicBody")
+
+	if forceOverflow == 0 {
+		if typeA == DynamicBody && typeB == DynamicBody {
+			// Dynamic constraint colors cannot encroach on colors reserved for static constraints
+			for i := 0; i < dynamicColorCount; i++ {
+				color := &graph.colors[i]
+				if getBit(&color.bodySet, uint32(bodyIdA)) || getBit(&color.bodySet, uint32(bodyIdB)) {
+					continue
+				}
+
+				setBitGrow(&color.bodySet, uint32(bodyIdA))
+				setBitGrow(&color.bodySet, uint32(bodyIdB))
+				return i
+			}
+		} else if typeA == DynamicBody {
+			// Static constraint colors build from the end to get higher priority than dyn-dyn constraints
+			for i := overflowIndex - 1; i >= 1; i-- {
+				color := &graph.colors[i]
+				if getBit(&color.bodySet, uint32(bodyIdA)) {
+					continue
+				}
+
+				setBitGrow(&color.bodySet, uint32(bodyIdA))
+				return i
+			}
+		} else if typeB == DynamicBody {
+			// Static constraint colors build from the end to get higher priority than dyn-dyn constraints
+			for i := overflowIndex - 1; i >= 1; i-- {
+				color := &graph.colors[i]
+				if getBit(&color.bodySet, uint32(bodyIdB)) {
+					continue
+				}
+
+				setBitGrow(&color.bodySet, uint32(bodyIdB))
+				return i
+			}
+		}
+	}
+
+	return overflowIndex
+}
+
+// createJointInGraph is b3CreateJointInGraph.
+func createJointInGraph(world *world, joint *joint) *jointSim {
+	graph := &world.constraintGraph
+
+	bodyIdA := int(joint.edges[0].bodyId)
+	bodyIdB := int(joint.edges[1].bodyId)
+	bodyA := arrayGet(world.bodies, bodyIdA)
+	bodyB := arrayGet(world.bodies, bodyIdB)
+
+	colorIndex := assignJointColor(graph, bodyIdA, bodyIdB, bodyA.typ, bodyB.typ)
+
+	jointSims := &graph.colors[colorIndex].jointSims
+	jointSim := arrayEmplace(jointSims)
+	// PORT: memset of the new element; the local name shadows the type, so zero it by slice.
+	arrayMemZero((*jointSims)[len(*jointSims)-1:])
+
+	joint.colorIndex = int32(colorIndex)
+	joint.localIndex = int32(len(graph.colors[colorIndex].jointSims) - 1)
+	return jointSim
 }
 
 // addJointToGraph is b3AddJointToGraph.
 func addJointToGraph(world *world, jointSim *jointSim, joint *joint) {
-	panic("box3d: b3AddJointToGraph not ported yet (constraint_graph.c, milestone 3)")
+	jointDst := createJointInGraph(world, joint)
+	*jointDst = *jointSim
 }
 
 // removeJointFromGraph is b3RemoveJointFromGraph.
 func removeJointFromGraph(world *world, bodyIdA, bodyIdB, colorIndex, localIndex int) {
-	panic("box3d: b3RemoveJointFromGraph not ported yet (constraint_graph.c, milestone 3)")
+	graph := &world.constraintGraph
+
+	assert(0 <= colorIndex && colorIndex < GraphColorCount, "0 <= colorIndex && colorIndex < B3_GRAPH_COLOR_COUNT")
+	color := &graph.colors[colorIndex]
+
+	if colorIndex != overflowIndex {
+		// May clear static bodies, no effect
+		clearBit(&color.bodySet, uint32(bodyIdA))
+		clearBit(&color.bodySet, uint32(bodyIdB))
+	}
+
+	movedIndex := arrayRemoveSwap(&color.jointSims, localIndex)
+	if movedIndex != NullIndex {
+		// Fix moved joint
+		movedJointSim := &color.jointSims[localIndex]
+		movedId := int(movedJointSim.jointId)
+		movedJoint := arrayGet(world.joints, movedId)
+		assert(movedJoint.setIndex == awakeSet, "movedJoint->setIndex == b3_awakeSet")
+		assert(int(movedJoint.colorIndex) == colorIndex, "movedJoint->colorIndex == colorIndex")
+		assert(int(movedJoint.localIndex) == movedIndex, "movedJoint->localIndex == movedIndex")
+		movedJoint.localIndex = int32(localIndex)
+	}
 }
