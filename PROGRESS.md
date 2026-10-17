@@ -3,7 +3,7 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **2 — Collision** (part D in progress: mesh, height field, compound).
+- Current milestone: **2 — Collision** (parts A–D done; remaining: broad_phase.c, test_broad_phase.c, test_collision.c).
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
@@ -16,8 +16,8 @@
   BOX3D_DISABLE_SIMD and BOX3D_VALIDATE builds. Mesh creation (blob byte count and hash),
   mesh triangles, AABBs, ray casts, shape casts, overlaps, mover planes and queries match the C
   build on the lines of `geometry_golden_test.go`, and so do height field creation (including a
-  dump/load round trip), triangles, casts, overlaps, mover planes and queries (darwin/arm64 and
-  amd64; the C output is
+  dump/load round trip) and compound creation (whole blob hashed), validation, children,
+  triangles, casts, overlaps, mover planes and queries (darwin/arm64 and amd64; the C output is
   identical for NEON, SSE2, BOX3D_DISABLE_SIMD and BOX3D_VALIDATE).
 - Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
   allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
@@ -57,8 +57,8 @@ each; both point at the same Go file.
 | src/broad_phase.c | broad_phase.go | todo | |  |
 | src/broad_phase.h | broad_phase.go | todo | |  |
 | src/capsule.c | capsule.go | verified | efca0c1 | mass, AABB, ray cast (incl. parallel/degenerate), mover plane, overlap in hull_golden_test.go |
-| src/compound.c | compound.go | todo | |  |
-| src/compound.h | compound.go | todo | |  |
+| src/compound.c | compound.go | verified | efca0c1 | creation (material/hull/mesh dedup, blob bytes hashed), ValidateCompound, children, sweep, ray/shape casts, overlap, mover, queries in geometry_golden_test.go; b3CompoundTimeOfImpact is #if 0 upstream (not ported) |
+| src/compound.h | compound.go | verified | efca0c1 | getCompoundTreeView, makeCompoundChildSweep, collideMoverAndCompound |
 | src/constraint_graph.c | constraint_graph.go | todo | |  |
 | src/constraint_graph.h | constraint_graph.go | todo | |  |
 | src/contact.c | contact.go | todo | |  |
@@ -148,7 +148,7 @@ each; both point at the same Go file.
 | test/test_body_query.c | body_query_test.go | todo | |  |
 | test/test_broad_phase.c | broad_phase_test.go | todo | |  |
 | test/test_collision.c | collision_test.go | todo | |  |
-| test/test_compound.c | compound_test.go | todo | |  |
+| test/test_compound.c | compound_test.go | tested | efca0c1 | 33 of 34 tests; CompoundMeshContactMaterial pending (PIt) on the world (M3); byte-level serialize tests port as written |
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
 | test/test_determinism.c | determinism_test.go | todo | |  |
 | test/test_distance.c | distance_test.go | tested | efca0c1 |  |

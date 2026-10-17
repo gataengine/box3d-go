@@ -1,6 +1,6 @@
-// Go-only test: no upstream counterpart. Compares mesh and height field creation (byte images
-// through their byte count and content hash, height field dump/load), triangle access, queries,
-// ray and shape casts, overlaps and mover collision against the
+// Go-only test: no upstream counterpart. Compares mesh, height field and compound creation (byte
+// images through their byte count and content hash, height field dump/load, compound validation),
+// triangle and child access, queries, ray and shape casts, overlaps and mover collision against the
 // pinned upstream C sources (efca0c184d40fd6a82016983f1601c4d23965867) compiled with
 // -ffp-contract=off, bit for bit. The C output is identical for the NEON, SSE2,
 // BOX3D_DISABLE_SIMD and BOX3D_VALIDATE builds. See testdata/geometry_golden_gen.c; this file
@@ -12,6 +12,7 @@
 package box3d
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"os"
@@ -588,11 +589,306 @@ func (g *geometryGoldenGen) heightFieldSection(dir string) {
 	}
 }
 
+func (g *geometryGoldenGen) blobHash(data []byte) uint64 {
+	g.resetQuery(-1)
+	for i := 0; i+4 <= len(data); i += 4 {
+		g.hashWord(binary.LittleEndian.Uint32(data[i:]))
+	}
+	return g.queryHash
+}
+
+func (g *geometryGoldenGen) pcompound(c *CompoundData) {
+	if c == nil {
+		g.printf(" null")
+		return
+	}
+	g.printf(" %d %016x %d %d %d %d %d %d %d %d %d", c.ByteCount, g.blobHash(compoundBytes(c)),
+		c.TreeHeight, c.NodeCount, c.MaterialCount, c.CapsuleCount, c.HullCount, c.SharedHullCount, c.MeshCount,
+		c.SharedMeshCount, c.SphereCount)
+	g.pbox(c.Bounds)
+}
+
+func (g *geometryGoldenGen) rmaterial() SurfaceMaterial {
+	m := DefaultSurfaceMaterial()
+	m.Friction = 0.1 * float32(g.rndInt(3))
+	m.UserMaterialId = uint64(g.rndInt(4))
+	return m
+}
+
+func (g *geometryGoldenGen) rxf(spread float32) Transform {
+	var xf Transform
+	xf.P = g.rv3(spread, spread, spread, 0.0, 0.0, 0.0)
+	xf.Q = g.rq()
+	return xf
+}
+
+func (g *geometryGoldenGen) compoundQueryFcn(compound *CompoundData, childIndex int, context any) bool {
+	g.hashWord(uint32(childIndex))
+	g.queryCount += 1
+	return g.queryCount != g.queryStop
+}
+
+func childPoint(compound *CompoundData, childIndex int) Vec3 {
+	child := GetCompoundChild(compound, childIndex)
+	switch child.Type {
+	case CapsuleShape:
+		return Lerp(child.Capsule.Center1, child.Capsule.Center2, 0.5)
+	case SphereShape:
+		return child.Sphere.Center
+	default:
+		return child.Transform.P
+	}
+}
+
+func (g *geometryGoldenGen) compoundQueries(name string, compound *CompoundData) {
+	bounds := compound.Bounds
+	c := bounds.Center()
+	e := bounds.Extents()
+
+	g.printf("%s aabb |", name)
+	g.pbox(ComputeCompoundAABB(compound, g.rxf(2.0)))
+	g.printf("\n")
+
+	childCount := int(compound.CapsuleCount + compound.HullCount + compound.MeshCount + compound.SphereCount)
+	g.printf("%s children |", name)
+	for i := range childCount {
+		child := GetCompoundChild(compound, i)
+		g.printf(" %d", child.Type)
+		g.pv(child.Transform.P)
+		g.pv(child.Transform.Q.V)
+		g.pf(child.Transform.Q.S)
+		g.printf(" %d", child.MaterialCount)
+		for j := range int(child.MaterialCount) {
+			g.printf(" %d", child.MaterialIndices[j])
+		}
+		switch child.Type {
+		case CapsuleShape:
+			g.pv(child.Capsule.Center1)
+			g.pv(child.Capsule.Center2)
+			g.pf(child.Capsule.Radius)
+		case HullShape:
+			g.printf(" %d %016x", child.Hull.ByteCount, child.Hull.Hash)
+		case MeshShape:
+			g.printf(" %d %016x", child.Mesh.Data.ByteCount, child.Mesh.Data.Hash)
+			g.pv(child.Mesh.Scale)
+		default:
+			g.pv(child.Sphere.Center)
+			g.pf(child.Sphere.Radius)
+		}
+	}
+	g.printf("\n")
+
+	g.printf("%s sweep |", name)
+	{
+		xf := g.rxf(3.0)
+		child := GetCompoundChild(compound, childCount-1)
+		sweep := makeCompoundChildSweep(xf, child.Transform)
+		g.pv(sweep.C1)
+		g.pv(sweep.Q1.V)
+		g.pf(sweep.Q1.S)
+	}
+	g.printf("\n")
+
+	for k := range 12 {
+		g.printf("%s ray %d |", name, k)
+		var ray RayCastInput
+		ray.Origin = g.rv3(1.5*e.X, mulAdd(1.0, 1.5, e.Y), 1.5*e.Z, c.X, c.Y, c.Z)
+		aim := childPoint(compound, int(g.rndInt(uint32(childCount))))
+		target := g.rv3(0.3, 0.3, 0.3, aim.X, aim.Y, aim.Z)
+		ray.Translation = MulSV(2.0, Sub(target, ray.Origin))
+		ray.MaxFraction = 1.0
+		if k%4 == 3 {
+			ray.MaxFraction = 0.4
+		}
+		g.pco(RayCastCompound(compound, &ray))
+		g.printf("\n")
+	}
+
+	for k := range 10 {
+		g.printf("%s cast %d |", name, k)
+		start := g.rv3(1.5*e.X, mulAdd(1.0, 1.5, e.Y), 1.5*e.Z, c.X, c.Y, c.Z)
+		var input ShapeCastInput
+		input.Proxy = g.rproxy(start, 0.3)
+		aim := childPoint(compound, int(g.rndInt(uint32(childCount))))
+		target := g.rv3(0.3, 0.3, 0.3, aim.X, aim.Y, aim.Z)
+		input.Translation = MulSV(2.0, Sub(target, start))
+		input.MaxFraction = 1.0
+		input.CanEncroach = k%3 == 1
+		g.pco(ShapeCastCompound(compound, &input))
+		g.printf("\n")
+	}
+
+	g.printf("%s overlap |", name)
+	for range 16 {
+		xf := g.rxf(0.5)
+		aim := childPoint(compound, int(g.rndInt(uint32(childCount))))
+		local := g.rv3(0.8, 0.8, 0.8, aim.X, aim.Y, aim.Z)
+		world := TransformPoint(xf, local)
+		proxy := g.rproxy(world, 0.4)
+		g.pbool(OverlapCompound(compound, xf, &proxy))
+	}
+	g.printf("\n")
+
+	for k := range 8 {
+		g.printf("%s mover %d |", name, k)
+		var mover Capsule
+		aim := childPoint(compound, int(g.rndInt(uint32(childCount))))
+		mover.Center1 = g.rv3(0.8, 0.8, 0.8, aim.X, aim.Y, aim.Z)
+		mover.Center2 = Add(mover.Center1, g.rv3(0.3, 0.3, 0.3, 0.0, 0.4, 0.0))
+		mover.Radius = mulAdd(0.4, 0.3, g.rnd())
+		var planes [16]PlaneResult
+		capacity := 16
+		if k == 5 {
+			capacity = 2
+		}
+		count := collideMoverAndCompound(planes[:capacity], compound, &mover)
+		g.pplanes(planes[:], count)
+		g.printf("\n")
+	}
+
+	g.printf("%s query |", name)
+	for k := range 6 {
+		var box AABB
+		p := g.rv3(e.X, e.Y, e.Z, c.X, c.Y, c.Z)
+		h := g.rv3(0.5, 0.5, 0.5, 1.5, 1.5, 1.5)
+		box.LowerBound = Sub(p, h)
+		box.UpperBound = Add(p, h)
+		stop := -1
+		if k == 4 {
+			stop = 2
+		}
+		g.resetQuery(stop)
+		QueryCompound(compound, box, g.compoundQueryFcn, nil)
+		g.pquery()
+	}
+	g.printf("\n")
+}
+
+const (
+	maxCapsules = 6 // MAX_CAPSULES
+	maxHulls    = 6 // MAX_HULLS
+	maxMeshes   = 4 // MAX_MESHES
+	maxSpheres  = 6 // MAX_SPHERES
+)
+
+func (g *geometryGoldenGen) compoundSection() {
+	var boxes [3]BoxHull
+	boxes[0] = MakeBoxHull(0.5, 0.5, 0.5)
+	boxes[1] = MakeBoxHull(0.5, 0.5, 0.5)
+	boxes[2] = MakeBoxHull(1.0, 0.25, 0.75)
+	cylinder := CreateCylinder(1.0, 0.5, 0.0, 10)
+
+	var meshes [3]*MeshData
+	meshes[0] = CreateWaveMesh(4, 4, 0.5, 0.3, 0.2, 0.3)
+	meshes[1] = CreateBoxMesh(Vec3Zero, Vec3{0.5, 0.5, 0.5}, true)
+	meshes[2] = CreateGridMesh(3, 3, 0.5, 3, true)
+
+	var compounds []*CompoundData
+
+	g.printf("compound create |")
+	for n := range 4 {
+		var capsules [maxCapsules]CompoundCapsuleDef
+		var hulls [maxHulls]CompoundHullDef
+		var meshDefs [maxMeshes]CompoundMeshDef
+		var meshMaterials [maxMeshes][4]SurfaceMaterial
+		var spheres [maxSpheres]CompoundSphereDef
+
+		def := CompoundDef{}
+		def.Capsules = capsules[:]
+		if n != 3 {
+			def.CapsuleCount = 1 + int32(g.rndInt(maxCapsules))
+		}
+		def.Hulls = hulls[:]
+		if n != 1 {
+			def.HullCount = 1 + int32(g.rndInt(maxHulls))
+		}
+		def.Meshes = meshDefs[:]
+		if n != 2 {
+			def.MeshCount = 1 + int32(g.rndInt(maxMeshes))
+		}
+		def.Spheres = spheres[:]
+		def.SphereCount = 1 + int32(g.rndInt(maxSpheres))
+
+		for i := range int(def.CapsuleCount) {
+			capsules[i].Capsule.Center1 = g.rv3(4.0, 4.0, 4.0, 0.0, 0.0, 0.0)
+			capsules[i].Capsule.Center2 = Add(capsules[i].Capsule.Center1, g.rv3(1.0, 1.0, 1.0, 0.0, 0.0, 0.0))
+			capsules[i].Capsule.Radius = mulAdd(0.3, 0.2, g.rnd())
+			capsules[i].Material = g.rmaterial()
+		}
+		for i := range int(def.HullCount) {
+			which := g.rndInt(4)
+			if which == 3 {
+				hulls[i].Hull = cylinder
+			} else {
+				hulls[i].Hull = &boxes[which].Base
+			}
+			hulls[i].Transform = g.rxf(4.0)
+			hulls[i].Material = g.rmaterial()
+		}
+		for i := range int(def.MeshCount) {
+			md := meshes[g.rndInt(3)]
+			meshDefs[i].MeshData = md
+			meshDefs[i].Transform = g.rxf(4.0)
+			mirror := g.rndInt(3)
+			meshDefs[i].Scale = g.rv3(0.3, 0.3, 0.3, 1.0, 1.0, 1.0)
+			if mirror == 0 {
+				meshDefs[i].Scale.X = -meshDefs[i].Scale.X
+			}
+			for j := range int(md.MaterialCount) {
+				meshMaterials[i][j] = g.rmaterial()
+			}
+			meshDefs[i].Materials = meshMaterials[i][:]
+			meshDefs[i].MaterialCount = md.MaterialCount
+		}
+		for i := range int(def.SphereCount) {
+			spheres[i].Sphere.Center = g.rv3(4.0, 4.0, 4.0, 0.0, 0.0, 0.0)
+			spheres[i].Sphere.Radius = mulAdd(0.4, 0.3, g.rnd())
+			spheres[i].Material = g.rmaterial()
+		}
+
+		compounds = append(compounds, CreateCompound(&def))
+		g.pcompound(compounds[len(compounds)-1])
+	}
+	g.printf("\n")
+
+	g.printf("compound validate |")
+	for _, compound := range compounds {
+		buffer := make([]byte, 8*4096)
+		byteCount := int(compound.ByteCount)
+		copy(buffer, compoundBytes(compound))
+		cp := ValidateCompound(buffer, byteCount)
+		g.pbool(cp != nil)
+		g.pbool(ValidateCompound(buffer, byteCount-8) != nil)
+		if cp != nil {
+			var ray RayCastInput
+			ray.Origin = Add(childPoint(cp, 0), Vec3{-10.0, 0.1, 0.2})
+			ray.Translation = Vec3{20.0, 0.0, 0.0}
+			ray.MaxFraction = 1.0
+			g.pco(RayCastCompound(cp, &ray))
+		}
+	}
+	g.printf("\n")
+
+	for i, compound := range compounds {
+		name := fmt.Sprintf("compound %d", i)
+		g.compoundQueries(name, compound)
+	}
+
+	for _, compound := range compounds {
+		DestroyCompound(compound)
+	}
+	for i := range 3 {
+		DestroyMesh(meshes[i])
+	}
+	DestroyHull(cylinder)
+}
+
 func (g *geometryGoldenGen) run(dir string) string {
 	g.seed = 31337
 
 	g.meshSection()
 	g.heightFieldSection(dir)
+	g.compoundSection()
 
 	return g.sb.String()
 }

@@ -40,6 +40,11 @@ func blobSlice[T any](base unsafe.Pointer, offset int32, count int) []T {
 	if offset == 0 {
 		return nil
 	}
+	if count == 0 {
+		// An empty array may sit at the very end of the blob; a pointer one past the
+		// allocation is invalid in Go (checkptr), so hand out a non-nil empty slice instead.
+		return []T{}
+	}
 	return unsafe.Slice((*T)(unsafe.Add(base, offset)), count)
 }
 

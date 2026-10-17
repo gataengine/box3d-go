@@ -229,9 +229,9 @@ var _ = Describe("MoverTest", func() {
 	// report the per triangle material index. Compounds remap the child result
 	// through the child material table. Convex shapes report index 0.
 	PIt("MoverWorldMeshMaterials (needs body.c, shape.c, physics_world.c)")
-	PIt("MoverWorldCompoundMeshMaterials (needs compound.c, body.c, shape.c, physics_world.c)")
+	PIt("MoverWorldCompoundMeshMaterials (needs body.c, shape.c, physics_world.c)")
 	PIt("MoverBodyMaterialIndices (needs body.c, shape.c, physics_world.c)")
-	PIt("MoverBodySkipsMeshAndCompound (needs compound.c, body.c, shape.c, physics_world.c)")
+	PIt("MoverBodySkipsMeshAndCompound (needs body.c, shape.c, physics_world.c)")
 
 	// One sided mover collision.
 	// Mover queries keep only triangles facing the mover. The front side follows the

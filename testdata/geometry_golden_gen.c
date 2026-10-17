@@ -3,7 +3,7 @@
 //
 // SRC="../../libs/box3d-go/testdata/geometry_golden_gen.c src/mesh.c src/height_field.c src/compound.c
 //      src/dynamic_tree.c src/aabb.c src/hull.c src/distance.c src/sphere.c src/capsule.c src/manifold.c
-//      src/math_functions.c src/core.c src/timer.c src/simd.c"
+//      src/math_functions.c src/core.c src/timer.c src/simd.c src/types.c"
 // cc -O2 -ffp-contract=off -std=c17 -I include -I src -o $SCRATCH/geometry_golden $SRC
 // (cd $SCRATCH && ./geometry_golden) > ../../libs/box3d-go/testdata/geometry_golden.txt
 //
@@ -695,6 +695,320 @@ static void heightFieldSection( void )
 	}
 }
 
+static uint64_t blobHash( const void* data, int byteCount )
+{
+	resetQuery( -1 );
+	const uint8_t* bytes = data;
+	for ( int i = 0; i + 4 <= byteCount; i += 4 )
+	{
+		uint32_t w;
+		memcpy( &w, bytes + i, 4 );
+		hashWord( w );
+	}
+	return s_queryHash;
+}
+
+static void pcompound( const b3CompoundData* c )
+{
+	if ( c == NULL )
+	{
+		printf( " null" );
+		return;
+	}
+	printf( " %d %016llx %d %d %d %d %d %d %d %d %d", c->byteCount, (unsigned long long)blobHash( c, c->byteCount ),
+			c->treeHeight, c->nodeCount, c->materialCount, c->capsuleCount, c->hullCount, c->sharedHullCount, c->meshCount,
+			c->sharedMeshCount, c->sphereCount );
+	pbox( c->bounds );
+}
+
+static b3SurfaceMaterial rmaterial( void )
+{
+	b3SurfaceMaterial m = b3DefaultSurfaceMaterial();
+	m.friction = 0.1f * (float)rndInt( 3 );
+	m.userMaterialId = rndInt( 4 );
+	return m;
+}
+
+static b3Transform rxf( float spread )
+{
+	b3Transform xf;
+	xf.p = rv3( spread, spread, spread, 0.0f, 0.0f, 0.0f );
+	xf.q = rq();
+	return xf;
+}
+
+static bool CompoundQueryFcn( const b3CompoundData* compound, int childIndex, void* context )
+{
+	(void)compound;
+	(void)context;
+	hashWord( (uint32_t)childIndex );
+	s_queryCount += 1;
+	return s_queryCount != s_queryStop;
+}
+
+static b3Vec3 childPoint( const b3CompoundData* compound, int childIndex )
+{
+	b3ChildShape child = b3GetCompoundChild( compound, childIndex );
+	switch ( child.type )
+	{
+		case b3_capsuleShape:
+			return b3Lerp( child.capsule.center1, child.capsule.center2, 0.5f );
+		case b3_sphereShape:
+			return child.sphere.center;
+		default:
+			return child.transform.p;
+	}
+}
+
+static void compoundQueries( const char* name, const b3CompoundData* compound )
+{
+	b3AABB bounds = compound->bounds;
+	b3Vec3 c = b3AABB_Center( bounds );
+	b3Vec3 e = b3AABB_Extents( bounds );
+
+	printf( "%s aabb |", name );
+	pbox( b3ComputeCompoundAABB( compound, rxf( 2.0f ) ) );
+	printf( "\n" );
+
+	int childCount = compound->capsuleCount + compound->hullCount + compound->meshCount + compound->sphereCount;
+	printf( "%s children |", name );
+	for ( int i = 0; i < childCount; ++i )
+	{
+		b3ChildShape child = b3GetCompoundChild( compound, i );
+		printf( " %d", child.type );
+		pv( child.transform.p );
+		pv( child.transform.q.v );
+		pf( child.transform.q.s );
+		printf( " %d", child.materialCount );
+		for ( int j = 0; j < child.materialCount; ++j )
+		{
+			printf( " %d", child.materialIndices[j] );
+		}
+		switch ( child.type )
+		{
+			case b3_capsuleShape:
+				pv( child.capsule.center1 );
+				pv( child.capsule.center2 );
+				pf( child.capsule.radius );
+				break;
+			case b3_hullShape:
+				printf( " %d %016llx", child.hull->byteCount, (unsigned long long)child.hull->hash );
+				break;
+			case b3_meshShape:
+				printf( " %d %016llx", child.mesh.data->byteCount, (unsigned long long)child.mesh.data->hash );
+				pv( child.mesh.scale );
+				break;
+			default:
+				pv( child.sphere.center );
+				pf( child.sphere.radius );
+				break;
+		}
+	}
+	printf( "\n" );
+
+	printf( "%s sweep |", name );
+	{
+		b3Transform xf = rxf( 3.0f );
+		b3ChildShape child = b3GetCompoundChild( compound, childCount - 1 );
+		b3Sweep sweep = b3MakeCompoundChildSweep( xf, child.transform );
+		pv( sweep.c1 );
+		pv( sweep.q1.v );
+		pf( sweep.q1.s );
+	}
+	printf( "\n" );
+
+	for ( int k = 0; k < 12; ++k )
+	{
+		printf( "%s ray %d |", name, k );
+		b3RayCastInput ray;
+		ray.origin = rv3( 1.5f * e.x, 1.5f * e.y + 1.0f, 1.5f * e.z, c.x, c.y, c.z );
+		b3Vec3 aim = childPoint( compound, (int)rndInt( (uint32_t)childCount ) );
+		b3Vec3 target = rv3( 0.3f, 0.3f, 0.3f, aim.x, aim.y, aim.z );
+		ray.translation = b3MulSV( 2.0f, b3Sub( target, ray.origin ) );
+		ray.maxFraction = k % 4 == 3 ? 0.4f : 1.0f;
+		pco( b3RayCastCompound( compound, &ray ) );
+		printf( "\n" );
+	}
+
+	for ( int k = 0; k < 10; ++k )
+	{
+		printf( "%s cast %d |", name, k );
+		b3Vec3 start = rv3( 1.5f * e.x, 1.5f * e.y + 1.0f, 1.5f * e.z, c.x, c.y, c.z );
+		b3ShapeCastInput input;
+		input.proxy = rproxy( start, 0.3f );
+		b3Vec3 aim = childPoint( compound, (int)rndInt( (uint32_t)childCount ) );
+		b3Vec3 target = rv3( 0.3f, 0.3f, 0.3f, aim.x, aim.y, aim.z );
+		input.translation = b3MulSV( 2.0f, b3Sub( target, start ) );
+		input.maxFraction = 1.0f;
+		input.canEncroach = k % 3 == 1;
+		pco( b3ShapeCastCompound( compound, &input ) );
+		printf( "\n" );
+	}
+
+	printf( "%s overlap |", name );
+	for ( int k = 0; k < 16; ++k )
+	{
+		b3Transform xf = rxf( 0.5f );
+		b3Vec3 aim = childPoint( compound, (int)rndInt( (uint32_t)childCount ) );
+		b3Vec3 local = rv3( 0.8f, 0.8f, 0.8f, aim.x, aim.y, aim.z );
+		b3Vec3 world = b3TransformPoint( xf, local );
+		b3ShapeProxy proxy = rproxy( world, 0.4f );
+		printf( " %d", b3OverlapCompound( compound, xf, &proxy ) );
+	}
+	printf( "\n" );
+
+	for ( int k = 0; k < 8; ++k )
+	{
+		printf( "%s mover %d |", name, k );
+		b3Capsule mover;
+		b3Vec3 aim = childPoint( compound, (int)rndInt( (uint32_t)childCount ) );
+		mover.center1 = rv3( 0.8f, 0.8f, 0.8f, aim.x, aim.y, aim.z );
+		mover.center2 = b3Add( mover.center1, rv3( 0.3f, 0.3f, 0.3f, 0.0f, 0.4f, 0.0f ) );
+		mover.radius = 0.4f + 0.3f * rnd();
+		b3PlaneResult planes[16];
+		int capacity = k == 5 ? 2 : 16;
+		int count = b3CollideMoverAndCompound( planes, capacity, compound, &mover );
+		pplanes( planes, count );
+		printf( "\n" );
+	}
+
+	printf( "%s query |", name );
+	for ( int k = 0; k < 6; ++k )
+	{
+		b3AABB box;
+		b3Vec3 p = rv3( e.x, e.y, e.z, c.x, c.y, c.z );
+		b3Vec3 h = rv3( 0.5f, 0.5f, 0.5f, 1.5f, 1.5f, 1.5f );
+		box.lowerBound = b3Sub( p, h );
+		box.upperBound = b3Add( p, h );
+		resetQuery( k == 4 ? 2 : -1 );
+		b3QueryCompound( compound, box, CompoundQueryFcn, NULL );
+		pquery();
+	}
+	printf( "\n" );
+}
+
+#define MAX_CAPSULES 6
+#define MAX_HULLS 6
+#define MAX_MESHES 4
+#define MAX_SPHERES 6
+
+static void compoundSection( void )
+{
+	b3BoxHull boxes[3];
+	boxes[0] = b3MakeBoxHull( 0.5f, 0.5f, 0.5f );
+	boxes[1] = b3MakeBoxHull( 0.5f, 0.5f, 0.5f );
+	boxes[2] = b3MakeBoxHull( 1.0f, 0.25f, 0.75f );
+	b3HullData* cylinder = b3CreateCylinder( 1.0f, 0.5f, 0.0f, 10 );
+
+	b3MeshData* meshes[3];
+	meshes[0] = b3CreateWaveMesh( 4, 4, 0.5f, 0.3f, 0.2f, 0.3f );
+	meshes[1] = b3CreateBoxMesh( b3Vec3_zero, (b3Vec3){ 0.5f, 0.5f, 0.5f }, true );
+	meshes[2] = b3CreateGridMesh( 3, 3, 0.5f, 3, true );
+
+	b3CompoundData* compounds[4];
+	int compoundCount = 0;
+
+	printf( "compound create |" );
+	for ( int n = 0; n < 4; ++n )
+	{
+		b3CompoundCapsuleDef capsules[MAX_CAPSULES];
+		b3CompoundHullDef hulls[MAX_HULLS];
+		b3CompoundMeshDef meshDefs[MAX_MESHES];
+		b3SurfaceMaterial meshMaterials[MAX_MESHES][4];
+		b3CompoundSphereDef spheres[MAX_SPHERES];
+
+		b3CompoundDef def = { 0 };
+		def.capsules = capsules;
+		def.capsuleCount = n == 3 ? 0 : 1 + (int)rndInt( MAX_CAPSULES );
+		def.hulls = hulls;
+		def.hullCount = n == 1 ? 0 : 1 + (int)rndInt( MAX_HULLS );
+		def.meshes = meshDefs;
+		def.meshCount = n == 2 ? 0 : 1 + (int)rndInt( MAX_MESHES );
+		def.spheres = spheres;
+		def.sphereCount = 1 + (int)rndInt( MAX_SPHERES );
+
+		for ( int i = 0; i < def.capsuleCount; ++i )
+		{
+			capsules[i].capsule.center1 = rv3( 4.0f, 4.0f, 4.0f, 0.0f, 0.0f, 0.0f );
+			capsules[i].capsule.center2 = b3Add( capsules[i].capsule.center1, rv3( 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f ) );
+			capsules[i].capsule.radius = 0.3f + 0.2f * rnd();
+			capsules[i].material = rmaterial();
+		}
+		for ( int i = 0; i < def.hullCount; ++i )
+		{
+			uint32_t which = rndInt( 4 );
+			hulls[i].hull = which == 3 ? cylinder : &boxes[which].base;
+			hulls[i].transform = rxf( 4.0f );
+			hulls[i].material = rmaterial();
+		}
+		for ( int i = 0; i < def.meshCount; ++i )
+		{
+			const b3MeshData* md = meshes[rndInt( 3 )];
+			meshDefs[i].meshData = md;
+			meshDefs[i].transform = rxf( 4.0f );
+			uint32_t mirror = rndInt( 3 );
+			meshDefs[i].scale = rv3( 0.3f, 0.3f, 0.3f, 1.0f, 1.0f, 1.0f );
+			if ( mirror == 0 )
+			{
+				meshDefs[i].scale.x = -meshDefs[i].scale.x;
+			}
+			for ( int j = 0; j < md->materialCount; ++j )
+			{
+				meshMaterials[i][j] = rmaterial();
+			}
+			meshDefs[i].materials = meshMaterials[i];
+			meshDefs[i].materialCount = md->materialCount;
+		}
+		for ( int i = 0; i < def.sphereCount; ++i )
+		{
+			spheres[i].sphere.center = rv3( 4.0f, 4.0f, 4.0f, 0.0f, 0.0f, 0.0f );
+			spheres[i].sphere.radius = 0.4f + 0.3f * rnd();
+			spheres[i].material = rmaterial();
+		}
+
+		compounds[compoundCount++] = b3CreateCompound( &def );
+		pcompound( compounds[compoundCount - 1] );
+	}
+	printf( "\n" );
+
+	printf( "compound validate |" );
+	for ( int i = 0; i < compoundCount; ++i )
+	{
+		static uint64_t buffer[4096];
+		int byteCount = compounds[i]->byteCount;
+		memcpy( buffer, compounds[i], (size_t)byteCount );
+		const b3CompoundData* copy = b3ValidateCompound( (const uint8_t*)buffer, byteCount );
+		printf( " %d", copy != NULL );
+		printf( " %d", b3ValidateCompound( (const uint8_t*)buffer, byteCount - 8 ) != NULL );
+		if ( copy != NULL )
+		{
+			b3RayCastInput ray;
+			ray.origin = b3Add( childPoint( copy, 0 ), (b3Vec3){ -10.0f, 0.1f, 0.2f } );
+			ray.translation = (b3Vec3){ 20.0f, 0.0f, 0.0f };
+			ray.maxFraction = 1.0f;
+			pco( b3RayCastCompound( copy, &ray ) );
+		}
+	}
+	printf( "\n" );
+
+	for ( int i = 0; i < compoundCount; ++i )
+	{
+		char name[32];
+		snprintf( name, sizeof( name ), "compound %d", i );
+		compoundQueries( name, compounds[i] );
+	}
+
+	for ( int i = 0; i < compoundCount; ++i )
+	{
+		b3DestroyCompound( compounds[i] );
+	}
+	for ( int i = 0; i < 3; ++i )
+	{
+		b3DestroyMesh( meshes[i] );
+	}
+	b3DestroyHull( cylinder );
+}
+
 static void quietLog( const char* message )
 {
 	(void)message;
@@ -706,6 +1020,7 @@ int main( void )
 
 	meshSection();
 	heightFieldSection();
+	compoundSection();
 
 	return 0;
 }
