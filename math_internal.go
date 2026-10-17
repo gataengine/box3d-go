@@ -260,7 +260,7 @@ func neg2(v Vec2) Vec2 {
 }
 
 func mulSV2(s float32, v Vec2) Vec2 {
-	c := Vec2{s * v.X, s * v.Y}
+	c := Vec2{float32(s * v.X), float32(s * v.Y)}
 	return c
 }
 
@@ -307,8 +307,8 @@ func invert2(m matrix2) matrix2 {
 	if AbsFloat(det) > 1000.0*fltMin {
 		invDet := 1.0 / det
 		return matrix2{
-			Vec2{invDet * m.cy.Y, -invDet * m.cx.Y},
-			Vec2{-invDet * m.cy.X, invDet * m.cx.X},
+			Vec2{float32(invDet * m.cy.Y), float32(-invDet * m.cx.Y)},
+			Vec2{float32(-invDet * m.cy.X), float32(invDet * m.cx.X)},
 		}
 	}
 
@@ -353,7 +353,7 @@ func makeDiagonalMatrix(a, b, c float32) Matrix3 {
 
 func normalizePlane(plane Plane) Plane {
 	invLength := 1.0 / Length(plane.Normal)
-	return Plane{MulSV(invLength, plane.Normal), invLength * plane.Offset}
+	return Plane{MulSV(invLength, plane.Normal), float32(invLength * plane.Offset)}
 }
 
 func makePlaneFromNormalAndPoint(normal, point Vec3) Plane {

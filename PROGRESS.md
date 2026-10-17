@@ -53,7 +53,7 @@ each; both point at the same Go file.
 | src/core.c | core.go | ported | efca0c1 |  |
 | src/core.h | core.go | ported | efca0c1 |  |
 | src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
-| src/distance.c | distance.go | todo | |  |
+| src/distance.c | distance.go | tested | efca0c1 | GJK, shape cast, TOI |
 | src/distance_joint.c | distance_joint.go | todo | |  |
 | src/dynamic_tree.c | dynamic_tree.go | todo | |  |
 | src/dynamic_tree.h | dynamic_tree.go | todo | |  |
@@ -132,7 +132,7 @@ each; both point at the same Go file.
 | test/test_compound.c | compound_test.go | todo | |  |
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
 | test/test_determinism.c | determinism_test.go | todo | |  |
-| test/test_distance.c | distance_test.go | todo | |  |
+| test/test_distance.c | distance_test.go | tested | efca0c1 |  |
 | test/test_dynamic_tree.c | dynamic_tree_test.go | todo | |  |
 | test/test_hash.c | hash_test.go | todo | |  |
 | test/test_height_field.c | height_field_test.go | todo | |  |

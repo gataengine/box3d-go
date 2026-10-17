@@ -21,7 +21,7 @@ package box3d
 // have precision problems, so 100km is a safe limit.
 // PORT: double precision (BOX3D_DOUBLE_PRECISION, 1.0e9f) is not ported.
 func Huge() float32 {
-	return 1.0e5 * GetLengthUnitsPerMeter()
+	return float32(1.0e5 * GetLengthUnitsPerMeter())
 }
 
 // MaxWorkers is the maximum parallel workers. Used for some fixed size arrays.
@@ -46,7 +46,7 @@ const ContactManifoldCountBuckets = 8
 // chosen to be numerically significant, but visually insignificant. In meters.
 // Warning: modifying this can have a significant impact on stability
 func LinearSlop() float32 {
-	return 0.005 * GetLengthUnitsPerMeter()
+	return float32(0.005 * GetLengthUnitsPerMeter())
 }
 
 // MinCapsuleLength is the minimum length of a capsules. Very short capsules should be created as spheres
@@ -63,7 +63,7 @@ const MinFrictionWeight float32 = 1e-10
 // because GJK may return small positive values for overlapped shapes in degenerate
 // configurations.
 func OverlapSlop() float32 {
-	return 0.1 * LinearSlop()
+	return float32(0.1 * LinearSlop())
 }
 
 // MaxWorlds is the maximum number of simultaneous worlds that can be allocated
@@ -77,7 +77,7 @@ const MaxRotation float32 = 0.25 * Pi
 // SpeculativeDistance is B3_SPECULATIVE_DISTANCE.
 // Warning: modifying this can have a significant impact on performance and stability
 func SpeculativeDistance() float32 {
-	return 4.0 * LinearSlop()
+	return float32(4.0 * LinearSlop())
 }
 
 // MeshRestOffset is B3_MESH_REST_OFFSET. The rest offset is used for mesh contact to reduce ghost
@@ -85,12 +85,12 @@ func SpeculativeDistance() float32 {
 // making the solver push the shapes apart by this distance.
 // Must be at least B3_LINEAR_SLOP and less than B3_SPECULATIVE_DISTANCE.
 func MeshRestOffset() float32 {
-	return 1.0 * LinearSlop()
+	return float32(1.0 * LinearSlop())
 }
 
 // ContactRecycleDistance is the default contact recycling distance.
 func ContactRecycleDistance() float32 {
-	return 10.0 * LinearSlop()
+	return float32(10.0 * LinearSlop())
 }
 
 // ContactRecycleAngularDistance is the default contact recycling world angle threshold. For performance this value
@@ -101,7 +101,7 @@ const ContactRecycleAngularDistance float32 = 0.99240388
 // to move by a small amount without triggering a tree adjustment. This is in meters.
 // Warning: modifying this can have a significant impact on performance
 func MaxAABBMargin() float32 {
-	return 0.05 * GetLengthUnitsPerMeter()
+	return float32(0.05 * GetLengthUnitsPerMeter())
 }
 
 // AABBMarginFraction is the per-shape AABB margin as a fraction of the shape extent (capped by B3_MAX_AABB_MARGIN).

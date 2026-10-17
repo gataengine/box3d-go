@@ -58,3 +58,9 @@ site. Upstream bugs are ported as is and listed here too.
 | simd_scalar.go | `b3TransposeW4( …, b3FloatW4* c0, … )` | returns `(c0, c1, c2, c3)` | out-parameters become returns |
 | simd.go | `b3HasAVX2`, `b3CpuId`, `b3GetExtendedControlRegister` | not ported; `detectSIMDWidth` returns `laneCount`, `IsAVX2Available` is false, `SetSIMDWidth(8)` stores 4 | width 8 not ported |
 | simd.go | `b3128` union, `b3GetV` | switch on the index | Go has no unions |
+| math_functions.go, math_internal.go, constants.go | helpers returning a bare product (`b3MulSV`, `b3Mul`, `b3MulSM`, `B3_LINEAR_SLOP`, …) | the returned product is wrapped in `float32()` | after inlining Go fused the product with the caller's add (found by the FMA guard when distance.go landed); values unchanged |
+| distance.go | `b3ShapeDistance( input, cache, simplexes, simplexCapacity )` | `ShapeDistance(input, cache, simplexes []Simplex)`; capacity is `len(simplexes)`, nil for none | pointer + count is a slice |
+| distance.go | `b3ComputeWitnessPoints( simplex, &a, &b )`, `b3FindMinSeparation( fcn, &indexA, &indexB, t )` | out-parameters become returns; the unreachable default case returns indices 0 | Go multiple returns |
+| distance.go | `b3GetPointSupport( points, count, axis )` | `getPointSupport(points []Vec3, count int, axis)` | slice + explicit count (proxies carry a count) |
+| distance.go | `b3SeparationFunction.type` | field `typ` | `type` is a Go keyword |
+| distance.go | `#if B3_ENABLE_VALIDATION && 0` block in `b3TimeOfImpact` | not ported | compiled out upstream |

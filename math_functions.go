@@ -260,7 +260,7 @@ func Sub(a, b Vec3) Vec3 {
 
 // Mul is vector component-wise multiplication.
 func Mul(a, b Vec3) Vec3 {
-	return Vec3{a.X * b.X, a.Y * b.Y, a.Z * b.Z}
+	return Vec3{float32(a.X * b.X), float32(a.Y * b.Y), float32(a.Z * b.Z)}
 }
 
 // Neg is vector negation.
@@ -300,7 +300,7 @@ func Normalize(a Vec3) Vec3 {
 	lengthSquared := float32(a.X*a.X) + float32(a.Y*a.Y) + float32(a.Z*a.Z)
 	if lengthSquared > 1000.0*fltMin {
 		s := 1.0 / sqrtf(lengthSquared)
-		u := Vec3{s * a.X, s * a.Y, s * a.Z}
+		u := Vec3{float32(s * a.X), float32(s * a.Y), float32(s * a.Z)}
 		return u
 	}
 	return Vec3{0.0, 0.0, 0.0}
@@ -314,7 +314,7 @@ func GetLengthAndNormalize(a Vec3) (Vec3, float32) {
 	if lengthSquared > 1000.0*fltMin {
 		length := sqrtf(lengthSquared)
 		s := 1.0 / length
-		u := Vec3{s * a.X, s * a.Y, s * a.Z}
+		u := Vec3{float32(s * a.X), float32(s * a.Y), float32(s * a.Z)}
 		return u, length
 	}
 
@@ -354,7 +354,7 @@ func MulSub(a Vec3, s float32, b Vec3) Vec3 {
 
 // MulSV returns s * a.
 func MulSV(s float32, a Vec3) Vec3 {
-	return Vec3{s * a.X, s * a.Y, s * a.Z}
+	return Vec3{float32(s * a.X), float32(s * a.Y), float32(s * a.Z)}
 }
 
 // Cross is the vector cross product. https://en.wikipedia.org/wiki/Cross_product
@@ -515,7 +515,7 @@ func NormalizeQuat(q Quat) Quat {
 	lengthSq := DotQuat(q, q)
 	if lengthSq > 1000.0*fltMin {
 		s := 1.0 / sqrtf(lengthSq)
-		qn := Quat{Vec3{s * q.V.X, s * q.V.Y, s * q.V.Z}, s * q.S}
+		qn := Quat{Vec3{float32(s * q.V.X), float32(s * q.V.Y), float32(s * q.V.Z)}, float32(s * q.S)}
 		return qn
 	}
 
@@ -526,7 +526,7 @@ func NormalizeQuat(q Quat) Quat {
 func MakeQuatFromAxisAngle(axis Vec3, radians float32) Quat {
 	assert(IsNormalized(axis), "b3IsNormalized( axis )")
 	cs := ComputeCosSin(0.5 * radians)
-	q := Quat{Vec3{cs.Sine * axis.X, cs.Sine * axis.Y, cs.Sine * axis.Z}, cs.Cosine}
+	q := Quat{Vec3{float32(cs.Sine * axis.X), float32(cs.Sine * axis.Y), float32(cs.Sine * axis.Z)}, cs.Cosine}
 	return q
 }
 
@@ -534,10 +534,10 @@ func MakeQuatFromAxisAngle(axis Vec3, radians float32) Quat {
 // PORT: the radians out-parameter is the second return value.
 func GetAxisAngle(q Quat) (Vec3, float32) {
 	length := sqrtf(float32(q.V.X*q.V.X) + float32(q.V.Y*q.V.Y) + float32(q.V.Z*q.V.Z))
-	radians := 2.0 * Atan2(length, q.S)
+	radians := float32(2.0 * Atan2(length, q.S))
 	if length > 0.0 {
 		invLength := 1.0 / length
-		axis := Vec3{invLength * q.V.X, invLength * q.V.Y, invLength * q.V.Z}
+		axis := Vec3{float32(invLength * q.V.X), float32(invLength * q.V.Y), float32(invLength * q.V.Z)}
 		return axis, radians
 	}
 
@@ -547,7 +547,7 @@ func GetAxisAngle(q Quat) (Vec3, float32) {
 // GetQuatAngle gets the angle for a quaternion in radians
 func GetQuatAngle(q Quat) float32 {
 	length := sqrtf(float32(q.V.X*q.V.X) + float32(q.V.Y*q.V.Y) + float32(q.V.Z*q.V.Z))
-	return 2.0 * Atan2(length, q.S)
+	return float32(2.0 * Atan2(length, q.S))
 }
 
 // MakeQuatFromMatrix extracts a quaternion from a rotation matrix. Implemented below with math_functions.c.
@@ -575,7 +575,7 @@ func GetSwingAngle(q Quat) float32 {
 	// Polarity should not matter because all terms are squared.
 	x := sqrtf(float32(q.V.Z*q.V.Z) + float32(q.S*q.S))
 	y := sqrtf(float32(q.V.X*q.V.X) + float32(q.V.Y*q.V.Y))
-	swing := 2.0 * Atan2(y, x)
+	swing := float32(2.0 * Atan2(y, x))
 	assert(0.0 <= swing && swing <= Pi, "0.0f <= swing && swing <= B3_PI")
 	return swing
 }
@@ -788,9 +788,9 @@ func SubMM(a, b Matrix3) Matrix3 {
 // MulSM multiplies a matrix by a scalar, component-wise.
 func MulSM(s float32, a Matrix3) Matrix3 {
 	return Matrix3{
-		Vec3{s * a.Cx.X, s * a.Cx.Y, s * a.Cx.Z},
-		Vec3{s * a.Cy.X, s * a.Cy.Y, s * a.Cy.Z},
-		Vec3{s * a.Cz.X, s * a.Cz.Y, s * a.Cz.Z},
+		Vec3{float32(s * a.Cx.X), float32(s * a.Cx.Y), float32(s * a.Cx.Z)},
+		Vec3{float32(s * a.Cy.X), float32(s * a.Cy.Y), float32(s * a.Cy.Z)},
+		Vec3{float32(s * a.Cz.X), float32(s * a.Cz.Y), float32(s * a.Cz.Z)},
 	}
 }
 
@@ -842,9 +842,9 @@ func Solve3(m Matrix3, a Vec3) Vec3 {
 		s.Cz = Cross(m.Cx, m.Cy)
 
 		b := Vec3{
-			invDet * Dot(s.Cx, a),
-			invDet * Dot(s.Cy, a),
-			invDet * Dot(s.Cz, a),
+			float32(invDet * Dot(s.Cx, a)),
+			float32(invDet * Dot(s.Cy, a)),
+			float32(invDet * Dot(s.Cz, a)),
 		}
 
 		return b
@@ -1241,7 +1241,7 @@ func ComputeCosSin(radians float32) CosSin {
 	if mag > 0.0 {
 		invMag = 1.0 / mag
 	}
-	cs := CosSin{c * invMag, s * invMag}
+	cs := CosSin{float32(c * invMag), float32(s * invMag)}
 	return cs
 }
 
@@ -1515,7 +1515,7 @@ func closestPointOnTriangle(a, b, c, q Vec3) trianglePoint {
 
 // sphereInertia is b3SphereInertia.
 func sphereInertia(mass, radius float32) Matrix3 {
-	i := 0.4 * mass * radius * radius
+	i := float32(0.4 * mass * radius * radius)
 	return makeDiagonalMatrix(i, i, i)
 }
 
