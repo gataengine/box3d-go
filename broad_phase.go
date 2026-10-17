@@ -158,6 +158,9 @@ type pairContext struct {
 	// Compound shapes are static only, so only the static cross pass can meet one. Elsewhere
 	// this stays false and the batch never reads a shape type.
 	checkCompounds bool
+
+	// PORT: storage for the b3CompoundPairContext local of b3EmitCompoundPairs.
+	compoundContext compoundPairContext
 }
 
 // nodePair is b3NodePair.
@@ -262,17 +265,20 @@ func emitCompoundPairs(context *pairContext, compoundShapeId, otherShapeId int) 
 	compoundTransform := ToRelativeTransform(getBodyTransform(world, int(compoundShape.bodyId)), PosZero)
 	localAABB := otherAABB.Transform(InvertTransform(compoundTransform))
 
-	compoundContext := compoundPairContext{
+	// PORT: the query receives the context as `any`, so a local would escape to the heap; it
+	// lives in the (per worker) pair context instead.
+	context.compoundContext = compoundPairContext{
 		pairContext:     context,
 		pairSet:         &world.broadPhase.pairSet,
 		compoundShapeId: compoundShapeId,
 		otherShapeId:    otherShapeId,
 	}
+	compoundContext := &context.compoundContext
 
 	startCount := len(*context.pairKeys)
 
 	view := getCompoundTreeView(compoundShape.compound)
-	view.query(localAABB, DefaultMaskBits, false, compoundChildCallback, &compoundContext)
+	view.query(localAABB, DefaultMaskBits, false, compoundChildCallback, compoundContext)
 
 	if len(*context.pairKeys) > startCount && shouldCreatePair(world, compoundShapeId, otherShapeId) == false {
 		arrayResize(context.pairKeys, startCount)
@@ -474,17 +480,20 @@ func selfPairsTask(startIndex, endIndex, workerIndex int, context any) {
 	nodes := tree.Nodes
 	siblingIndices := bp.movedSiblings
 
-	pairContext := pairContext{
+	// PORT: the pair context is handed to the tree queries, so it lives in the worker's task
+	// context; a local would escape to the heap.
+	world.taskContexts[workerIndex].pairContext = pairContext{
 		world:    world,
 		pairKeys: &world.taskContexts[workerIndex].pairKeys,
 	}
+	pairContext := &world.taskContexts[workerIndex].pairContext
 
 	for i := startIndex; i < endIndex; i++ {
 		nodeIndex := int(siblingIndices[i])
-		collideCrossPairs(nodes, nodes, &nodes[nodeIndex], &nodes[nodeIndex+1], &pairContext)
+		collideCrossPairs(nodes, nodes, &nodes[nodeIndex], &nodes[nodeIndex+1], pairContext)
 	}
 
-	flushCandidatePairs(&pairContext)
+	flushCandidatePairs(pairContext)
 }
 
 // crossSeedCount is B3_CROSS_SEED_COUNT.
@@ -566,10 +575,13 @@ func crossPairsTask(startIndex, endIndex, workerIndex int, context any) {
 	kinematicNodes := bp.trees[KinematicBody].Nodes
 	dynamicNodes := bp.trees[DynamicBody].Nodes
 
-	pairContext := pairContext{
+	// PORT: the pair context is handed to the tree queries, so it lives in the worker's task
+	// context; a local would escape to the heap.
+	world.taskContexts[workerIndex].pairContext = pairContext{
 		world:    world,
 		pairKeys: &world.taskContexts[workerIndex].pairKeys,
 	}
+	pairContext := &world.taskContexts[workerIndex].pairContext
 
 	// Static seeds come first, so the two passes are contiguous sub-ranges. The batch is drained
 	// between them because only the static pass can meet a compound.
@@ -578,16 +590,16 @@ func crossPairsTask(startIndex, endIndex, workerIndex int, context any) {
 	pairContext.checkCompounds = crossContext.checkCompounds
 	for i := startIndex; i < staticEnd; i++ {
 		seed := crossContext.seeds[i]
-		collideCrossPairs(dynamicNodes, staticNodes, &seed.a, &seed.b, &pairContext)
+		collideCrossPairs(dynamicNodes, staticNodes, &seed.a, &seed.b, pairContext)
 	}
-	flushCandidatePairs(&pairContext)
+	flushCandidatePairs(pairContext)
 
 	pairContext.checkCompounds = false
 	for i := MaxInt(startIndex, crossContext.staticSeedCount); i < endIndex; i++ {
 		seed := crossContext.seeds[i]
-		collideCrossPairs(dynamicNodes, kinematicNodes, &seed.a, &seed.b, &pairContext)
+		collideCrossPairs(dynamicNodes, kinematicNodes, &seed.a, &seed.b, pairContext)
 	}
-	flushCandidatePairs(&pairContext)
+	flushCandidatePairs(pairContext)
 }
 
 // updateTreesTask is b3UpdateTreesTask.
@@ -641,7 +653,10 @@ func updateBroadPhasePairs(world *world) {
 		dynamicMoveCount := gatherMovedSiblings(dynamicTree, bp.movedSiblings)
 
 		// Get seeds for colliding against the static and kinematic trees.
-		var crossSeeds [2 * crossSeedCount]nodePair
+		// PORT: crossSeeds and crossContext are referenced by the parallel-for tasks, so they live in
+		// the world (stepScratch); locals would escape to the heap every step.
+		crossSeeds := &world.stepScratch.crossSeeds
+		clear(crossSeeds[:])
 		staticSeedCount := gatherCrossSeeds(dynamicTree, &bp.trees[StaticBody], crossSeeds[:])
 		assert(staticSeedCount <= crossSeedCount, "staticSeedCount <= B3_CROSS_SEED_COUNT")
 		kinematicSeedCount := gatherCrossSeeds(dynamicTree, &bp.trees[KinematicBody], crossSeeds[staticSeedCount:])
@@ -649,13 +664,14 @@ func updateBroadPhasePairs(world *world) {
 		crossMoveCount := staticSeedCount + kinematicSeedCount
 
 		// Collide the dynamic body tree against the static and kinematic trees.
-		crossContext := crossContext{
+		world.stepScratch.crossContext = crossContext{
 			world:           world,
 			seeds:           crossSeeds[:],
 			staticSeedCount: staticSeedCount,
 			checkCompounds:  world.compoundShapeCount > 0,
 		}
-		parallelFor(world, crossPairsTask, crossMoveCount, 1, &crossContext, "cross pairs")
+		crossContext := &world.stepScratch.crossContext
+		parallelFor(world, crossPairsTask, crossMoveCount, 1, crossContext, "cross pairs")
 
 		// Collide the dynamic body tree against itself.
 		parallelFor(world, selfPairsTask, dynamicMoveCount, 64, world, "self pairs")

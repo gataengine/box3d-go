@@ -92,8 +92,30 @@ type taskContext struct {
 	lineCount int32
 
 	manifoldCounts [ContactManifoldCountBuckets]int32
+	// PORT: C stack locals of b3SolveContinuous and b3SelfPairsTask / b3CrossPairsTask that are
+	// handed to queries as pointers; per worker storage so that Step does not allocate.
+	continuous  continuousContext
+	pairContext pairContext
+
 	// Prevent false sharing
 	cacheLine [64]byte
+}
+
+// stepScratch holds C stack locals of one world step that the task system or a query receives
+// pointers to. PORT: as Go locals they would escape to the heap on every step; the world owns
+// them instead (spec: scratch owned by the world/step context, reused across steps). Each user
+// clears its part before use, as the C locals are (re)initialized.
+type stepScratch struct {
+	stepContext       stepContext                           // b3World_Step context
+	widePrepareSpans  [GraphColorCount + 1]widePrepareSpan  // b3SolverStep
+	meshPrepareSpans  [GraphColorCount + 1]meshPrepareSpan  // b3SolverStep
+	jointPrepareSpans [GraphColorCount + 1]jointPrepareSpan // b3SolverStep
+	overflowSpans     [2]contactPrepareSpan                 // b3SolverStep
+	workerContexts    [MaxWorkers]workerContext             // b3SolverStep
+	crossSeeds        [2 * crossSeedCount]nodePair          // b3UpdateBroadPhasePairs
+	crossContext      crossContext                          // b3UpdateBroadPhasePairs
+	parallelForShared parallelForShared                     // b3ParallelFor
+	parallelForTasks  [MaxWorkers]parallelForTask           // b3ParallelFor
 }
 
 // world is b3World.
@@ -273,6 +295,9 @@ type world struct {
 	enableContinuous   bool
 	enableSpeculative  bool
 	inUse              bool
+
+	// PORT: world owned storage for step locals, see stepScratch.
+	stepScratch stepScratch
 }
 
 // PORT: b3GetUnlockedWorldFromId, b3GetWorldFromId, b3GetUnlockedWorld, b3GetWorld,
@@ -1333,9 +1358,10 @@ func (worldId WorldID) Step(timeStep float32, subStepCount int) {
 	// PORT: the local b3SolverSet* awakeSet is awakeSolverSet (awakeSet is the b3_awakeSet constant).
 	awakeSolverSet := arrayGet(world.solverSets, awakeSet)
 
-	// PORT: b3StepContext context = { 0 } on the C stack; new() because the parallel-for tasks
-	// receive a pointer to it.
-	context := new(stepContext)
+	// PORT: b3StepContext context = { 0 } on the C stack; the parallel-for tasks receive a pointer
+	// to it, so it lives in the world (stepScratch) and is zeroed here.
+	context := &world.stepScratch.stepContext
+	*context = stepContext{}
 	context.world = world
 	context.states = awakeSolverSet.bodyStates
 	context.dt = timeStep

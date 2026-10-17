@@ -32,6 +32,9 @@ type sensor struct {
 // sensorTaskContext is b3SensorTaskContext.
 type sensorTaskContext struct {
 	eventBits bitSet
+
+	// PORT: storage for the b3SensorQueryContext local of b3SensorTask.
+	queryContext sensorQueryContext
 }
 
 // ---- sensor.c ----
@@ -217,21 +220,24 @@ func sensorTask(startIndex, endIndex, workerIndex int, context any) {
 
 		transform := ToRelativeTransform(getBodyTransformQuick(world, body), PosZero)
 
-		queryContext := sensorQueryContext{
+		// PORT: the trees receive the query context as `any`, so a local would escape to the heap;
+		// it lives in the worker's sensor task context instead.
+		taskContext.queryContext = sensorQueryContext{
 			world:       world,
 			taskContext: taskContext,
 			sensor:      sensor,
 			sensorShape: sensorShape,
 			transform:   transform,
 		}
+		queryContext := &taskContext.queryContext
 
 		assert(int(sensorShape.sensorIndex) == sensorIndex, "sensorShape->sensorIndex == sensorIndex")
 		queryBounds := sensorShape.aabb
 
 		// Query all trees
-		trees[0].Query(queryBounds, sensorShape.filter.MaskBits, false, sensorQueryCallback, &queryContext)
-		trees[1].Query(queryBounds, sensorShape.filter.MaskBits, false, sensorQueryCallback, &queryContext)
-		trees[2].Query(queryBounds, sensorShape.filter.MaskBits, false, sensorQueryCallback, &queryContext)
+		trees[0].Query(queryBounds, sensorShape.filter.MaskBits, false, sensorQueryCallback, queryContext)
+		trees[1].Query(queryBounds, sensorShape.filter.MaskBits, false, sensorQueryCallback, queryContext)
+		trees[2].Query(queryBounds, sensorShape.filter.MaskBits, false, sensorQueryCallback, queryContext)
 
 		// Sort the overlaps to enable finding begin and end events.
 		// PORT: libc qsort becomes the ported QSORT (qsort.go). Neither is stable, but entries with

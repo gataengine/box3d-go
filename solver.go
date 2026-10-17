@@ -751,9 +751,10 @@ func solveContinuous(world *world, bodySimIndex int, taskContext *taskContext, d
 	dynamicTree := &world.broadPhase.trees[DynamicBody]
 	fastBody := arrayGet(world.bodies, int(fastBodySim.bodyId))
 
-	// PORT: the context is passed to the tree query as `any`, so it escapes to the heap (one
-	// allocation per fast body).
-	context := &continuousContext{}
+	// PORT: the context is passed to the tree query as `any`, so a local would escape to the heap
+	// (one allocation per fast body); it lives in the worker's task context instead.
+	context := &taskContext.continuous
+	*context = continuousContext{}
 	context.world = world
 	context.sweep = sweep
 	context.base = base
@@ -1830,10 +1831,14 @@ func solve(world *world, stepContext *stepContext) {
 		// Build the span table for the flat prepare/store parallel-for while I slice the
 		// wide constraint buffer across colors. One entry per active color plus a sentinel
 		// at wideContactCount.
-		// PORT: these C stack arrays are referenced from the step context, so they escape to the heap.
-		var widePrepareSpans [GraphColorCount + 1]widePrepareSpan
-		var meshPrepareSpans [GraphColorCount + 1]meshPrepareSpan
-		var jointPrepareSpans [GraphColorCount + 1]jointPrepareSpan
+		// PORT: these C stack arrays are referenced from the step context, so they live in the
+		// world (stepScratch) and are cleared here; locals would escape to the heap every step.
+		widePrepareSpans := &world.stepScratch.widePrepareSpans
+		meshPrepareSpans := &world.stepScratch.meshPrepareSpans
+		jointPrepareSpans := &world.stepScratch.jointPrepareSpans
+		clear(widePrepareSpans[:])
+		clear(meshPrepareSpans[:])
+		clear(jointPrepareSpans[:])
 
 		// Distribute transient constraints to each graph color and prepare spans
 		{
@@ -1922,7 +1927,9 @@ func solve(world *world, stepContext *stepContext) {
 		}
 
 		//// Special span for overflow to allow for function re-use
-		var overflowSpans [2]contactPrepareSpan
+		// PORT: world owned, see widePrepareSpans.
+		overflowSpans := &world.stepScratch.overflowSpans
+		clear(overflowSpans[:])
 		overflowSpans[0].start = 0
 		overflowSpans[0].count = int32(len(overflow.contacts))
 		overflowSpans[0].contacts = overflow.contacts
@@ -2033,8 +2040,10 @@ func solve(world *world, stepContext *stepContext) {
 		assert(stage == stageCount, "(int)( stage - stages ) == stageCount")
 
 		assert(workerCount <= MaxWorkers, "workerCount <= B3_MAX_WORKERS")
-		// PORT: the task system receives pointers into this C stack array, so it escapes to the heap.
-		var workerContexts [MaxWorkers]workerContext
+		// PORT: the task system receives pointers into this C stack array, so it lives in the world
+		// (stepScratch) and is cleared here.
+		workerContexts := &world.stepScratch.workerContexts
+		clear(workerContexts[:])
 
 		stepContext.graph = graph
 		stepContext.activeColorCount = int32(activeColorCount)

@@ -33,6 +33,9 @@ type triangleQueryContext struct {
 	count    int
 }
 
+// triangleQueryScratch holds the triangleQueryContext of the triangle queries.
+var triangleQueryScratch scratchPool[triangleQueryContext]
+
 // collectTriangleIndicesCallback is b3CollectTriangleIndicesCallback.
 func collectTriangleIndicesCallback(a, b, c Vec3, triangleIndex int, context any) bool {
 	triangleContext := context.(*triangleQueryContext)
@@ -46,26 +49,37 @@ func collectTriangleIndicesCallback(a, b, c Vec3, triangleIndex int, context any
 
 // queryMeshTriangles is b3QueryMeshTriangles.
 func queryMeshTriangles(indices []int, capacity int, mesh *Mesh, bounds AABB) int {
-	context := triangleQueryContext{
+	// PORT: the context is handed to the query as `any`, so a local would escape to the heap; it
+	// comes from a scratch pool instead (no allocation once warm).
+	context := triangleQueryScratch.get()
+	*context = triangleQueryContext{
 		indices:  indices,
 		capacity: capacity,
 		count:    0,
 	}
 
-	QueryMesh(mesh, bounds, collectTriangleIndicesCallback, &context)
-	return context.count
+	QueryMesh(mesh, bounds, collectTriangleIndicesCallback, context)
+	count := context.count
+	*context = triangleQueryContext{}
+	triangleQueryScratch.put(context)
+	return count
 }
 
 // queryHeightFieldTriangles is b3QueryHeightFieldTriangles.
 func queryHeightFieldTriangles(indices []int, capacity int, heightField *HeightFieldData, bounds AABB) int {
-	context := triangleQueryContext{
+	// PORT: scratch pool, see queryMeshTriangles.
+	context := triangleQueryScratch.get()
+	*context = triangleQueryContext{
 		indices:  indices,
 		capacity: capacity,
 		count:    0,
 	}
 
-	QueryHeightField(heightField, bounds, collectTriangleIndicesCallback, &context)
-	return context.count
+	QueryHeightField(heightField, bounds, collectTriangleIndicesCallback, context)
+	count := context.count
+	*context = triangleQueryContext{}
+	triangleQueryScratch.put(context)
+	return count
 }
 
 // meshContactComplexOnce is the static s_once of b3RefreshCache.

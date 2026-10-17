@@ -110,9 +110,11 @@ func parallelFor(world *world, callback parallelForCallback, itemCount int, minR
 		taskCount = workerCount
 	}
 
-	// PORT: shared and tasks live on the C stack; here they escape to the heap because the task
-	// system receives pointers to them.
-	var shared parallelForShared
+	// PORT: shared and tasks live on the C stack; the task system receives pointers to them, so
+	// as Go locals they would escape to the heap on every call. They live in the world
+	// (stepScratch) instead: b3ParallelFor is only called from the stepping thread and is not
+	// nested, and it waits for its tasks before returning.
+	shared := &world.stepScratch.parallelForShared
 	shared.blockCount = blockCount
 	shared.blockSize = blockSize
 	shared.itemCount = itemCount
@@ -120,10 +122,10 @@ func parallelFor(world *world, callback parallelForCallback, itemCount int, minR
 	shared.context = context
 	atomicStoreInt(&shared.nextBlock, 0)
 
-	var tasks [MaxWorkers]parallelForTask
+	tasks := &world.stepScratch.parallelForTasks
 	var handles [MaxWorkers]any
 	for i := 0; i < taskCount; i++ {
-		tasks[i].shared = &shared
+		tasks[i].shared = shared
 		tasks[i].workerIndex = i
 
 		if world.taskCount < MaxTasks {

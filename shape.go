@@ -2285,6 +2285,13 @@ func meshTimeOfImpactFcn(a, b, c Vec3, triangleIndex int, context any) bool {
 	return true
 }
 
+// meshImpactScratch and compoundImpactScratch hold the impact contexts of b3ShapeTimeOfImpact
+// and b3CompoundTimeOfImpactFcn (C stack locals) so that continuous collision does not allocate.
+var (
+	meshImpactScratch     scratchPool[meshImpactContext]
+	compoundImpactScratch scratchPool[compoundImpactContext]
+)
+
 // compoundImpactContext is b3CompoundImpactContext.
 type compoundImpactContext struct {
 	toiInput          TOIInput
@@ -2297,6 +2304,9 @@ type compoundImpactContext struct {
 	// Centroid of shape in body B local space
 	localCentroidB Vec3
 	fallbackRadius float32
+
+	// PORT: storage for the b3CompoundChild local of b3CompoundTimeOfImpactFcn.
+	child ChildShape
 }
 
 // compoundTimeOfImpactFcn is b3CompoundTimeOfImpactFcn.
@@ -2304,7 +2314,10 @@ type compoundImpactContext struct {
 func compoundTimeOfImpactFcn(compound *CompoundData, childIndex int, context any) bool {
 	toiContext := context.(*compoundImpactContext)
 
-	child := GetCompoundChild(compound, childIndex)
+	// PORT: the proxy points alias the child, so a local copy would escape to the heap; the copy
+	// lives in the (pooled) context instead.
+	toiContext.child = GetCompoundChild(compound, childIndex)
+	child := &toiContext.child
 
 	output := TOIOutput{}
 	toiContext.toiInput.SweepA = makeCompoundChildSweep(toiContext.compoundTransform, child.Transform)
@@ -2323,7 +2336,10 @@ func compoundTimeOfImpactFcn(compound *CompoundData, childIndex int, context any
 		output = TimeOfImpact(&toiContext.toiInput)
 
 	case MeshShape:
-		meshContext := meshImpactContext{}
+		// PORT: the context is handed to the mesh query as `any`, so a local would escape to the
+		// heap; it comes from a scratch pool instead (no allocation once warm).
+		meshContext := meshImpactScratch.get()
+		*meshContext = meshImpactContext{}
 		meshContext.toiInput = toiContext.toiInput
 		meshContext.isSensor = false
 		meshContext.localCentroidB = toiContext.localCentroidB
@@ -2350,9 +2366,10 @@ func compoundTimeOfImpactFcn(compound *CompoundData, childIndex int, context any
 		// Bounds local to mesh
 		localBounds := toiContext.localSweepBoundsB.Transform(InvertTransform(child.Transform))
 
-		QueryMesh(&child.Mesh, localBounds, meshTimeOfImpactFcn, &meshContext)
+		QueryMesh(&child.Mesh, localBounds, meshTimeOfImpactFcn, meshContext)
 
 		output = meshContext.toiOutput
+		meshImpactScratch.put(meshContext)
 
 	case SphereShape:
 		toiContext.toiInput.ProxyA.Points = spherePoints(&child.Sphere)
@@ -2383,7 +2400,11 @@ func shapeTimeOfImpact(shapeA, shapeB *shape, sweepA, sweepB *Sweep, maxFraction
 	typeA := shapeA.typ
 	if typeA == CompoundShape {
 		// todo implement b3CompoundTimeOfImpact
-		context := compoundImpactContext{}
+		// PORT: the context is handed to the compound query as `any`, so a local would escape to
+		// the heap; it comes from a scratch pool instead (no allocation once warm).
+		context := compoundImpactScratch.get()
+		defer compoundImpactScratch.put(context)
+		*context = compoundImpactContext{}
 		context.toiInput.ProxyB = makeShapeProxy(shapeB)
 		context.toiInput.SweepB = *sweepB
 		context.toiInput.MaxFraction = maxFraction
@@ -2406,7 +2427,7 @@ func shapeTimeOfImpact(shapeA, shapeB *shape, sweepA, sweepB *Sweep, maxFraction
 		localBounds := bounds.Transform(InvertTransform(context.compoundTransform))
 		context.localSweepBoundsB = localBounds
 
-		QueryCompound(shapeA.compound, localBounds, compoundTimeOfImpactFcn, &context)
+		QueryCompound(shapeA.compound, localBounds, compoundTimeOfImpactFcn, context)
 
 		return context.toiOutput
 	}
@@ -2415,7 +2436,10 @@ func shapeTimeOfImpact(shapeA, shapeB *shape, sweepA, sweepB *Sweep, maxFraction
 		// todo implement b3MeshTimeOfImpact and b3HeightFieldTimeOfImpact
 		// Note: assuming mesh is static
 
-		context := meshImpactContext{}
+		// PORT: scratch pool, see compoundImpactContext above.
+		context := meshImpactScratch.get()
+		defer meshImpactScratch.put(context)
+		*context = meshImpactContext{}
 		context.toiInput.SweepA = *sweepA
 		context.toiInput.ProxyA.Count = 3
 		context.toiInput.ProxyB = makeShapeProxy(shapeB)
@@ -2456,9 +2480,9 @@ func shapeTimeOfImpact(shapeA, shapeB *shape, sweepA, sweepB *Sweep, maxFraction
 		localBounds := bounds.Transform(InvertTransform(xfA))
 
 		if typeA == MeshShape {
-			QueryMesh(&shapeA.mesh, localBounds, meshTimeOfImpactFcn, &context)
+			QueryMesh(&shapeA.mesh, localBounds, meshTimeOfImpactFcn, context)
 		} else if typeA == HeightShape {
-			QueryHeightField(shapeA.heightField, localBounds, meshTimeOfImpactFcn, &context)
+			QueryHeightField(shapeA.heightField, localBounds, meshTimeOfImpactFcn, context)
 		}
 
 		return context.toiOutput

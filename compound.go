@@ -931,15 +931,24 @@ func treeQueryCallbackFcn(proxyId int, userData uint64, treeContext any) bool {
 
 // QueryCompound queries a compound shape for children that overlap an AABB.
 func QueryCompound(compound *CompoundData, aabb AABB, fcn CompoundQueryFcn, context any) {
-	compoundContext := compoundQueryContext{
+	// PORT: the tree receives the context as `any`, so a local would escape to the heap; it comes
+	// from a scratch pool instead (no allocation once warm).
+	compoundContext := compoundQueryScratch.get()
+	*compoundContext = compoundQueryContext{
 		compound:    compound,
 		fcn:         fcn,
 		userContext: context,
 	}
 
 	view := getCompoundTreeView(compound)
-	view.query(aabb, DefaultMaskBits, false, treeQueryCallbackFcn, &compoundContext)
+	view.query(aabb, DefaultMaskBits, false, treeQueryCallbackFcn, compoundContext)
+
+	*compoundContext = compoundQueryContext{}
+	compoundQueryScratch.put(compoundContext)
 }
+
+// compoundQueryScratch holds the compoundQueryContext of QueryCompound.
+var compoundQueryScratch scratchPool[compoundQueryContext]
 
 // PORT: the #if 0 block (b3CompoundImpactContext, b3CompoundTimeOfImpactFcn,
 // b3CompoundTimeOfImpact) is not ported.
