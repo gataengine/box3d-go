@@ -11,7 +11,8 @@ package box3d
 
 // PORT: header types only; joint.c lands in milestone 4. b3World (joints), b3GraphColor and
 // b3SolverSet (joint sims) reach these structs. The inline b3SolvePointConstraint lands with
-// joint.c.
+// joint.c. The joint.c functions that milestone 3 files call are placeholders in the joint.c
+// section at the end.
 
 // jointEdge is b3JointEdge.
 // A joint edge is used to connect bodies and joints together
@@ -342,4 +343,94 @@ type jointSim struct {
 	prismaticJoint prismaticJoint
 	weldJoint      weldJoint
 	wheelJoint     wheelJoint
+}
+
+// ---- joint.c ----
+
+// PORT: placeholders until milestone 4 (joint.c). body.c, solver.c and physics_world.c call these
+// in milestone 3. No joint can exist before joint.c lands (the b3Create*Joint functions are
+// there), so every placeholder that acts on a joint panics; the three overflow functions loop over
+// the overflow color's joints exactly as upstream, which is a no-op while there are none. The
+// signatures are final; the owner of joint.c replaces the bodies in upstream order.
+
+// getJointSim is b3GetJointSim.
+func getJointSim(world *world, joint *joint) *jointSim {
+	// PORT: placeholder until milestone 4 (joint.c)
+	panic("box3d: b3GetJointSim not ported yet (joint.c, milestone 4)")
+}
+
+// destroyJointInternal is b3DestroyJointInternal.
+func destroyJointInternal(world *world, joint *joint, wakeBodies bool) {
+	// PORT: placeholder until milestone 4 (joint.c)
+	panic("box3d: b3DestroyJointInternal not ported yet (joint.c, milestone 4)")
+}
+
+// getJointReaction is b3GetJointReaction.
+// PORT: the force and torque out-parameters are the return values.
+func getJointReaction(world *world, sim *jointSim, invTimeStep float32) (force float32, torque float32) {
+	// PORT: placeholder until milestone 4 (joint.c)
+	panic("box3d: b3GetJointReaction not ported yet (joint.c, milestone 4)")
+}
+
+// prepareJoint is b3PrepareJoint.
+func prepareJoint(joint *jointSim, context *stepContext) {
+	// PORT: placeholder until milestone 4 (joint.c)
+	panic("box3d: b3PrepareJoint not ported yet (joint.c, milestone 4)")
+}
+
+// warmStartJoint is b3WarmStartJoint.
+func warmStartJoint(joint *jointSim, context *stepContext) {
+	// PORT: placeholder until milestone 4 (joint.c)
+	panic("box3d: b3WarmStartJoint not ported yet (joint.c, milestone 4)")
+}
+
+// solveJoint is b3SolveJoint.
+func solveJoint(joint *jointSim, context *stepContext, useBias bool) {
+	// PORT: placeholder until milestone 4 (joint.c)
+	panic("box3d: b3SolveJoint not ported yet (joint.c, milestone 4)")
+}
+
+// prepareJointsOverflow is b3PrepareJoints_Overflow.
+func prepareJointsOverflow(context *stepContext) {
+	// PORT: placeholder until milestone 4 (joint.c); the loop is upstream's.
+	graph := context.graph
+	joints := graph.colors[overflowIndex].jointSims
+	jointCount := len(joints)
+
+	for i := 0; i < jointCount; i++ {
+		joint := &joints[i]
+		prepareJoint(joint, context)
+	}
+}
+
+// warmStartJointsOverflow is b3WarmStartJoints_Overflow.
+func warmStartJointsOverflow(context *stepContext) {
+	// PORT: placeholder until milestone 4 (joint.c); the loop is upstream's.
+	graph := context.graph
+	joints := graph.colors[overflowIndex].jointSims
+	jointCount := len(joints)
+
+	for i := 0; i < jointCount; i++ {
+		joint := &joints[i]
+		warmStartJoint(joint, context)
+	}
+}
+
+// solveJointsOverflow is b3SolveJoints_Overflow.
+func solveJointsOverflow(context *stepContext, useBias bool) {
+	// PORT: placeholder until milestone 4 (joint.c); the loop is upstream's.
+	graph := context.graph
+	joints := graph.colors[overflowIndex].jointSims
+	jointCount := len(joints)
+
+	for i := 0; i < jointCount; i++ {
+		joint := &joints[i]
+		solveJoint(joint, context, useBias)
+	}
+}
+
+// drawJoint is b3DrawJoint.
+func drawJoint(draw *DebugDraw, world *world, joint *joint) {
+	// PORT: placeholder until milestone 4 (joint.c)
+	panic("box3d: b3DrawJoint not ported yet (joint.c, milestone 4)")
 }

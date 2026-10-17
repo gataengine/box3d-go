@@ -177,3 +177,23 @@ type contactSpec struct {
 // the one effect the broad-phase depends on (adding the pair key to the pair set).
 func createContact(world *world, shapeA, shapeB *shape, childIndex int) {
 }
+
+// PORT: stubs until contact.c lands in milestone 3. Other milestone 3 files (body.c, shape.c and
+// physics_world.c) call these; the owner of contact.c replaces each stub with the real function,
+// keeping the signature, in upstream order.
+
+// initializeContactRegisters is b3InitializeContactRegisters.
+func initializeContactRegisters() {
+	panic("box3d: b3InitializeContactRegisters not ported yet (contact.c, milestone 3)")
+}
+
+// destroyContact is b3DestroyContact.
+func destroyContact(world *world, contact *contact, wakeBodies bool) {
+	panic("box3d: b3DestroyContact not ported yet (contact.c, milestone 3)")
+}
+
+// updateContact is b3UpdateContact.
+func updateContact(world *world, workerIndex int, contact *contact, shapeA *shape, localCenterA Vec3, xfA WorldTransform,
+	shapeB *shape, localCenterB Vec3, xfB WorldTransform, isFast bool, arena arena) bool {
+	panic("box3d: b3UpdateContact not ported yet (contact.c, milestone 3)")
+}

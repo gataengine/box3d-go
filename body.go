@@ -9,10 +9,9 @@ package box3d
 
 // ---- body.h ----
 
-// PORT: header types only; body.c lands in milestone 3. The static inline helpers
-// (b3EncodeBodySimIndex, b3IsStaticSimIndex, b3DecodeAwakeIndex, b3SleepBodySimIndex,
-// b3MakeRelativeSweep) land with body.c too. The four body.c functions the broad-phase calls are
-// ported early in the body.c section below.
+// PORT: header types and static inline helpers; body.c lands in milestone 3. The four body.c
+// functions the broad-phase calls are ported early in the body.c section below, next to stubs for
+// the body.c functions other milestone 3 files call.
 
 // b3BodyFlags. PORT: untyped constants so they mix with the uint32 flag fields.
 const (
@@ -229,6 +228,53 @@ type bodySim struct {
 	bodyId int32
 }
 
+// encodeBodySimIndex is b3EncodeBodySimIndex.
+// Encode the body sim index for storage in the contact.
+func encodeBodySimIndex(body *body) int {
+	if body.setIndex == awakeSet {
+		return int(body.localIndex)
+	}
+
+	if body.setIndex == staticSet {
+		return -(int(body.localIndex) + 2)
+	}
+
+	return NullIndex
+}
+
+// isStaticSimIndex is b3IsStaticSimIndex.
+func isStaticSimIndex(encodedBodySimIndex int) bool {
+	return encodedBodySimIndex < NullIndex
+}
+
+// decodeAwakeIndex is b3DecodeAwakeIndex.
+func decodeAwakeIndex(encodedBodySimIndex int) int {
+	if encodedBodySimIndex >= 0 {
+		return encodedBodySimIndex
+	}
+	return NullIndex
+}
+
+// sleepBodySimIndex is b3SleepBodySimIndex.
+func sleepBodySimIndex(encodedBodySimIndex int) int {
+	if encodedBodySimIndex >= 0 {
+		return NullIndex
+	}
+	return encodedBodySimIndex
+}
+
+// makeRelativeSweep is b3MakeRelativeSweep.
+// Make a sweep relative to a base position to keep TOI in float precision far from the origin.
+func makeRelativeSweep(bodySim *bodySim, base Pos) Sweep {
+	var s Sweep
+	s.C1 = SubPos(bodySim.center0, base)
+	s.C2 = SubPos(bodySim.center, base)
+	s.Q1 = bodySim.rotation0
+	s.Q2 = bodySim.transform.Q
+	s.LocalCenter = bodySim.localCenter
+	return s
+}
+
 // ---- body.c ----
 
 // PORT: only b3GetBodyTransformQuick, b3GetBodyTransform, b3GetBodySim and b3ShouldBodiesCollide
@@ -285,4 +331,51 @@ func shouldBodiesCollide(world *world, bodyA, bodyB *body) bool {
 	}
 
 	return true
+}
+
+// PORT: stubs until body.c lands in milestone 3. Other milestone 3 files (shape.c, contact.c,
+// solver_set.c, physics_world.c) call these; the owner of body.c replaces each stub with the real
+// function, keeping the signature, in upstream order.
+
+// getBodyFullId is b3GetBodyFullId.
+// Get a validated body from a world using an id.
+func getBodyFullId(world *world, bodyId BodyID) *body {
+	panic("box3d: b3GetBodyFullId not ported yet (body.c, milestone 3)")
+}
+
+// makeBodyId is b3MakeBodyId.
+// Create a b3BodyId from a raw id.
+func makeBodyId(world *world, bodyId int) BodyID {
+	panic("box3d: b3MakeBodyId not ported yet (body.c, milestone 3)")
+}
+
+// getBodyState is b3GetBodyState.
+func getBodyState(world *world, body *body) *bodyState {
+	panic("box3d: b3GetBodyState not ported yet (body.c, milestone 3)")
+}
+
+// wakeBody is b3WakeBody.
+// careful calling this because it can invalidate body, state, joint, and contact pointers
+func wakeBody(world *world, body *body) bool {
+	panic("box3d: b3WakeBody not ported yet (body.c, milestone 3)")
+}
+
+// wakeBodyWithLock is b3WakeBodyWithLock.
+func wakeBodyWithLock(world *world, body *body) bool {
+	panic("box3d: b3WakeBodyWithLock not ported yet (body.c, milestone 3)")
+}
+
+// updateBodyMassData is b3UpdateBodyMassData.
+func updateBodyMassData(world *world, body *body) {
+	panic("box3d: b3UpdateBodyMassData not ported yet (body.c, milestone 3)")
+}
+
+// syncBodyFlags is b3SyncBodyFlags.
+func syncBodyFlags(world *world, body *body) {
+	panic("box3d: b3SyncBodyFlags not ported yet (body.c, milestone 3)")
+}
+
+// refreshBodyContactIndices is b3RefreshBodyContactIndices.
+func refreshBodyContactIndices(world *world, body *body) {
+	panic("box3d: b3RefreshBodyContactIndices not ported yet (body.c, milestone 3)")
 }

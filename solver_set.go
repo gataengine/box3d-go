@@ -45,3 +45,34 @@ type solverSet struct {
 	// Aligns with b3World::solverSetIdPool. Used to create a stable id for body/contact/joint/islands.
 	setIndex int32
 }
+
+// ---- solver_set.c ----
+
+// PORT: stubs until solver_set.c lands in milestone 3. Other milestone 3 files (body.c, island.c,
+// solver.c and physics_world.c) call these; the owner of solver_set.c replaces each stub with the
+// real function, keeping the signature, in upstream order.
+
+// destroySolverSet is b3DestroySolverSet.
+func destroySolverSet(world *world, setIndex int) {
+	panic("box3d: b3DestroySolverSet not ported yet (solver_set.c, milestone 3)")
+}
+
+// wakeSolverSet is b3WakeSolverSet.
+func wakeSolverSet(world *world, setIndex int) {
+	panic("box3d: b3WakeSolverSet not ported yet (solver_set.c, milestone 3)")
+}
+
+// trySleepIsland is b3TrySleepIsland.
+func trySleepIsland(world *world, islandId int) {
+	panic("box3d: b3TrySleepIsland not ported yet (solver_set.c, milestone 3)")
+}
+
+// transferBody is b3TransferBody.
+func transferBody(world *world, targetSet, sourceSet *solverSet, body *body) {
+	panic("box3d: b3TransferBody not ported yet (solver_set.c, milestone 3)")
+}
+
+// transferJoint is b3TransferJoint.
+func transferJoint(world *world, targetSet, sourceSet *solverSet, joint *joint) {
+	panic("box3d: b3TransferJoint not ported yet (solver_set.c, milestone 3)")
+}

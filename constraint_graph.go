@@ -46,12 +46,11 @@ type graphColor struct {
 	contacts       []contactSpec
 
 	// These are used for convex contacts
-	// PORT: void* wide constraint buffers; their Go type is decided with contact_solver_wide.go
-	// in milestone 3.
-	wideConstraints     any
+	// PORT: the void* wide constraint buffers are wideConstraintBuffer (contact_solver_wide.go).
+	wideConstraints     wideConstraintBuffer
 	wideConstraintCount int32
 
-	wideMeshConstraints     any
+	wideMeshConstraints     wideConstraintBuffer
 	wideMeshManifoldStarts  []int32
 	wideMeshConstraintCount int32
 
@@ -65,4 +64,40 @@ type graphColor struct {
 type constraintGraph struct {
 	// including overflow at the end
 	colors [GraphColorCount]graphColor
+}
+
+// ---- constraint_graph.c ----
+
+// PORT: stubs until constraint_graph.c lands in milestone 3. Other milestone 3 files
+// (physics_world.c, solver_set.c and contact.c) call these; the owner of constraint_graph.c
+// replaces each stub with the real function, keeping the signature, in upstream order.
+
+// createGraph is b3CreateGraph.
+func createGraph(graph *constraintGraph, bodyCapacity int) {
+	panic("box3d: b3CreateGraph not ported yet (constraint_graph.c, milestone 3)")
+}
+
+// destroyGraph is b3DestroyGraph.
+func destroyGraph(graph *constraintGraph) {
+	panic("box3d: b3DestroyGraph not ported yet (constraint_graph.c, milestone 3)")
+}
+
+// addContactToGraph is b3AddContactToGraph.
+func addContactToGraph(world *world, contact *contact) {
+	panic("box3d: b3AddContactToGraph not ported yet (constraint_graph.c, milestone 3)")
+}
+
+// removeContactFromGraph is b3RemoveContactFromGraph.
+func removeContactFromGraph(world *world, bodyIdA, bodyIdB, colorIndex, localIndex int, meshContact bool) {
+	panic("box3d: b3RemoveContactFromGraph not ported yet (constraint_graph.c, milestone 3)")
+}
+
+// addJointToGraph is b3AddJointToGraph.
+func addJointToGraph(world *world, jointSim *jointSim, joint *joint) {
+	panic("box3d: b3AddJointToGraph not ported yet (constraint_graph.c, milestone 3)")
+}
+
+// removeJointFromGraph is b3RemoveJointFromGraph.
+func removeJointFromGraph(world *world, bodyIdA, bodyIdB, colorIndex, localIndex int) {
+	panic("box3d: b3RemoveJointFromGraph not ported yet (constraint_graph.c, milestone 3)")
 }

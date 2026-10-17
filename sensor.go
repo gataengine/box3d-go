@@ -35,3 +35,19 @@ type sensor struct {
 type sensorTaskContext struct {
 	eventBits bitSet
 }
+
+// ---- sensor.c ----
+
+// PORT: stubs until sensor.c lands in milestone 3. Other milestone 3 files (body.c and
+// physics_world.c) call these; the owner of sensor.c replaces each stub with the real function,
+// keeping the signature, in upstream order.
+
+// overlapSensors is b3OverlapSensors.
+func overlapSensors(world *world) {
+	panic("box3d: b3OverlapSensors not ported yet (sensor.c, milestone 3)")
+}
+
+// destroySensor is b3DestroySensor.
+func destroySensor(world *world, sensorShape *shape) {
+	panic("box3d: b3DestroySensor not ported yet (sensor.c, milestone 3)")
+}

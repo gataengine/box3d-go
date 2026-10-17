@@ -73,3 +73,54 @@ type island struct {
 type islandSim struct {
 	islandId int32
 }
+
+// ---- island.c ----
+
+// PORT: stubs until island.c lands in milestone 3. Other milestone 3 files (body.c, contact.c,
+// solver.c and physics_world.c) call these; the owner of island.c replaces each stub with the real
+// function, keeping the signature, in upstream order.
+
+// createIsland is b3CreateIsland.
+func createIsland(world *world, setIndex int) *island {
+	panic("box3d: b3CreateIsland not ported yet (island.c, milestone 3)")
+}
+
+// destroyIsland is b3DestroyIsland.
+func destroyIsland(world *world, islandId int) {
+	panic("box3d: b3DestroyIsland not ported yet (island.c, milestone 3)")
+}
+
+// linkContact is b3LinkContact.
+func linkContact(world *world, contact *contact) {
+	panic("box3d: b3LinkContact not ported yet (island.c, milestone 3)")
+}
+
+// unlinkContact is b3UnlinkContact.
+func unlinkContact(world *world, contact *contact) {
+	panic("box3d: b3UnlinkContact not ported yet (island.c, milestone 3)")
+}
+
+// linkJoint is b3LinkJoint.
+func linkJoint(world *world, joint *joint) {
+	panic("box3d: b3LinkJoint not ported yet (island.c, milestone 3)")
+}
+
+// unlinkJoint is b3UnlinkJoint.
+func unlinkJoint(world *world, joint *joint) {
+	panic("box3d: b3UnlinkJoint not ported yet (island.c, milestone 3)")
+}
+
+// splitIsland is b3SplitIsland.
+func splitIsland(world *world, baseId int) {
+	panic("box3d: b3SplitIsland not ported yet (island.c, milestone 3)")
+}
+
+// splitIslandTask is b3SplitIslandTask.
+func splitIslandTask(context any) {
+	panic("box3d: b3SplitIslandTask not ported yet (island.c, milestone 3)")
+}
+
+// validateIsland is b3ValidateIsland.
+func validateIsland(world *world, islandId int) {
+	panic("box3d: b3ValidateIsland not ported yet (island.c, milestone 3)")
+}

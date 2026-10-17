@@ -9,8 +9,9 @@ package box3d
 
 // ---- physics_world.h ----
 
-// PORT: header types only; physics_world.c lands in milestone 3. The inline b3AllocateManifolds
-// and b3FreeManifolds land with it (nothing in milestone 2 calls them).
+// PORT: header types and the inline b3AllocateManifolds / b3FreeManifolds; physics_world.c lands
+// in milestone 3. Until then the physics_world.c section at the end holds stubs for the functions
+// other milestone 3 files call.
 
 const (
 	debugPointCapacity = 64 // B3_DEBUG_POINT_CAPACITY
@@ -245,7 +246,7 @@ type world struct {
 
 	// Non-NULL while a recording session is active. Set by b3World_StartRecording,
 	// cleared by b3World_StopRecording. Hooks in mutators check this before writing.
-	recording *recording
+	recording *Recording
 
 	// latest inverse sub-step
 	inv_h float32
@@ -269,6 +270,48 @@ type world struct {
 	inUse              bool
 }
 
+// PORT: b3GetUnlockedWorldFromId, b3GetWorldFromId, b3GetUnlockedWorld, b3GetWorld,
+// b3World_RebuildStaticTree, b3ValidateConnectivity, b3ValidateSolverSets, b3ValidateContacts,
+// b3AddHullToDatabase, b3AddOwnedHullToDatabase and b3RemoveHullFromDatabase are declared here and
+// defined in physics_world.c (below).
+
+// allocateManifolds is b3AllocateManifolds.
+// PORT: returns a slice of count manifolds (nil for zero) from allocator count - 1.
+func allocateManifolds(world *world, count int) []Manifold {
+	if count == 0 {
+		return nil
+	}
+
+	index := count - 1
+
+	// Need lock because this is called from the parallel narrow phase
+	lockMutex(world.manifoldAllocatorMutex)
+	currentCount := len(world.manifoldAllocators)
+	for i := currentCount; i < count; i++ {
+		allocator := createBlockAllocator[Manifold](i+1, 2*blockSize)
+		arrayPush(&world.manifoldAllocators, allocator)
+	}
+
+	allocator := arrayGet(world.manifoldAllocators, index)
+	manifolds := allocateElement(allocator)
+	unlockMutex(world.manifoldAllocatorMutex)
+	clear(manifolds[:count])
+	return manifolds
+}
+
+// freeManifolds is b3FreeManifolds.
+func freeManifolds(world *world, manifolds []Manifold, count int) {
+	if count == 0 {
+		return
+	}
+
+	index := count - 1
+	lockMutex(world.manifoldAllocatorMutex)
+	allocator := arrayGet(world.manifoldAllocators, index)
+	freeElement(allocator, manifolds)
+	unlockMutex(world.manifoldAllocatorMutex)
+}
+
 // ---- physics_world.c ----
 
 // validateSolverSets is b3ValidateSolverSets.
@@ -276,4 +319,53 @@ type world struct {
 // only (connectivity of bodies, contacts, joints and islands across the solver sets); a world
 // cannot exist in milestone 2, so the placeholder checks nothing.
 func validateSolverSets(world *world) {
+}
+
+// PORT: stubs until physics_world.c lands in milestone 3. Other milestone 3 files (body.c, shape.c,
+// contact.c) call these; the owner of physics_world.c replaces each stub with the real function,
+// keeping the signature, in upstream order.
+
+// getUnlockedWorldFromId is b3GetUnlockedWorldFromId.
+func getUnlockedWorldFromId(id WorldID) *world {
+	panic("box3d: b3GetUnlockedWorldFromId not ported yet (physics_world.c, milestone 3)")
+}
+
+// getUnlockedWorld is b3GetUnlockedWorld.
+func getUnlockedWorld(index int) *world {
+	panic("box3d: b3GetUnlockedWorld not ported yet (physics_world.c, milestone 3)")
+}
+
+// getWorld is b3GetWorld.
+func getWorld(index int) *world {
+	panic("box3d: b3GetWorld not ported yet (physics_world.c, milestone 3)")
+}
+
+// IsValid is b3Body_IsValid.
+func (id BodyID) IsValid() bool {
+	panic("box3d: b3Body_IsValid not ported yet (physics_world.c, milestone 3)")
+}
+
+// validateConnectivity is b3ValidateConnectivity.
+func validateConnectivity(world *world) {
+	panic("box3d: b3ValidateConnectivity not ported yet (physics_world.c, milestone 3)")
+}
+
+// addHullToDatabase is b3AddHullToDatabase.
+// Register a hull in the world database, returning the owned shared copy. Identical hulls
+// share one copy with a reference count. The input may be freed after this call.
+func addHullToDatabase(world *world, src *HullData) *HullData {
+	panic("box3d: b3AddHullToDatabase not ported yet (physics_world.c, milestone 3)")
+}
+
+// addOwnedHullToDatabase is b3AddOwnedHullToDatabase.
+// Like b3AddHullToDatabase but takes ownership of a heap hull: inserted directly on a miss,
+// freed on a hit. Avoids cloning data the caller already allocated.
+func addOwnedHullToDatabase(world *world, owned *HullData) *HullData {
+	panic("box3d: b3AddOwnedHullToDatabase not ported yet (physics_world.c, milestone 3)")
+}
+
+// removeHullFromDatabase is b3RemoveHullFromDatabase.
+// Release a reference to a shared hull. The owned copy is freed when the count reaches zero.
+func removeHullFromDatabase(world *world, data *HullData) {
+	panic("box3d: b3RemoveHullFromDatabase not ported yet (physics_world.c, milestone 3)")
 }

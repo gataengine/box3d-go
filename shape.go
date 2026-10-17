@@ -249,3 +249,82 @@ func computeProxyAABB(proxy *ShapeProxy) AABB {
 	aabb.UpperBound = Add(aabb.UpperBound, r)
 	return aabb
 }
+
+// PORT: stubs until shape.c lands in milestone 3. Other milestone 3 files (body.c, solver.c,
+// sensor.c and physics_world.c) call these; the owner of shape.c replaces each stub with the real
+// function, keeping the signature, in upstream order.
+
+// createShapeProxy is b3CreateShapeProxy.
+func createShapeProxy(world *world, shape *shape, typ BodyType, transform WorldTransform, forcePairCreation bool) {
+	panic("box3d: b3CreateShapeProxy not ported yet (shape.c, milestone 3)")
+}
+
+// destroyShapeProxy is b3DestroyShapeProxy.
+func destroyShapeProxy(shape *shape, bp *broadPhase) {
+	panic("box3d: b3DestroyShapeProxy not ported yet (shape.c, milestone 3)")
+}
+
+// destroyShapeAllocations is b3DestroyShapeAllocations.
+func destroyShapeAllocations(world *world, shape *shape) {
+	panic("box3d: b3DestroyShapeAllocations not ported yet (shape.c, milestone 3)")
+}
+
+// computeShapeMass is b3ComputeShapeMass.
+func computeShapeMass(shape *shape) MassData {
+	panic("box3d: b3ComputeShapeMass not ported yet (shape.c, milestone 3)")
+}
+
+// computeShapeExtent is b3ComputeShapeExtent.
+func computeShapeExtent(shape *shape, localCenter Vec3) shapeExtent {
+	panic("box3d: b3ComputeShapeExtent not ported yet (shape.c, milestone 3)")
+}
+
+// computeShapeMinExtent is b3ComputeShapeMinExtent.
+func computeShapeMinExtent(shape *shape, localCenter Vec3) float32 {
+	panic("box3d: b3ComputeShapeMinExtent not ported yet (shape.c, milestone 3)")
+}
+
+// getShapeCentroid is b3GetShapeCentroid.
+func getShapeCentroid(shape *shape) Vec3 {
+	panic("box3d: b3GetShapeCentroid not ported yet (shape.c, milestone 3)")
+}
+
+// getShapeProjectedArea is b3GetShapeProjectedArea.
+func getShapeProjectedArea(shape *shape, planeNormal Vec3) float32 {
+	panic("box3d: b3GetShapeProjectedArea not ported yet (shape.c, milestone 3)")
+}
+
+// getShapeUserMaterialId is b3GetShapeUserMaterialId.
+func getShapeUserMaterialId(shape *shape, childIndex, triangleIndex int) uint64 {
+	panic("box3d: b3GetShapeUserMaterialId not ported yet (shape.c, milestone 3)")
+}
+
+// makeShapeProxy is b3MakeShapeProxy.
+func makeShapeProxy(shape *shape) ShapeProxy {
+	panic("box3d: b3MakeShapeProxy not ported yet (shape.c, milestone 3)")
+}
+
+// rayCastShape is b3RayCastShape.
+func rayCastShape(shape *shape, transform Transform, input *RayCastInput) CastOutput {
+	panic("box3d: b3RayCastShape not ported yet (shape.c, milestone 3)")
+}
+
+// shapeCastShape is b3ShapeCastShape.
+func shapeCastShape(shape *shape, transform Transform, input *ShapeCastInput) CastOutput {
+	panic("box3d: b3ShapeCastShape not ported yet (shape.c, milestone 3)")
+}
+
+// overlapShape is b3OverlapShape.
+func overlapShape(shape *shape, transform Transform, proxy *ShapeProxy) bool {
+	panic("box3d: b3OverlapShape not ported yet (shape.c, milestone 3)")
+}
+
+// shapeTimeOfImpact is b3ShapeTimeOfImpact.
+func shapeTimeOfImpact(shapeA, shapeB *shape, sweepA, sweepB *Sweep, maxFraction float32) TOIOutput {
+	panic("box3d: b3ShapeTimeOfImpact not ported yet (shape.c, milestone 3)")
+}
+
+// collideMover is b3CollideMover.
+func collideMover(planes []PlaneResult, shape *shape, transform Transform, mover *Capsule) int {
+	panic("box3d: b3CollideMover not ported yet (shape.c, milestone 3)")
+}
