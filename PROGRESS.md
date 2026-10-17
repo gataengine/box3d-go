@@ -97,13 +97,13 @@ each; both point at the same Go file.
 | src/sensor.h | sensor.go | todo | |  |
 | src/shape.c | shape.go | todo | |  |
 | src/shape.h | shape.go | todo | |  |
-| src/simd.c | simd.go | todo | |  |
+| src/simd.c | simd.go | todo | | M2: also holds IsAVX2Available / Get/SetSIMDWidth |
 | src/simd.h | simd.go | todo | |  |
 | src/simd_avx2.h | — | n/a | | dropped: scalar lanes only (see spec, SIMD lane layer) |
 | src/simd_neon.h | — | n/a | | dropped: scalar lanes only |
-| src/simd_scalar.h | simd_scalar.go | todo | |  |
+| src/simd_scalar.h | simd_scalar.go | todo | | M2 (laneCount = 4) |
 | src/simd_sse2.h | — | n/a | | dropped: scalar lanes only |
-| src/simd_wide.h | simd_wide.go | todo | |  |
+| src/simd_wide.h | simd_wide.go | todo | | M2: nothing in the foundation uses lanes |
 | src/solver.c | solver.go | todo | |  |
 | src/solver.h | solver.go | todo | |  |
 | src/solver_set.c | solver_set.go | todo | |  |
@@ -115,7 +115,7 @@ each; both point at the same Go file.
 | src/timer.c | timer.go | tested | efca0c1 | no upstream test; timer_test.go (Go-only) |
 | src/triangle_manifold.c | triangle_manifold.go | todo | |  |
 | src/types.c | types.go | ported | efca0c1 |  |
-| src/verstable.h | verstable.go | todo | |  |
+| src/verstable.h | verstable.go | todo | | M2: first needed by hull.c/mesh.c. Upstream only does lookups/inserts plus one order-independent byte sum, so a generic open-addressing map with custom hash/compare suffices |
 | src/weld_joint.c | weld_joint.go | todo | |  |
 | src/wheel_joint.c | wheel_joint.go | todo | |  |
 | src/wide4.c | — | n/a | | dropped: includes the .inl kernels, ported once |
@@ -154,7 +154,7 @@ each; both point at the same Go file.
 | test/test_world.c | world_test.go | todo | |  |
 | shared/utils.c | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
 | shared/utils.h | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
-| shared/determinism.c | internal/scenes/determinism.go | todo | | test/benchmark scene helper |
+| shared/determinism.c | internal/scenes/determinism.go | todo | | test/benchmark scene helper. NOTE: an internal test (package box3d) cannot import a package that imports box3d; put scenes in _test.go files or run the determinism test as package box3d_test |
 | shared/determinism.h | internal/scenes/determinism.go | todo | | test/benchmark scene helper |
 | shared/human.c | internal/scenes/human.go | todo | | test/benchmark scene helper |
 | shared/human.h | internal/scenes/human.go | todo | | test/benchmark scene helper |
