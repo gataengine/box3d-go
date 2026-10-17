@@ -128,11 +128,11 @@ each; both point at the same Go file.
 | src/prismatic_joint.c | prismatic_joint.go | verified | efca0c1 | whole file in upstream order; TestPrismaticJoint passes; joints_a_golden_test.go (static-dynamic slider on a rotated axis with spring, limit, motor; dynamic pair; setters, GetTranslation/GetSpeed) |
 | src/qsort.h | qsort.go | verified | efca0c1 | macros become functions taking LESS/SWAP closures; call counts and the unstable order of equal keys match C in qsort_test.go (testdata/qsort_golden_gen.c) |
 | src/rapidhash.h | rapidhash.go | tested | efca0c1 | no upstream test; rapidhash_test.go checks C reference values |
-| src/recording.c | recording.go | todo | | M5. Every recording.h function is a stub (no-op, zero result): buffer helpers, b3RecW_*, framing, b3RecWrite_* / b3RecWriteRet_* per op, query writer, trampolines, registry, interning, lifecycle. b3HashWorldState is ported (pulled forward in M3; world_test.go and world_golden_test.go compare it) |
-| src/recording.h | recording.go | ported | efca0c1 | types, constants, b3FnvMixPosition; b3Recording is the exported opaque `Recording`; arg structs and opcodes in recording_ops.go |
-| src/recording_ops.inl | recording_ops.go | ported | efca0c1 | recording.h expansions written out (b3RecArgs_Name structs, b3_recOpName constants); the recording.c / replay.c expansions land in M5 |
-| src/replay.c | replay.go | todo | |  |
-| src/replay.h | replay.go | todo | |  |
+| src/recording.c | recording.go, recording_ops.go | verified | efca0c1 | all functions ported; manifest writer expansions in recording_ops.go; op stream + registry byte-identical to C (recording_golden_test.go, 1/2/4 workers, darwin arm64/amd64); b3HashWorldState pulled forward in M3 |
+| src/recording.h | recording.go | ported | efca0c1 | types, constants, b3FnvMixPosition; b3Recording is the exported opaque `Recording`; dedupMap/tagMap are Go maps |
+| src/recording_ops.inl | recording_ops.go | ported | efca0c1 | arg structs, opcode constants, writer expansions (b3RecWriteArgs_/b3RecWrite_/b3RecWriteRet_); reader expansions in replay_ops.go |
+| src/replay.c | replay.go, replay_ops.go, replay_player.go | verified | efca0c1 | C-made joint-free recording (testdata/replay_golden_gen.c, empty-world seed) replays with every StateHash and the final body states matching C at 1/2/4 workers; player keyframe backward seek and restart match |
+| src/replay.h | replay.go | verified | efca0c1 | |
 | src/revolute_joint.c | revolute_joint.go | verified | efca0c1 | whole file in upstream order; TestRevoluteJoint passes; joints_a_golden_test.go (hinge with spring, limit, motor; kinematic-driven tilted axis; free dynamic pair; setters, GetAngle) |
 | src/scheduler.c | scheduler.go | verified | efca0c1 | no upstream test; scheduler_test.go (Go-only) checks enqueue/finish at 1/2/4/8 workers, main-thread help, reset, shutdown and parallelFor on the scheduler (race-clean); world_golden_test.go at 2 and 4 workers |
 | src/scheduler.h | scheduler.go | ported | efca0c1 | b3TaskCallback is the public TaskCallback; b3Scheduler defined in scheduler.c section |
@@ -163,8 +163,8 @@ each; both point at the same Go file.
 | src/wheel_joint.c | wheel_joint.go | verified | efca0c1 | b3WheelJoint_* are JointID methods WheelJoint<Method>; #if 0 b3WheelJoint_Dump not ported; joints_b_golden_test.go (see parallel_joint.c) |
 | src/wide4.c | — | n/a | | dropped: includes the .inl kernels, ported once |
 | src/wide8.c | — | n/a | | dropped: width 8 not ported |
-| src/world_snapshot.c | world_snapshot.go | todo | |  |
-| src/world_snapshot.h | world_snapshot.go | todo | |  |
+| src/world_snapshot.c | world_snapshot.go | tested | efca0c1 | Go-native image + Go layout hash; round trip and lock-step stepping in world_snapshot_test.go; C images rejected before the world is touched; player keyframes use it |
+| src/world_snapshot.h | world_snapshot.go | ported | efca0c1 | |
 | test/main.c | box3d_suite_test.go | ported | efca0c1 | Ginkgo suite runner |
 | test/test_allocator.c | allocator_test.go | tested | efca0c1 | alignment ENSURE checks Go alignment of T |
 | test/test_bitset.c | bitset_test.go | tested | efca0c1 |  |
@@ -174,7 +174,7 @@ each; both point at the same Go file.
 | test/test_collision.c | collision_test.go | tested | efca0c1 | 4 of 4 tests; the BOX3D_DOUBLE_PRECISION halves are compiled out as in upstream's float build |
 | test/test_compound.c | compound_test.go | tested | efca0c1 | all 34 tests; byte-level serialize tests port as written |
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
-| test/test_determinism.c | determinism_test.go | todo | |  |
+| test/test_determinism.c | determinism_test.go | verified | efca0c1 | all 6 subtests with upstream float goldens verbatim (ragdoll 1-5 workers, wave pile 1-4, query spawn 1-4, mesh drop 1 and 4, cross-platform); SIMDWidthTest skips at native width 4 as upstream; Go-only spec runs rolling mix and mesh mix at 1/2/4 workers |
 | test/test_distance.c | distance_test.go | tested | efca0c1 |  |
 | test/test_dynamic_tree.c | dynamic_tree_test.go | tested | efca0c1 |  |
 | test/test_hash.c | hash_test.go | tested | efca0c1 | all 13 tests |
@@ -205,3 +205,5 @@ each; both point at the same Go file.
 | shared/benchmarks.h | scenes_benchmarks_test.go | ported | efca0c1 | partial, see benchmarks.c |
 | shared/overflow_color.c | scenes_benchmarks_test.go | ported | efca0c1 | CreateOverflowColorPile (test_world.c TestOverflowColorPile); cosf / sinf are float64 math rounded to float32 |
 | shared/overflow_color.h | scenes_benchmarks_test.go | ported | efca0c1 | see overflow_color.c |
+| shared/stability.c | scenes_stability_test.go | ported | efca0c1 | partial: CreateMeshDrop, UpdateMeshDrop, DestroyMeshDrop (test_determinism.c MeshDropTest) |
+| shared/stability.h | scenes_stability_test.go | ported | efca0c1 | partial, see stability.c |
