@@ -171,7 +171,18 @@ site. Upstream bugs are ported as is and listed here too.
 | physics_world.go | `b3World` callbacks and `void*` contexts | the public callback types; contexts are `any`; `userTreeTask` is `any` | translation rules |
 | scheduler.go, recording.go | `struct b3Scheduler*`, `struct b3Recording*` in `b3World` | empty forward-declared structs `scheduler`, `recording` | defined in scheduler.c / recording.h, which land in milestones 3 / 5 |
 | body.go | `b3GetBodyTransformQuick`, `b3GetBodyTransform`, `b3GetBodySim`, `b3ShouldBodiesCollide` (body.c) | ported early in a `body.c` section | broad_phase.c calls them in milestone 2; the rest of body.c lands in milestone 3 around them |
-| contact.go | `b3CreateContact` (contact.c) | placeholder that panics | needs the contact registers and collide functions of contact.c (M3); unreachable without a world |
+| contact.go | `b3CreateContact` (contact.c) | no-op placeholder | needs the contact registers and collide functions of contact.c (M3); only broad_phase_golden_test.go reaches it, and emulates its pair-set insertion |
 | physics_world.go | `b3ValidateSolverSets` (physics_world.c) | no-op placeholder | assertion-only function over world state that cannot exist before milestone 3 |
 | broad_phase.go | `B3_PROXY_TYPE`, `B3_PROXY_ID`, `B3_PROXY_KEY` macros; `b3BroadPhase_MarkProxyMoved*` inlines | functions `proxyType`, `proxyId`, `proxyKey`; methods on `*broadPhase` | Go has no macros; spec naming rule `b3Type_Method` |
 | parallel_for.go | `b3ParallelForShared shared`, `b3ParallelForTask tasks[]` on the C stack | Go locals that escape to the heap (one small allocation per call) | the task system receives pointers to them; revisit for no-allocation `Step` |
+| broad_phase.go | `b3BroadPhase_CreateProxy`, `_DestroyProxy`, `_MoveProxy`, `_TestOverlap`, `_GetShapeIndex` | methods on `*broadPhase`; `b3CreateBroadPhase`, `b3DestroyBroadPhase`, `b3UpdateBroadPhasePairs`, `b3ValidateBroadPhase`, `b3ValidateNoMoved` stay free functions | spec naming rule `b3Type_Method` |
+| broad_phase.go | `b3BroadPhase.movedSiblings` (`int*` from `b3StackAlloc`), `b3CrossContext.seeds`, `b3PairContext.pairKeys` | `[]int32`, `[]nodePair`, `*[]uint64` | pointers become slices |
+| broad_phase.go | `node->shapeIndex` | `node.Height` | `TreeNode` keeps the `height`/`shapeIndex` union as one field (see types.go) |
+| broad_phase.go | `b3PrefetchHash`, `b3Prefetch( shapes + … )` loop in `b3FlushCandidatePairs` | `prefetchHash` is an empty function; the shape prefetch loop is dropped | `b3Prefetch` is dropped (platform.go) |
+| broad_phase.go | `QSORT( pairCount, LESS, SWAP )` with `#define LESS/SWAP` | `qsort` with closures | see qsort.go |
+| broad_phase.go | `_Static_assert`s | constant index expressions that fail to compile unless the condition holds | Go has no static assert |
+| broad_phase.go | `b3TracyCZone*` | dropped | Tracy is a non-goal |
+| broad_phase.go | `void* context` of the parallel-for and task callbacks | `any`, type-asserted (`*crossContext`, `*world`) | translation rules |
+| broad_phase_golden_test.go | `b3CreateContact` effect on the pair set | after `updateBroadPhasePairs` the test sorts the worker keys and adds them to the pair set, mirroring the C generator's stub | `createContact` is a no-op until contact.c lands; switch the test to the real contacts in milestone 3 |
+| broad_phase_test.go | `StaticRebuildKeepsMarks`, `BroadPhaseStressTest` | pending `PIt` | need the world (M3) and weld joints (M4) |
+| broad_phase_test.go | `b3SetAssertFcn( FlushingAssert )` in `BroadPhaseTest` | not ported | it only flushes stdout before a crash in the C runner |

@@ -172,8 +172,8 @@ type contactSpec struct {
 
 // createContact is b3CreateContact.
 // PORT: placeholder until contact.c lands in milestone 3 (it needs the contact registers and the
-// collide functions of contact.c). broad_phase.go calls it as upstream does; nothing reaches it in
-// milestone 2 because no world exists yet.
+// collide functions of contact.c); it does nothing. broad_phase.go calls it as upstream does. No
+// world exists in milestone 2, so only broad_phase_golden_test.go reaches it; that test emulates
+// the one effect the broad-phase depends on (adding the pair key to the pair set).
 func createContact(world *world, shapeA, shapeB *shape, childIndex int) {
-	panic("box3d: b3CreateContact lands with contact.c in milestone 3")
 }

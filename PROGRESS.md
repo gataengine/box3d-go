@@ -3,7 +3,12 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **2 — Collision** (parts A–D done; remaining: broad_phase.c, test_broad_phase.c).
+- Current milestone: **3 — Dynamics**. Milestone 2 (Collision) is complete: every M2 source file is
+  ported and every M2 test file is ported; 8 specs are pending (`PIt`) because they need the world
+  (test_broad_phase.c 2/2, test_mover.c 5/22, test_compound.c 1/34). The header types of the
+  milestone 3 files that `b3World` reaches are already ported (see the table); their `.c` files
+  are not. `createContact` (contact.go) and `validateSolverSets` (physics_world.go) are no-op
+  placeholders that the real functions replace.
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
@@ -18,7 +23,13 @@
   build on the lines of `geometry_golden_test.go`, and so do height field creation (including a
   dump/load round trip) and compound creation (whole blob hashed), validation, children,
   triangles, casts, overlaps, mover planes and queries (darwin/arm64 and amd64; the C output is
-  identical for NEON, SSE2, BOX3D_DISABLE_SIMD and BOX3D_VALIDATE).
+  identical for NEON, SSE2, BOX3D_DISABLE_SIMD and BOX3D_VALIDATE). The broad-phase pair update
+  (moved siblings, cross seeds, cross/self pair search with filters, joints, custom filtering
+  and compound children, sorted pair creation, pair set, tree rebuilds, overlap probes) matches
+  the C build over 8 mutation rounds (`broad_phase_golden_test.go`, darwin/arm64 and amd64; C
+  output identical for NEON, SSE2, BOX3D_DISABLE_SIMD and BOX3D_VALIDATE), with the serial task
+  system and with 4 goroutine workers. QSORT matches C call for call, including the unstable
+  order of equal keys (`qsort_test.go`).
 - Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
   allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
   header structs have C layout, offsets are byte offsets from the header as upstream, and the
@@ -54,15 +65,15 @@ each; both point at the same Go file.
 | src/block_allocator.h | block_allocator.go | tested | efca0c1 |  |
 | src/body.c | body.go | todo | | b3GetBodyTransformQuick, b3GetBodyTransform, b3GetBodySim, b3ShouldBodiesCollide ported early (broad_phase.c needs them); the rest is M3 |
 | src/body.h | body.go | ported | efca0c1 | header types only (b3BodyFlags, b3Body, b3BodyState, b3_identityBodyState, b3BodySim); the static inline helpers land with body.c (M3) |
-| src/broad_phase.c | broad_phase.go | todo | |  |
-| src/broad_phase.h | broad_phase.go | ported | efca0c1 | proxy key macros are functions; mark helpers are methods on *broadPhase |
+| src/broad_phase.c | broad_phase.go | verified | efca0c1 | broad_phase_golden_test.go runs the real updateBroadPhasePairs against the C build (testdata/broad_phase_golden_gen.c); b3CreateContact is a no-op placeholder whose pair-set effect the test emulates; b3Prefetch dropped |
+| src/broad_phase.h | broad_phase.go | verified | efca0c1 | proxy key macros are functions; b3BroadPhase_* are methods on *broadPhase |
 | src/capsule.c | capsule.go | verified | efca0c1 | mass, AABB, ray cast (incl. parallel/degenerate), mover plane, overlap in hull_golden_test.go |
 | src/compound.c | compound.go | verified | efca0c1 | creation (material/hull/mesh dedup, blob bytes hashed), ValidateCompound, children, sweep, ray/shape casts, overlap, mover, queries in geometry_golden_test.go; b3CompoundTimeOfImpact is #if 0 upstream (not ported) |
 | src/compound.h | compound.go | verified | efca0c1 | getCompoundTreeView, makeCompoundChildSweep, collideMoverAndCompound |
 | src/constraint_graph.c | constraint_graph.go | todo | |  |
 | src/constraint_graph.h | constraint_graph.go | ported | efca0c1 | header types only (b3GraphColor, b3ConstraintGraph); void* wide buffers are `any` until contact_solver_wide (M3) |
 | src/contact.c | contact.go | todo | |  |
-| src/contact.h | contact.go | ported | efca0c1 | header types only; unions keep all members. contact.go also holds a panicking createContact placeholder until contact.c (M3) |
+| src/contact.h | contact.go | ported | efca0c1 | header types only; unions keep all members. contact.go also holds a no-op createContact placeholder until contact.c (M3) |
 | src/contact_solver.c | contact_solver.go | todo | |  |
 | src/contact_solver.h | contact_solver.go | ported | efca0c1 | header types only (b3ManifoldConstraintPoint, b3ManifoldConstraint, b3ContactConstraint) |
 | src/contact_solver_wide.inl | contact_solver_wide.go | todo | |  |
@@ -146,7 +157,7 @@ each; both point at the same Go file.
 | test/test_bitset.c | bitset_test.go | tested | efca0c1 |  |
 | test/test_body.c | body_test.go | todo | |  |
 | test/test_body_query.c | body_query_test.go | todo | |  |
-| test/test_broad_phase.c | broad_phase_test.go | todo | |  |
+| test/test_broad_phase.c | broad_phase_test.go | blocked (needs the M3 world files, joint.c, weld_joint.c) | efca0c1 | 0 of 2 tests; StaticRebuildKeepsMarks and BroadPhaseStressTest pending (PIt); broad_phase_golden_test.go covers the broad-phase meanwhile |
 | test/test_collision.c | collision_test.go | tested | efca0c1 | 4 of 4 tests; the BOX3D_DOUBLE_PRECISION halves are compiled out as in upstream's float build |
 | test/test_compound.c | compound_test.go | tested | efca0c1 | 33 of 34 tests; CompoundMeshContactMaterial pending (PIt) on the world (M3); byte-level serialize tests port as written |
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
