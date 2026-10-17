@@ -156,3 +156,4 @@ site. Upstream bugs are ported as is and listed here too.
 | compound_test.go | `CompoundMeshContactMaterial` | pending `PIt` | needs the world (body.c, shape.c, contact.c, mesh_contact.c, physics_world.c); port it in milestone 3 |
 | geometry_golden_test.go | testdata/geometry_golden_gen.c defines `b3MakeLocalProxy` / `b3ComputeProxyAABB` (verbatim from shape.c) | the generator links them itself | shape.c needs the whole world |
 | collision_test.go | `#if defined( BOX3D_DOUBLE_PRECISION )` halves of `LargeWorldManifoldTest`, `LargeWorldAABBTest` | not ported | double precision not ported; upstream's float build compiles them out too |
+| qsort.go | `QSORT( N, LESS, SWAP )` and the `Q_*` helper macros | `qsort(n, less, swap)` with closures; `Q_SUBFILES` is a local closure; indices are `int` instead of `unsigned long` (never wraps); stack size fixed at 32 (the size for a 32-bit `Q_N`, which every call site passes) | Go has no macros |
