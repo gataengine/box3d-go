@@ -1,5 +1,3 @@
-//go:build box3d_m4_joints
-
 // Port of test/test_joint.c from Box3D (https://github.com/erincatto/box3d)
 // at commit efca0c184d40fd6a82016983f1601c4d23965867.
 //
@@ -7,9 +5,7 @@
 // SPDX-License-Identifier: MIT
 // Go port: github.com/gataengine/box3d-go authors.
 
-// PORT: behind the box3d_m4_joints build tag until the per-type joint files (distance, motor,
-// prismatic, revolute, spherical, weld, wheel, parallel_joint.c) land; their functions are stubs
-// that panic. Remove the tag then. The sub-test helpers return nothing: ENSURE fails the spec
+// PORT: the sub-test helpers return nothing: ENSURE fails the spec
 // through Gomega instead of returning 1.
 
 package box3d

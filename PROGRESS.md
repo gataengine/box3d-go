@@ -3,21 +3,19 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **4 — Joints**. joint.c is ported (joint.go) and test_joint.c is ported behind
-  `box3d_m4_joints`; the eight per-type joint files are stubs with final signatures (next step).
-  Milestone 3 (Dynamics) is complete: every M3 source file
+- Current milestone: **5 — Determinism and replay**. Milestone 4 (Joints) is complete: joint.c
+  and the eight per-type joint files (distance, motor, prismatic, revolute, spherical, weld,
+  wheel, parallel) are ported, test_joint.c passes 11/11, and two joint goldens
+  (`joints_a_golden_test.go`, `joints_b_golden_test.go`) match the C build bit for bit at 1, 2 and
+  4 workers on darwin/arm64 and amd64. The specs that waited for joints run: test_broad_phase.c
+  2/2 (BroadPhaseStressTest) and test_world.c 26/26 (BodySimLocatorTest); the shared/ human and
+  determinism scenes build without a tag. Milestone 3 (Dynamics) is complete: every M3 source file
   (body, shape, contact, mesh_contact, contact_solver + wide, solver_set, constraint_graph, island,
   solver, scheduler, sensor, physics_world; name_cache pulled forward from M5) is ported and its
-  test file ported; test_body.c, test_shape.c, test_world.c, test_body_query.c,
-  test_large_world.c, test_restitution.c and test_hash.c run, and the M2 specs that waited for the
-  world run too (test_mover.c 22/22, test_compound.c 34/34, test_broad_phase.c 1/2). Four specs
-  are pending (`PIt`) and name the missing file: BroadPhaseStressTest and test_world.c's
-  BodySimLocatorTest need joint.c (M4), test_name_cache.c's NameRoundTrip and RollbackNames need
-  recording/replay (M5). Two functions from later milestones were pulled forward because world tests
-  need them: b3HashWorldState (recording.c) and b3DefaultExplosionDef (joint.c). The other
-  recording.c functions are still stubs (listed in `LOOSE_ENDS.md`). The shared/ human and
-  determinism scenes are ported behind the `box3d_m4_joints` build tag until the per-type joint
-  files land.
+  test file ported. Two specs are pending (`PIt`) and name the missing file: test_name_cache.c's
+  NameRoundTrip and RollbackNames need recording/replay (M5). b3HashWorldState was pulled forward
+  from recording.c because world tests need it; the other recording.c functions are still stubs
+  (listed in `LOOSE_ENDS.md`).
 - Determinism status: upstream's determinism goldens (test_determinism.c) arrive with milestone 5.
   A world-level golden (`world_golden_test.go`, testdata/world_golden_gen.c) steps a joint-free
   scene (grid mesh ground, tilted static box, box stack, rolling sphere, capsule, rock and cylinder
@@ -62,7 +60,7 @@ each; both point at the same Go file.
 | upstream file | go file | status | ported at commit | notes |
 |---|---|---|---|---|
 | include/box3d/base.h | base.go | ported | efca0c1 | assert/validate via build tags; allocator API not ported |
-| include/box3d/box3d.h | body.go, shape.go, contact.go, joint.go, physics_world.go, physics_world_queries.go | ported | efca0c1 | b3World_*, b3Body_*, b3Shape_*, b3Contact_* done (methods on the ids); b3Joint_* (methods on JointID), b3Create*Joint (methods on WorldID), b3DestroyJoint (JointID.Destroy) and b3Default*JointDef done with joint.c; b3<Kind>Joint_* are JointID methods <Kind>Joint<Method>, stubs until the per-type files land; recording/replay API is M5 |
+| include/box3d/box3d.h | body.go, shape.go, contact.go, joint.go, physics_world.go, physics_world_queries.go | ported | efca0c1 | b3World_*, b3Body_*, b3Shape_*, b3Contact_* done (methods on the ids); b3Joint_* (methods on JointID), b3Create*Joint (methods on WorldID), b3DestroyJoint (JointID.Destroy) and b3Default*JointDef done with joint.c; b3<Kind>Joint_* are JointID methods <Kind>Joint<Method>; recording/replay API is M5 |
 | include/box3d/collision.h | collision.go | ported | efca0c1 | blob helpers + hull, mesh and height field accessors done; compound functions are in compound.go |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
 | include/box3d/constants.h | constants.go | ported | efca0c1 |  |
@@ -99,7 +97,7 @@ each; both point at the same Go file.
 | src/core.h | core.go | ported | efca0c1 |  |
 | src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
 | src/distance.c | distance.go | verified | efca0c1 | GJK, shape cast, TOI; covered by hull_golden_test.go |
-| src/distance_joint.c | distance_joint.go | todo | | stubs with final signatures (every b3DistanceJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
+| src/distance_joint.c | distance_joint.go | verified | efca0c1 | whole file in upstream order; test_joint.c TestDistanceJoint passes; joints_a_golden_test.go (testdata/joints_a_golden_gen.c: rigid and soft distance joints with spring, limit, motor, force range and setters; 240 steps bit for bit at 1, 2 and 4 workers, darwin/arm64 and amd64; C identical for NEON, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE and 1/4 workers) |
 | src/dynamic_tree.c | dynamic_tree.go | verified | efca0c1 | insert/rotate, churn, moved marks, sweep and fallback refit, partial/full rebuild, save/load bytes, query/closest/ray/box cast order in dynamic_tree_golden_test.go (C scalar and NEON builds agree) |
 | src/dynamic_tree.h | dynamic_tree.go | verified | efca0c1 | node flag helpers, treeView |
 | src/height_field.c | height_field.go | verified | efca0c1 | grid/wave/custom fields (holes, clockwise, clamping, no materials), dump/load round trip, triangles, materials, AABB, ray/shape casts, overlap, mover, queries in geometry_golden_test.go (blob hashes match C) |
@@ -109,7 +107,7 @@ each; both point at the same Go file.
 | src/id_pool.h | id_pool.go | ported | efca0c1 |  |
 | src/island.c | island.go | verified | efca0c1 | no upstream test; island_test.go (Go-only) checks link/merge, unlink, union-find split and validateIsland under box3d_validate; world_golden_test.go (islands counter and sleeping) |
 | src/island.h | island.go | ported | efca0c1 | header types |
-| src/joint.c | joint.go | ported | efca0c1 | whole file in upstream order (the #if 0 b3Joint_SetSpringRotationTarget is not ported); dispatches to the per-type files, which are stubs; test_joint.c is behind box3d_m4_joints until they land (TestFilterJoint passes; an ad hoc filter-joint world with sleeping-set merge, disabled/static sets, body/joint destroy and SetCollideConnected passed under box3d_validate) |
+| src/joint.c | joint.go | verified | efca0c1 | whole file in upstream order (the #if 0 b3Joint_SetSpringRotationTarget is not ported); dispatches to the per-type files; test_joint.c passes (11/11); joints_a_golden_test.go and joints_b_golden_test.go step every joint type through it bit for bit (1, 2 and 4 workers, darwin/arm64 and amd64) |
 | src/joint.h | joint.go | ported | efca0c1 | header types; b3JointSim union keeps all joint members (`sim.revoluteJoint` etc.); inline b3SolvePointConstraint ported (used by the per-type files) |
 | src/manifold.c | manifold.go | verified | efca0c1 | findIncidentFace, clipPolygon, flipPair checked in hull_golden_test.go |
 | src/manifold.h | manifold.go | ported | efca0c1 | separating axis / clip types; b3ComputeSeparatingAxis*, b3CollideHullsAtWidth are in convex_manifold.go (W4 → computeSeparatingAxisW in convex_manifold_wide.go) |
@@ -117,17 +115,17 @@ each; both point at the same Go file.
 | src/math_internal.h | math_internal.go | ported | efca0c1 | declared functions land with their .c files |
 | src/mesh.c | mesh.go | verified | efca0c1 | creators, CreateMesh (weld, stride, SAH/median, clockwise, degenerates, edge flags), queries, ray/shape casts, overlap, mover in geometry_golden_test.go (blob hashes match C) |
 | src/mesh_contact.c | mesh_contact.go | verified | efca0c1 | bit-exact vs C on mesh_contact_golden_test.go (meshes, height fields, sphere/capsule/hull, cache refresh, impulse matching, materials, cullPoints/reduceCluster; darwin/arm64 and amd64; C output identical for NEON, SSE2, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE); world_golden_test.go (mesh ground) |
-| src/motor_joint.c | motor_joint.go | todo | | stubs with final signatures (every b3MotorJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
+| src/motor_joint.c | motor_joint.go | verified | efca0c1 | whole file in upstream order; TestMotorJoint passes; joints_a_golden_test.go (velocity targets, linear and angular springs, setters) |
 | src/mover.c | mover.go | verified | efca0c1 | SolvePlanes (delta, iterations, pushes) and ClipVector in mover_golden_test.go |
 | src/name_cache.c | name_cache.go | tested | efca0c1 | pulled forward from M5; includes b3Hash32 (checked against C) and b3LoadName |
 | src/name_cache.h | name_cache.go | ported | efca0c1 | header types and inline b3FindNameWithDefault |
 | src/parallel_for.c | parallel_for.go | tested | efca0c1 | no upstream test; parallel_for_test.go (Go-only) checks the block partition, claiming with goroutines, the serial default task system and the B3_MAX_TASKS fallback |
 | src/parallel_for.h | parallel_for.go | tested | efca0c1 |  |
-| src/parallel_joint.c | parallel_joint.go | todo | | stubs with final signatures (every b3ParallelJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
+| src/parallel_joint.c | parallel_joint.go | verified | efca0c1 | b3ParallelJoint_* are JointID methods ParallelJoint<Method>; joints_b_golden_test.go (testdata/joints_b_golden_gen.c: spherical, weld, wheel and parallel joints with setters changed mid-run, 240 steps bit for bit incl. constraint force/torque, per-type getters, joint events and joint debug draw, at 1, 2 and 4 workers, darwin/arm64 and amd64; C identical for NEON, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE and 1/4 workers) |
 | src/physics_world.c | physics_world.go, physics_world_queries.go | verified | efca0c1 | whole file in upstream order, split in two Go files (world queries, casts, overlaps and mover in physics_world_queries.go; both carry the upstream header); b3World_* are methods on WorldID, getWorldFromId added for tests; physics_world_unit_test.go (Go-only) covers the hull database, id validation and the validators; world_golden_test.go (testdata/world_golden_gen.c: mesh ground, hull stack, sphere, capsule, hulls, bullet; 240 steps bit for bit at 1, 2 and 4 workers, darwin/arm64 and amd64; C identical for NEON, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE and 1/4 workers) |
 | src/physics_world.h | physics_world.go | ported | efca0c1 | header types (b3SetType, b3DebugPoint/Line, b3TaskContext, b3World) and inlines b3AllocateManifolds / b3FreeManifolds (slices of count manifolds) |
 | src/platform.h | platform.go | ported | efca0c1 |  |
-| src/prismatic_joint.c | prismatic_joint.go | todo | | stubs with final signatures (every b3PrismaticJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
+| src/prismatic_joint.c | prismatic_joint.go | verified | efca0c1 | whole file in upstream order; TestPrismaticJoint passes; joints_a_golden_test.go (static-dynamic slider on a rotated axis with spring, limit, motor; dynamic pair; setters, GetTranslation/GetSpeed) |
 | src/qsort.h | qsort.go | verified | efca0c1 | macros become functions taking LESS/SWAP closures; call counts and the unstable order of equal keys match C in qsort_test.go (testdata/qsort_golden_gen.c) |
 | src/rapidhash.h | rapidhash.go | tested | efca0c1 | no upstream test; rapidhash_test.go checks C reference values |
 | src/recording.c | recording.go | todo | | M5. Every recording.h function is a stub (no-op, zero result): buffer helpers, b3RecW_*, framing, b3RecWrite_* / b3RecWriteRet_* per op, query writer, trampolines, registry, interning, lifecycle. b3HashWorldState is ported (pulled forward in M3; world_test.go and world_golden_test.go compare it) |
@@ -135,7 +133,7 @@ each; both point at the same Go file.
 | src/recording_ops.inl | recording_ops.go | ported | efca0c1 | recording.h expansions written out (b3RecArgs_Name structs, b3_recOpName constants); the recording.c / replay.c expansions land in M5 |
 | src/replay.c | replay.go | todo | |  |
 | src/replay.h | replay.go | todo | |  |
-| src/revolute_joint.c | revolute_joint.go | todo | | stubs with final signatures (every b3RevoluteJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
+| src/revolute_joint.c | revolute_joint.go | verified | efca0c1 | whole file in upstream order; TestRevoluteJoint passes; joints_a_golden_test.go (hinge with spring, limit, motor; kinematic-driven tilted axis; free dynamic pair; setters, GetAngle) |
 | src/scheduler.c | scheduler.go | verified | efca0c1 | no upstream test; scheduler_test.go (Go-only) checks enqueue/finish at 1/2/4/8 workers, main-thread help, reset, shutdown and parallelFor on the scheduler (race-clean); world_golden_test.go at 2 and 4 workers |
 | src/scheduler.h | scheduler.go | ported | efca0c1 | b3TaskCallback is the public TaskCallback; b3Scheduler defined in scheduler.c section |
 | src/sensor.c | sensor.go | tested | efca0c1 | Go-only sensor_test.go covers the hit path, events, disabled path and destroy at 1 and 4 workers; world_test.go TestSensor covers the query path |
@@ -154,15 +152,15 @@ each; both point at the same Go file.
 | src/solver_set.c | solver_set.go | verified | efca0c1 | no upstream test; solver_set_test.go (Go-only) checks sleep/wake, merge, transferBody/transferJoint (its hand-built world satisfies b3ValidateSolverSets); b3MergeSolverSets added (no stub existed); world_golden_test.go (sleeping) |
 | src/solver_set.h | solver_set.go | ported | efca0c1 | header types |
 | src/sphere.c | sphere.go | verified | efca0c1 | mass, AABB, ray casts, mover plane, overlap in hull_golden_test.go |
-| src/spherical_joint.c | spherical_joint.go | todo | | stubs with final signatures (every b3SphericalJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
+| src/spherical_joint.c | spherical_joint.go | verified | efca0c1 | b3SphericalJoint_* are JointID methods SphericalJoint<Method>; joints_b_golden_test.go (see parallel_joint.c) |
 | src/table.c | table.go | tested | efca0c1 | hashSet keeps upstream slot order |
 | src/table.h | table.go | tested | efca0c1 |  |
 | src/timer.c | timer.go | tested | efca0c1 | no upstream test; timer_test.go (Go-only) |
 | src/triangle_manifold.c | triangle_manifold.go | verified | efca0c1 | triangle vs sphere/capsule/hull; triangle vertices are a slice; manifold_golden_test.go |
 | src/types.c | types.go | ported | efca0c1 |  |
 | src/verstable.h | verstable.go | ported | efca0c1 | generic `verstable[K, V]` (linear probing) with the API subset upstream uses; Go-only verstable_test.go |
-| src/weld_joint.c | weld_joint.go | todo | | stubs with final signatures (every b3WeldJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
-| src/wheel_joint.c | wheel_joint.go | todo | | stubs with final signatures (every b3WheelJoint_* of box3d.h and every function joint.c calls) panic until the file is ported |
+| src/weld_joint.c | weld_joint.go | verified | efca0c1 | b3WeldJoint_* are JointID methods WeldJoint<Method>; joints_b_golden_test.go (see parallel_joint.c) |
+| src/wheel_joint.c | wheel_joint.go | verified | efca0c1 | b3WheelJoint_* are JointID methods WheelJoint<Method>; #if 0 b3WheelJoint_Dump not ported; joints_b_golden_test.go (see parallel_joint.c) |
 | src/wide4.c | — | n/a | | dropped: includes the .inl kernels, ported once |
 | src/wide8.c | — | n/a | | dropped: width 8 not ported |
 | src/world_snapshot.c | world_snapshot.go | todo | |  |
@@ -172,7 +170,7 @@ each; both point at the same Go file.
 | test/test_bitset.c | bitset_test.go | tested | efca0c1 |  |
 | test/test_body.c | body_test.go | tested | efca0c1 | all 11 tests |
 | test/test_body_query.c | body_query_test.go | tested | efca0c1 | all 31 tests; the MoverTOIMatchesSweep random loop matches a C build bit for bit (hit count, seed, hashed fractions and points; arm64 and amd64) |
-| test/test_broad_phase.c | broad_phase_test.go | blocked (needs joint.c, weld_joint.c) | efca0c1 | 1 of 2 tests; StaticRebuildKeepsMarks passes; BroadPhaseStressTest pending (PIt) on weld joints (M4); broad_phase_golden_test.go also covers the broad-phase |
+| test/test_broad_phase.c | broad_phase_test.go | tested | efca0c1 | both tests (StaticRebuildKeepsMarks, BroadPhaseStressTest: 3 seeds at 1, 4 workers and 3 workers with sleep, 400 steps each, pair set brute-force checked every step); broad_phase_golden_test.go also covers the broad-phase |
 | test/test_collision.c | collision_test.go | tested | efca0c1 | 4 of 4 tests; the BOX3D_DOUBLE_PRECISION halves are compiled out as in upstream's float build |
 | test/test_compound.c | compound_test.go | tested | efca0c1 | all 34 tests; byte-level serialize tests port as written |
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
@@ -183,7 +181,7 @@ each; both point at the same Go file.
 | test/test_height_field.c | height_field_test.go | tested | efca0c1 | round trip file in a temp dir |
 | test/test_hull.c | hull_test.go | tested | efca0c1 |  |
 | test/test_id.c | id_test.go | tested | efca0c1 |  |
-| test/test_joint.c | joint_test.go | blocked (needs the per-type joint files) | efca0c1 | all 11 tests ported behind build tag box3d_m4_joints; TestFilterJoint passes, the other 10 reach a per-type stub |
+| test/test_joint.c | joint_test.go | tested | efca0c1 | all 11 tests |
 | test/test_large_world.c | large_world_test.go | tested | efca0c1 | all 3 tests; double-precision halves not ported (as collision_test.go); the origin runs print the same values as a C build |
 | test/test_macros.h | test_macros_test.go | ported | efca0c1 | ENSURE / ENSURE_SMALL helpers |
 | test/test_manifold.c | manifold_test.go | tested | efca0c1 | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
@@ -196,13 +194,13 @@ each; both point at the same Go file.
 | test/test_sat.c | sat_test.go | tested | efca0c1 | oracle stats print identical to the C build (NEON and BOX3D_DISABLE_SIMD) |
 | test/test_shape.c | shape_test.go, shape_world_test.go | tested | efca0c1 | all 20 subtests (PointInShapeTest is #if 0 upstream); ShapeNameTest and ShapeFlagsTest are in shape_world_test.go |
 | test/test_table.c | table_test.go | tested | efca0c1 |  |
-| test/test_world.c | world_test.go | tested | efca0c1 | 25 of 26 tests; BodySimLocatorTest pending (PIt) on joint.c (M4): its LocatorTransferScene creates a spherical joint; the Go-only BodySimLocatorTestWithoutJoints runs the other four scenes (1 vs 4 worker hashes) until then |
+| test/test_world.c | world_test.go | tested | efca0c1 | all 26 tests (BodySimLocatorTest includes LocatorTransferScene's spherical joint across two sleeping sets) |
 | shared/utils.c | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
 | shared/utils.h | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
-| shared/determinism.c | scenes_determinism_test.go | ported | efca0c1 | test scene helper in a _test.go file of package box3d (internal tests cannot import a package that imports box3d); behind build tag box3d_m4_joints because the ragdolls need joint.c (M4); used by test_determinism.c (M5) |
-| shared/determinism.h | scenes_determinism_test.go | ported | efca0c1 | test scene helper; behind box3d_m4_joints |
-| shared/human.c | scenes_human_test.go | ported | efca0c1 | test scene helper; behind box3d_m4_joints (revolute, spherical, filter, motor, parallel joints); the #if 0 pose control block is not ported |
-| shared/human.h | scenes_human_test.go | ported | efca0c1 | test scene helper; behind box3d_m4_joints |
+| shared/determinism.c | scenes_determinism_test.go | ported | efca0c1 | test scene helper in a _test.go file of package box3d (internal tests cannot import a package that imports box3d); used by test_determinism.c (M5) |
+| shared/determinism.h | scenes_determinism_test.go | ported | efca0c1 | test scene helper |
+| shared/human.c | scenes_human_test.go | ported | efca0c1 | test scene helper (revolute, spherical, filter, motor, parallel joints); the #if 0 pose control block is not ported |
+| shared/human.h | scenes_human_test.go | ported | efca0c1 | test scene helper |
 | shared/benchmarks.c | scenes_benchmarks_test.go | ported | efca0c1 | partial: CreateJunkyard, GetJunkyardCapacity, StepJunkyard and the ground shape id (test_world.c needs them); the rest lands with the benchmarks (M6) |
 | shared/benchmarks.h | scenes_benchmarks_test.go | ported | efca0c1 | partial, see benchmarks.c |
 | shared/overflow_color.c | scenes_benchmarks_test.go | ported | efca0c1 | CreateOverflowColorPile (test_world.c TestOverflowColorPile); cosf / sinf are float64 math rounded to float32 |
