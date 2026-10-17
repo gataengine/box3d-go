@@ -31,6 +31,19 @@ type floatW struct {
 	v [laneCount]float32
 }
 
+// laneW reads lane i of a.
+// PORT: Go-only accessor replacing upstream's float pointer views of a b3FloatW4 (for example
+// ( (float*)&wide )[lane]). Kernels outside the lane backend use it instead of the representation.
+func laneW(a floatW, i int) float32 {
+	return a.v[i]
+}
+
+// setLaneW writes value to lane i of a.
+// PORT: Go-only accessor, the store form of laneW.
+func setLaneW(a *floatW, i int, value float32) {
+	a.v[i] = value
+}
+
 // zeroW is b3ZeroW4.
 func zeroW() floatW {
 	return floatW{[laneCount]float32{0.0, 0.0, 0.0, 0.0}}

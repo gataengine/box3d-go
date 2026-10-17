@@ -103,7 +103,7 @@ each; both point at the same Go file.
 | src/contact.h | contact.go | ported | efca0c1 | header types; unions keep all members |
 | src/contact_solver.c | contact_solver.go | verified | efca0c1 | overflow (_Mesh) kernels, overflow wrappers, convex/mesh-wide dispatchers (width-8 branches dropped); contact_solver_golden_test.go matches the C build (testdata/contact_solver_golden_gen.c; NEON, SSE2, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE identical); world_golden_test.go |
 | src/contact_solver.h | contact_solver.go | verified | efca0c1 | header types; W4 declarations are the W kernels in contact_solver_wide.go, W8 not ported |
-| src/contact_solver_wide.inl | contact_solver_wide.go | verified | efca0c1 | all kernels at laneCount (W suffix dropped); b3GatherBodies/b3ScatterBodies both B3_SIMD_NONE and lane variants via simdNone, both match the C goldens; stream walked as (constraint, manifold) indices in wideConstraintBuffer |
+| src/contact_solver_wide.inl | contact_solver_wide.go, wide_lanes.go | verified | efca0c1 | all kernels at laneCount (W suffix dropped); the width-specific regions (`#if B3_SIMD_WIDTH == 8`, B3_GATHER_LANES, B3_SIMD_NONE variants) are wide_lanes.go helpers; b3GatherBodies/b3ScatterBodies both B3_SIMD_NONE and lane variants via simdNone, both match the C goldens; stream walked as (constraint, manifold) indices in wideConstraintBuffer |
 | src/container.h | container.go | tested | efca0c1 | b3Array(T) is []T; generic arrayPush/arrayPop/… keep growth policy |
 | src/convex_manifold.c | convex_manifold.go | verified | efca0c1 | sphere/capsule/hull collide functions, SAT cache and manual modes; test_sat, test_manifold, manifold_golden_test.go |
 | src/convex_manifold_wide.inl | convex_manifold_wide.go | verified | efca0c1 | computeSeparatingAxisW; both B3_SIMD_NONE and lane edge loops ported, selected by simdNone (simd_scalar.go); both match the C goldens |
@@ -155,12 +155,12 @@ each; both point at the same Go file.
 | src/shape.c | shape.go | verified | efca0c1 | all functions in upstream order; b3Shape_* are ShapeID methods, b3Create*Shape are BodyID methods, b3DestroyShape is ShapeID.Destroy; world-free functions verified bit for bit in shape_golden_test.go (testdata/shape_golden_gen.c links the whole library); world_golden_test.go |
 | src/shape.h | shape.go | ported | efca0c1 | b3Shape (union members all present), b3ShapeFlags, filter/convex inlines, b3GetHeightFieldTriangleCount, b3GetMeshTriangle; declared functions are in the shape.c section |
 | src/simd.c | simd.go | ported | efca0c1 | also holds IsAVX2Available / Get/SetSIMDWidth; Go-only simd_test.go |
-| src/simd.h | simd.go | ported | efca0c1 | b3V32 non-SSE2 path as `v32`; b3Vec3W4 as `vec3W` |
+| src/simd.h | simd.go, simd_wide.go | ported | efca0c1 | b3V32 non-SSE2 path as `v32`; b3Vec3W4 as `vec3W` (simd_wide.go) |
 | src/simd_avx2.h | — | n/a | | dropped: scalar lanes only (see spec, SIMD lane layer) |
 | src/simd_neon.h | — | n/a | | dropped: scalar lanes only |
 | src/simd_scalar.h | simd_scalar.go | ported | efca0c1 | `floatW{v [laneCount]float32}`, laneCount = 4; W4 suffix dropped; `simdNone` (B3_SIMD_NONE) lives here |
 | src/simd_sse2.h | — | n/a | | dropped: scalar lanes only |
-| src/simd_wide.h | simd_wide.go | ported | efca0c1 | name map only + wideAlignment |
+| src/simd_wide.h | simd_wide.go | ported | efca0c1 | name map + wideAlignment; also holds the b3Vec3W4 part of simd.h |
 | src/solver.c | solver.go | verified | efca0c1 | whole file; block partition, worker start indices and the body kernels (integrate velocities incl. gyroscopic, integrate positions) match C in solver_golden_test.go (testdata/solver_golden_gen.c, darwin/arm64 and amd64; C identical for NEON, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE); solver_test.go checks atomic block claiming and the b3SolverTask spinner protocol with goroutines; b3Solve end to end in world_golden_test.go (testdata/world_golden_gen.c: mesh ground, hull stack, sphere, capsule, hulls, bullet; 240 steps bit for bit at 1, 2 and 4 workers, darwin/arm64 and amd64; C identical for NEON, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE and 1/4 workers) |
 | src/solver.h | solver.go | ported | efca0c1 | stage/block enums, b3SolverBlock, b3SyncBlock, b3SolverStage, b3Softness, prepare spans, b3StepContext (pointers are slices, void* buffers are `wideConstraintBuffer`), b3MakeSoft |
 | src/solver_set.c | solver_set.go | verified | efca0c1 | no upstream test; solver_set_test.go (Go-only) checks sleep/wake, merge, transferBody/transferJoint (its hand-built world satisfies b3ValidateSolverSets); b3MergeSolverSets added (no stub existed); world_golden_test.go (sleeping) |
