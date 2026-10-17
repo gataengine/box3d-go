@@ -25,8 +25,8 @@ each; both point at the same Go file.
 | src/aabb.c | aabb.go | todo | |  |
 | src/aabb.h | aabb.go | todo | |  |
 | src/algorithm.h | — | n/a | | B3_SWAP becomes Go tuple assignment at call sites |
-| src/arena_allocator.c | arena_allocator.go | todo | |  |
-| src/arena_allocator.h | arena_allocator.go | todo | |  |
+| src/arena_allocator.c | arena_allocator.go | ported | efca0c1 | bookkeeping shell; typed stackAlloc[T]/bump[T] use make |
+| src/arena_allocator.h | arena_allocator.go | ported | efca0c1 |  |
 | src/bitset.c | bitset.go | tested | efca0c1 | countSetBits lives in table.go as upstream |
 | src/bitset.h | bitset.go | tested | efca0c1 |  |
 | src/block_allocator.c | block_allocator.go | todo | |  |

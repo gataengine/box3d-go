@@ -48,3 +48,4 @@ site. Upstream bugs are ported as is and listed here too.
 | table.go | `b3_probeCount`, `#if B3_DEBUG` | counted when `debugBuild` (assertions on) | NDEBUG ≙ `box3d_noassert` |
 | table_test.go | `printf` timing lines | `GinkgoWriter.Printf` | shown with `-v` / on failure |
 | id_pool.go | `b3FreeId` todo comment | ported as is: the `id == nextIndex` branch is unreachable under the assertion above it | upstream bug kept |
+| arena_allocator.go | `b3Stack`, `b3Arena`, `b3StackAlloc( stack, size, name )`, `b3Bump( arena, size )` | typed `stackAlloc[T](s, count, name)`, `bump[T](a, count)` return zeroed slices from `make`; index/watermark/overflow accounting kept so counters and grow decisions match; no backing memory | spec: allocators dropped. Revisit for no-allocation `Step` |
