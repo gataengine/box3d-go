@@ -7,8 +7,8 @@
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
-  construction (byte images via their hashes), hull/sphere/capsule queries, mover planes, GJK
-  distance, shape cast and TOI match the C build on 66 golden lines (`hull_golden_test.go`,
+  construction (byte images via their hashes), hull/sphere/capsule queries, mover planes, polygon clipping, GJK
+  distance, shape cast and TOI match the C build on 86 golden lines (`hull_golden_test.go`,
   darwin/arm64 and amd64).
 - Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
   allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
@@ -76,8 +76,8 @@ each; both point at the same Go file.
 | src/island.h | island.go | todo | |  |
 | src/joint.c | joint.go | todo | |  |
 | src/joint.h | joint.go | todo | |  |
-| src/manifold.c | manifold.go | todo | |  |
-| src/manifold.h | manifold.go | todo | |  |
+| src/manifold.c | manifold.go | verified | efca0c1 | findIncidentFace, clipPolygon, flipPair checked in hull_golden_test.go |
+| src/manifold.h | manifold.go | ported | efca0c1 | separating axis / clip types; b3ComputeSeparatingAxis* and b3CollideHullsAtWidth land with convex_manifold.c |
 | src/math_functions.c | math_functions.go | tested | efca0c1 |  |
 | src/math_internal.h | math_internal.go | ported | efca0c1 | declared functions land with their .c files |
 | src/mesh.c | mesh.go | todo | |  |
@@ -151,7 +151,7 @@ each; both point at the same Go file.
 | test/test_joint.c | joint_test.go | todo | |  |
 | test/test_large_world.c | large_world_test.go | todo | |  |
 | test/test_macros.h | test_macros_test.go | ported | efca0c1 | ENSURE / ENSURE_SMALL helpers |
-| test/test_manifold.c | manifold_test.go | todo | |  |
+| test/test_manifold.c | manifold_test.go | blocked (needs convex_manifold.c, triangle_manifold.c) | | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | todo | |  |
 | test/test_mover.c | mover_test.go | todo | |  |

@@ -1,5 +1,5 @@
 // Go-only test: no upstream counterpart. Compares hull construction, hull queries, sphere and
-// capsule queries, mover planes, GJK distance, shape cast and time of impact against the pinned upstream C sources
+// capsule queries, mover planes, polygon clipping, GJK distance, shape cast and time of impact against the pinned upstream C sources
 // (efca0c184d40fd6a82016983f1601c4d23965867) compiled with -ffp-contract=off, bit for bit and
 // byte for byte (hull images are compared through their byte count and content hash). See
 // testdata/hull_golden_gen.c; this file mirrors it line by line.
@@ -171,6 +171,35 @@ func (g *hullGoldenGen) run() string {
 		g.printf("\n")
 	}
 
+	for k := range 20 {
+		// Clip a pentagon against a random plane through its neighborhood.
+		var polygon [5]clipVertex
+		for i := range 5 {
+			angle := float32(1.25 * float32(i))
+			cs := ComputeCosSin(angle)
+			polygon[i].position = Vec3{cs.Cosine, float32(0.1 * float32(i)), cs.Sine}
+			polygon[i].separation = 0.0
+			polygon[i].pair = makeFeaturePair(featureShapeB, i, featureShapeB, (i+1)%5)
+		}
+		var clipPlane Plane
+		clipPlane.Normal = Normalize(g.rv3(1.0, 0.2, 1.0, 0.0, 0.0, 0.0))
+		clipPlane.Offset = float32(0.5 * g.rnd())
+		refPlane := Plane{Vec3AxisY, 0.05}
+		var out [10]clipVertex
+		outCount := clipPolygon(out[:], polygon[:], 5, clipPlane, k, refPlane)
+		g.printf("clip %d |", k)
+		g.pv(clipPlane.Normal)
+		g.pf(clipPlane.Offset)
+		g.printf(" %d", outCount)
+		for i := range outCount {
+			pair := flipPair(out[i].pair)
+			g.pv(out[i].position)
+			g.pf(out[i].separation)
+			g.printf(" %08x %08x", makeFeatureId(out[i].pair), makeFeatureId(pair))
+		}
+		g.printf("\n")
+	}
+
 	counts := []int{8, 20, 64, 300}
 	maxCounts := []int{8, 16, 32, 64}
 	for c := range 4 {
@@ -204,7 +233,8 @@ func (g *hullGoldenGen) run() string {
 
 				dir := Normalize(g.rv3(1.0, 1.0, 1.0, 0.0, 0.0, 0.0))
 				g.pv(dir)
-				g.printf(" %d %d", findHullSupportVertex(h, dir), findHullSupportFace(h, dir))
+				supportVertex := findHullSupportVertex(h, dir)
+				g.printf(" %d %d %d", supportVertex, findHullSupportFace(h, dir), findIncidentFace(h, dir, supportVertex))
 				g.pf(computeHullProjectedArea(h, dir))
 
 				var ray RayCastInput

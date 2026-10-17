@@ -79,3 +79,6 @@ site. Upstream bugs are ported as is and listed here too.
 | sphere.go | `( b3ShapeProxy ){ &shape->center, 1, … }` | `spherePoints(shape)` = `unsafe.Slice(&shape.Center, 1)` | no allocation, aliases the shape as in C |
 | sphere.go | `4.0f / 3.0f * B3_PI * …` | `fourThirds := float32(4.0 / 3.0)` then run-time multiplies | Go folds constant chains exactly (one rounding); C rounds each step |
 | capsule.go, hull.go | `( b3ShapeProxy ){ &capsule->center1, 2, … }` | `capsulePoints(c)` = `unsafe.Slice(&c.Center1, 2)` spanning the adjacent Center1/Center2 fields | no allocation, aliases the capsule as in C |
+| manifold.go | `b3SeparatingAxis.type` | field `typ` | `type` is a Go keyword |
+| manifold.go | `#if B3_ENABLE_VALIDATION b3ValidatePolygon` | always compiled; the call is `validate(!validateEnabled \|\| validatePolygon(...))` so it is skipped when validation is off | `validate` evaluates its argument |
+| manifold.go | `b3ClipPolygon( out, polygon, count, … )` | slices plus the explicit count | pointer + count |

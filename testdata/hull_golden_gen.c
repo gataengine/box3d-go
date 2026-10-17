@@ -1,7 +1,7 @@
 // Generates testdata/hull_golden.txt from the pinned upstream C sources (Go-only tooling).
 // Run from third_party/box3d, writing the binary outside the repository:
 // cc -O2 -ffp-contract=off -std=c17 -I include -I src -o $SCRATCH/hull_golden \
-//    ../../libs/box3d-go/testdata/hull_golden_gen.c src/hull.c src/distance.c src/sphere.c src/capsule.c src/math_functions.c src/core.c
+//    ../../libs/box3d-go/testdata/hull_golden_gen.c src/hull.c src/distance.c src/sphere.c src/capsule.c src/manifold.c src/math_functions.c src/core.c
 // $SCRATCH/hull_golden > ../../libs/box3d-go/testdata/hull_golden.txt
 //
 // Each line: name, inputs as hex floats, "|", outputs as hex words. Hulls are reported by byte
@@ -10,6 +10,7 @@
 #include "box3d/collision.h"
 #include "box3d/math_functions.h"
 #include "math_internal.h"
+#include "manifold.h"
 #include "shape.h"
 #include <stdio.h>
 #include <string.h>
@@ -176,6 +177,38 @@ int main( void )
 		printf( "\n" );
 	}
 
+	for ( int k = 0; k < 20; ++k )
+	{
+		// Clip a pentagon against a random plane through its neighborhood.
+		b3ClipVertex polygon[5];
+		for ( int i = 0; i < 5; ++i )
+		{
+			float angle = 1.25f * (float)i;
+			b3CosSin cs = b3ComputeCosSin( angle );
+			polygon[i].position = (b3Vec3){ cs.cosine, 0.1f * (float)i, cs.sine };
+			polygon[i].separation = 0.0f;
+			polygon[i].pair = b3MakeFeaturePair( b3_featureShapeB, i, b3_featureShapeB, ( i + 1 ) % 5 );
+		}
+		b3Plane clipPlane;
+		clipPlane.normal = b3Normalize( rv3( 1.0f, 0.2f, 1.0f, 0.0f, 0.0f, 0.0f ) );
+		clipPlane.offset = 0.5f * rnd();
+		b3Plane refPlane = { b3Vec3_axisY, 0.05f };
+		b3ClipVertex out[10];
+		int outCount = b3ClipPolygon( out, polygon, 5, clipPlane, k, refPlane );
+		printf( "clip %d |", k );
+		pv( clipPlane.normal );
+		pf( clipPlane.offset );
+		printf( " %d", outCount );
+		for ( int i = 0; i < outCount; ++i )
+		{
+			b3FeaturePair pair = b3FlipPair( out[i].pair );
+			pv( out[i].position );
+			pf( out[i].separation );
+			printf( " %08x %08x", b3MakeFeatureId( out[i].pair ), b3MakeFeatureId( pair ) );
+		}
+		printf( "\n" );
+	}
+
 	int counts[] = { 8, 20, 64, 300 };
 	int maxCounts[] = { 8, 16, 32, 64 };
 	for ( int c = 0; c < 4; ++c )
@@ -214,7 +247,8 @@ int main( void )
 
 				b3Vec3 dir = b3Normalize( rv3( 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f ) );
 				pv( dir );
-				printf( " %d %d", b3FindHullSupportVertex( h, dir ), b3FindHullSupportFace( h, dir ) );
+				int supportVertex = b3FindHullSupportVertex( h, dir );
+				printf( " %d %d %d", supportVertex, b3FindHullSupportFace( h, dir ), b3FindIncidentFace( h, dir, supportVertex ) );
 				pf( b3ComputeHullProjectedArea( h, dir ) );
 
 				b3RayCastInput ray;
