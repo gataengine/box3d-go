@@ -1,5 +1,5 @@
-// Go-only test: no upstream counterpart. Compares hull construction, hull queries, GJK distance,
-// shape cast and time of impact against the pinned upstream C sources
+// Go-only test: no upstream counterpart. Compares hull construction, hull queries, sphere and
+// capsule queries, mover planes, GJK distance, shape cast and time of impact against the pinned upstream C sources
 // (efca0c184d40fd6a82016983f1601c4d23965867) compiled with -ffp-contract=off, bit for bit and
 // byte for byte (hull images are compared through their byte count and content hash). See
 // testdata/hull_golden_gen.c; this file mirrors it line by line.
@@ -90,6 +90,86 @@ func (g *hullGoldenGen) run() string {
 	g.ph(CreateRock(0.7))
 	g.ph(CreateComplexHull(1.3))
 	g.printf("\n")
+
+	for k := range 40 {
+		var sphere Sphere
+		sphere.Center = g.rv3(1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
+		sphere.Radius = mulAdd(0.5, 0.4, g.rnd())
+		var capsule Capsule
+		capsule.Center1 = g.rv3(1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
+		if k%5 == 0 {
+			capsule.Center2 = capsule.Center1
+		} else {
+			capsule.Center2 = g.rv3(1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
+		}
+		capsule.Radius = mulAdd(0.3, 0.2, g.rnd())
+		var mover Capsule
+		mover.Center1 = g.rv3(2.0, 2.0, 2.0, 0.0, 0.0, 0.0)
+		mover.Center2 = g.rv3(2.0, 2.0, 2.0, 0.0, 0.0, 0.0)
+		mover.Radius = mulAdd(0.5, 0.4, g.rnd())
+		var ray RayCastInput
+		ray.Origin = g.rv3(3.0, 3.0, 3.0, 0.0, 0.0, 0.0)
+		if k%7 == 3 {
+			// Parallel to the capsule axis.
+			ray.Translation = MulSV(4.0, Sub(capsule.Center2, capsule.Center1))
+		} else {
+			ray.Translation = Sub(g.rv3(1.0, 1.0, 1.0, 0.0, 0.0, 0.0), ray.Origin)
+		}
+		ray.MaxFraction = 1.0
+		var xf Transform
+		xf.P = g.rv3(1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
+		xf.Q = g.rq()
+
+		g.printf("prim %d |", k)
+		md := ComputeSphereMass(&sphere, 1.5)
+		g.pf(md.Mass)
+		g.pv(md.Inertia.Cx)
+		md = ComputeCapsuleMass(&capsule, 1.5)
+		g.pf(md.Mass)
+		g.pv(md.Center)
+		g.pv(md.Inertia.Cx)
+		g.pv(md.Inertia.Cy)
+		g.pv(md.Inertia.Cz)
+		box := ComputeCapsuleAABB(&capsule, xf)
+		g.pv(box.LowerBound)
+		g.pv(box.UpperBound)
+		box = ComputeSphereAABB(&sphere, xf)
+		g.pv(box.LowerBound)
+		g.pv(box.UpperBound)
+
+		o := RayCastSphere(&sphere, &ray)
+		g.pv(o.Point)
+		g.pv(o.Normal)
+		g.pf(o.Fraction)
+		g.pb(o.Hit)
+		o = RayCastHollowSphere(&sphere, &ray)
+		g.pv(o.Point)
+		g.pv(o.Normal)
+		g.pf(o.Fraction)
+		g.pb(o.Hit)
+		o = RayCastCapsule(&capsule, &ray)
+		g.pv(o.Point)
+		g.pv(o.Normal)
+		g.pf(o.Fraction)
+		g.pb(o.Hit)
+
+		var pr PlaneResult
+		n := collideMoverAndSphere(&pr, &sphere, &mover)
+		g.printf(" %d", n)
+		g.pv(pr.Plane.Normal)
+		g.pf(pr.Plane.Offset)
+		g.pv(pr.Point)
+		n = collideMoverAndCapsule(&pr, &capsule, &mover)
+		g.printf(" %d", n)
+		g.pv(pr.Plane.Normal)
+		g.pf(pr.Plane.Offset)
+		g.pv(pr.Point)
+
+		proxy := ShapeProxy{capsulePoints(&mover), 2, mover.Radius}
+		g.pb(OverlapSphere(&sphere, xf, &proxy))
+		g.pb(OverlapCapsule(&capsule, xf, &proxy))
+		g.printf("\n")
+	}
 
 	counts := []int{8, 20, 64, 300}
 	maxCounts := []int{8, 16, 32, 64}
@@ -184,6 +264,16 @@ func (g *hullGoldenGen) run() string {
 				g.pv(to.Normal)
 				g.pf(to.Fraction)
 				g.pf(to.Distance)
+
+				mover := Capsule{seg[0], seg[1], 2.0}
+				var pr PlaneResult
+				planeCount := collideMoverAndHull(&pr, h, &mover)
+				g.printf(" %d", planeCount)
+				g.pv(pr.Plane.Normal)
+				g.pf(pr.Plane.Offset)
+				g.pv(pr.Point)
+				proxy := ShapeProxy{seg[:], 2, 0.5}
+				g.pb(OverlapHull(h, xf, &proxy))
 
 				md := ComputeHullMass(h, 2.5)
 				g.pf(md.Mass)

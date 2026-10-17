@@ -1,7 +1,7 @@
 // Generates testdata/hull_golden.txt from the pinned upstream C sources (Go-only tooling).
 // Run from third_party/box3d, writing the binary outside the repository:
 // cc -O2 -ffp-contract=off -std=c17 -I include -I src -o $SCRATCH/hull_golden \
-//    ../../libs/box3d-go/testdata/hull_golden_gen.c src/hull.c src/distance.c src/math_functions.c src/core.c
+//    ../../libs/box3d-go/testdata/hull_golden_gen.c src/hull.c src/distance.c src/sphere.c src/capsule.c src/math_functions.c src/core.c
 // $SCRATCH/hull_golden > ../../libs/box3d-go/testdata/hull_golden.txt
 //
 // Each line: name, inputs as hex floats, "|", outputs as hex words. Hulls are reported by byte
@@ -96,6 +96,85 @@ int main( void )
 	ph( b3CreateRock( 0.7f ) );
 	ph( b3CreateComplexHull( 1.3f ) );
 	printf( "\n" );
+
+	for ( int k = 0; k < 40; ++k )
+	{
+		b3Sphere sphere;
+		sphere.center = rv3( 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f );
+		sphere.radius = 0.5f + 0.4f * rnd();
+		b3Capsule capsule;
+		capsule.center1 = rv3( 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f );
+		capsule.center2 = ( k % 5 == 0 ) ? capsule.center1 : rv3( 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f );
+		capsule.radius = 0.3f + 0.2f * rnd();
+		b3Capsule mover;
+		mover.center1 = rv3( 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f );
+		mover.center2 = rv3( 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f );
+		mover.radius = 0.5f + 0.4f * rnd();
+		b3RayCastInput ray;
+		ray.origin = rv3( 3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 0.0f );
+		if ( k % 7 == 3 )
+		{
+			// Parallel to the capsule axis.
+			ray.translation = b3MulSV( 4.0f, b3Sub( capsule.center2, capsule.center1 ) );
+		}
+		else
+		{
+			ray.translation = b3Sub( rv3( 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f ), ray.origin );
+		}
+		ray.maxFraction = 1.0f;
+		b3Transform xf;
+		xf.p = rv3( 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f );
+		xf.q = rq();
+
+		printf( "prim %d |", k );
+		b3MassData md = b3ComputeSphereMass( &sphere, 1.5f );
+		pf( md.mass );
+		pv( md.inertia.cx );
+		md = b3ComputeCapsuleMass( &capsule, 1.5f );
+		pf( md.mass );
+		pv( md.center );
+		pv( md.inertia.cx );
+		pv( md.inertia.cy );
+		pv( md.inertia.cz );
+		b3AABB box = b3ComputeCapsuleAABB( &capsule, xf );
+		pv( box.lowerBound );
+		pv( box.upperBound );
+		box = b3ComputeSphereAABB( &sphere, xf );
+		pv( box.lowerBound );
+		pv( box.upperBound );
+
+		b3CastOutput o = b3RayCastSphere( &sphere, &ray );
+		pv( o.point );
+		pv( o.normal );
+		pf( o.fraction );
+		printf( " %d", o.hit );
+		o = b3RayCastHollowSphere( &sphere, &ray );
+		pv( o.point );
+		pv( o.normal );
+		pf( o.fraction );
+		printf( " %d", o.hit );
+		o = b3RayCastCapsule( &capsule, &ray );
+		pv( o.point );
+		pv( o.normal );
+		pf( o.fraction );
+		printf( " %d", o.hit );
+
+		b3PlaneResult pr = { 0 };
+		int n = b3CollideMoverAndSphere( &pr, &sphere, &mover );
+		printf( " %d", n );
+		pv( pr.plane.normal );
+		pf( pr.plane.offset );
+		pv( pr.point );
+		n = b3CollideMoverAndCapsule( &pr, &capsule, &mover );
+		printf( " %d", n );
+		pv( pr.plane.normal );
+		pf( pr.plane.offset );
+		pv( pr.point );
+
+		b3ShapeProxy proxy = { &mover.center1, 2, mover.radius };
+		printf( " %d %d", b3OverlapSphere( &sphere, xf, &proxy ), b3OverlapCapsule( &capsule, xf, &proxy ) );
+		printf( "\n" );
+	}
 
 	int counts[] = { 8, 20, 64, 300 };
 	int maxCounts[] = { 8, 16, 32, 64 };
@@ -195,6 +274,16 @@ int main( void )
 				pv( to.normal );
 				pf( to.fraction );
 				pf( to.distance );
+
+				b3Capsule mover = { seg[0], seg[1], 2.0f };
+				b3PlaneResult pr = { 0 };
+				int planeCount = b3CollideMoverAndHull( &pr, h, &mover );
+				printf( " %d", planeCount );
+				pv( pr.plane.normal );
+				pf( pr.plane.offset );
+				pv( pr.point );
+				b3ShapeProxy proxy = { seg, 2, 0.5f };
+				printf( " %d", b3OverlapHull( h, xf, &proxy ) );
 
 				b3MassData md = b3ComputeHullMass( h, 2.5f );
 				pf( md.mass );

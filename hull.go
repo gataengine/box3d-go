@@ -2509,8 +2509,7 @@ func collideMoverAndHull(result *PlaneResult, shape *HullData, mover *Capsule) i
 	points := GetHullPoints(shape)
 	var distanceInput DistanceInput
 	distanceInput.ProxyA = ShapeProxy{points, shape.VertexCount, 0.0}
-	// PORT: &mover->center1 with count 2 reads center1 and center2.
-	distanceInput.ProxyB = ShapeProxy{[]Vec3{mover.Center1, mover.Center2}, 2, mover.Radius}
+	distanceInput.ProxyB = ShapeProxy{capsulePoints(mover), 2, mover.Radius}
 	distanceInput.Transform = TransformIdentity
 	distanceInput.UseRadii = false
 

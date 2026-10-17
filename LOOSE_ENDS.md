@@ -74,8 +74,8 @@ site. Upstream bugs are ported as is and listed here too.
 | hull.go | `_Static_assert( sizeof( b3HullData ) == 152 )`, `== 696` | overflowing `uintptr` constant pair | Go has no static assert |
 | hull.go | `b3FindFarthestPointsAlongCardinalAxes( &i1, &i2, … )` | returns `(index1, index2)` | out-parameters become returns |
 | hull.go | `b3CreateHull( points, pointCount, max )`, `b3Hull2D( pts, count, hull )`, `b3SimplifyHull2D( hull, count, target )` | slices plus the explicit count | count may be less than the slice length (tests rely on it) |
-| hull.go | `b3CollideMoverAndHull` proxy `&mover->center1` with count 2 | `[]Vec3{mover.Center1, mover.Center2}` | no pointer arithmetic across fields |
 | hull.go | unrolled SoA copies in `b3MakeTransformedBoxHull` | loops over the same indices | same stores, same order |
 | hull.go | `memmove` in `b3SimplifyHull2D` | `copy` | same semantics |
 | sphere.go | `( b3ShapeProxy ){ &shape->center, 1, … }` | `spherePoints(shape)` = `unsafe.Slice(&shape.Center, 1)` | no allocation, aliases the shape as in C |
 | sphere.go | `4.0f / 3.0f * B3_PI * …` | `fourThirds := float32(4.0 / 3.0)` then run-time multiplies | Go folds constant chains exactly (one rounding); C rounds each step |
+| capsule.go, hull.go | `( b3ShapeProxy ){ &capsule->center1, 2, … }` | `capsulePoints(c)` = `unsafe.Slice(&c.Center1, 2)` spanning the adjacent Center1/Center2 fields | no allocation, aliases the capsule as in C |

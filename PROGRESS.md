@@ -7,8 +7,9 @@
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
-  construction (byte images via their hashes), hull queries, GJK distance, shape cast and TOI
-  match the C build on 26 golden lines (`hull_golden_test.go`, darwin/arm64 and amd64).
+  construction (byte images via their hashes), hull/sphere/capsule queries, mover planes, GJK
+  distance, shape cast and TOI match the C build on 66 golden lines (`hull_golden_test.go`,
+  darwin/arm64 and amd64).
 - Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
   allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
   header structs have C layout, offsets are byte offsets from the header as upstream, and the
@@ -46,7 +47,7 @@ each; both point at the same Go file.
 | src/body.h | body.go | todo | |  |
 | src/broad_phase.c | broad_phase.go | todo | |  |
 | src/broad_phase.h | broad_phase.go | todo | |  |
-| src/capsule.c | capsule.go | todo | |  |
+| src/capsule.c | capsule.go | verified | efca0c1 | mass, AABB, ray cast (incl. parallel/degenerate), mover plane, overlap in hull_golden_test.go |
 | src/compound.c | compound.go | todo | |  |
 | src/compound.h | compound.go | todo | |  |
 | src/constraint_graph.c | constraint_graph.go | todo | |  |
@@ -117,7 +118,7 @@ each; both point at the same Go file.
 | src/solver.h | solver.go | todo | |  |
 | src/solver_set.c | solver_set.go | todo | |  |
 | src/solver_set.h | solver_set.go | todo | |  |
-| src/sphere.c | sphere.go | ported | efca0c1 | exercised by test_collision/test_shape (later) |
+| src/sphere.c | sphere.go | verified | efca0c1 | mass, AABB, ray casts, mover plane, overlap in hull_golden_test.go |
 | src/spherical_joint.c | spherical_joint.go | todo | |  |
 | src/table.c | table.go | tested | efca0c1 | hashSet keeps upstream slot order |
 | src/table.h | table.go | tested | efca0c1 |  |
