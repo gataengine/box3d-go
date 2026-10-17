@@ -16,7 +16,7 @@ each; both point at the same Go file.
 |---|---|---|---|---|
 | include/box3d/base.h | base.go | ported | efca0c1 | assert/validate via build tags; allocator API not ported |
 | include/box3d/box3d.h | body.go, shape.go, joint.go, physics_world.go, … | todo | | b3Type_* functions live in the file of the object they act on |
-| include/box3d/collision.h | collision.go | todo | |  |
+| include/box3d/collision.h | collision.go | blocked (needs blob layout, M2) | efca0c1 | Point2D, MeshQueryFcn, tree GetUserData/GetAABB ported; blob accessors wait for hull/mesh/height_field/compound |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
 | include/box3d/constants.h | constants.go | ported | efca0c1 |  |
 | include/box3d/id.h | id.go | tested | efca0c1 |  |
