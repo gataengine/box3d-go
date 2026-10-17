@@ -1054,9 +1054,9 @@ func CreateRecording(byteCapacity int) *Recording {
 	return rec
 }
 
-// DestroyRecording is b3DestroyRecording: destroy a recording created by CreateRecording or
+// Destroy is b3DestroyRecording: destroy a recording created by CreateRecording or
 // LoadRecordingFromFile.
-func DestroyRecording(recording *Recording) {
+func (recording *Recording) Destroy() {
 	if recording == nil {
 		return
 	}
@@ -1202,7 +1202,7 @@ func SaveRecordingToFile(recording *Recording, path string) bool {
 }
 
 // LoadRecordingFromFile is b3LoadRecordingFromFile: load a recording file. The caller owns the
-// returned recording and must destroy it with DestroyRecording.
+// returned recording and must destroy it with Recording.Destroy.
 func LoadRecordingFromFile(path string) *Recording {
 	if path == "" {
 		return nil
@@ -1226,7 +1226,7 @@ func LoadRecordingFromFile(path string) *Recording {
 	// Validate magic so a wrong file fails at load rather than deep in the player
 	magic := binary.LittleEndian.Uint32(rec.buffer.data[0:4])
 	if magic != recMagic {
-		DestroyRecording(rec)
+		rec.Destroy()
 		return nil
 	}
 

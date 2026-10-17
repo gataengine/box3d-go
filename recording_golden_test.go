@@ -246,7 +246,7 @@ func recGoldenRun(workerCount int) ([]byte, WorldID) {
 	Expect(worldId.GetAwakeBodyCount()).To(Equal(6))
 
 	data := append([]byte(nil), recording.GetData()...)
-	DestroyRecording(recording)
+	recording.Destroy()
 	_ = mesh
 	_ = bumps
 	_ = heightField
@@ -357,13 +357,13 @@ var _ = Describe("RecordingGoldenTest", func() {
 		rec := CreateRecording(0)
 		recBufAppend(&rec.buffer, data)
 		Expect(SaveRecordingToFile(rec, path)).To(BeTrue())
-		DestroyRecording(rec)
+		rec.Destroy()
 
 		loaded := LoadRecordingFromFile(path)
 		Expect(loaded).NotTo(BeNil())
 		Expect(loaded.GetSize()).To(Equal(len(data)))
 		Expect(loaded.GetData()).To(Equal(data))
-		DestroyRecording(loaded)
+		loaded.Destroy()
 
 		// A file without the magic is rejected at load
 		bad := append([]byte(nil), data...)
