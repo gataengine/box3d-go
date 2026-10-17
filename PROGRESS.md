@@ -83,7 +83,7 @@ each; both point at the same Go file.
 | src/mesh.c | mesh.go | todo | |  |
 | src/mesh_contact.c | mesh_contact.go | todo | |  |
 | src/motor_joint.c | motor_joint.go | todo | |  |
-| src/mover.c | mover.go | todo | |  |
+| src/mover.c | mover.go | verified | efca0c1 | SolvePlanes (delta, iterations, pushes) and ClipVector in mover_golden_test.go |
 | src/name_cache.c | name_cache.go | todo | |  |
 | src/name_cache.h | name_cache.go | todo | |  |
 | src/parallel_for.c | parallel_for.go | todo | |  |
@@ -154,7 +154,7 @@ each; both point at the same Go file.
 | test/test_manifold.c | manifold_test.go | blocked (needs convex_manifold.c, triangle_manifold.c) | | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | todo | |  |
-| test/test_mover.c | mover_test.go | todo | |  |
+| test/test_mover.c | mover_test.go | tested | efca0c1 | 12 of 22 tests; 10 pending (PIt) on mesh.c, height_field.c, compound.c, body.c, shape.c, physics_world.c (b3CollideMoverAndMesh/HeightField, b3World_CollideMover, b3Body_CollideMover) |
 | test/test_name_cache.c | name_cache_test.go | todo | |  |
 | test/test_recording.c | recording_test.go | todo | |  |
 | test/test_restitution.c | restitution_test.go | todo | |  |
