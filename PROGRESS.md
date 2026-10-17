@@ -29,8 +29,8 @@ each; both point at the same Go file.
 | src/arena_allocator.h | arena_allocator.go | ported | efca0c1 |  |
 | src/bitset.c | bitset.go | tested | efca0c1 | countSetBits lives in table.go as upstream |
 | src/bitset.h | bitset.go | tested | efca0c1 |  |
-| src/block_allocator.c | block_allocator.go | todo | |  |
-| src/block_allocator.h | block_allocator.go | todo | |  |
+| src/block_allocator.c | block_allocator.go | tested | efca0c1 | typed blockAllocator[T]; elements are []T of elementSize values |
+| src/block_allocator.h | block_allocator.go | tested | efca0c1 |  |
 | src/body.c | body.go | todo | |  |
 | src/body.h | body.go | todo | |  |
 | src/broad_phase.c | broad_phase.go | todo | |  |
@@ -121,7 +121,7 @@ each; both point at the same Go file.
 | src/world_snapshot.c | world_snapshot.go | todo | |  |
 | src/world_snapshot.h | world_snapshot.go | todo | |  |
 | test/main.c | box3d_suite_test.go | ported | efca0c1 | Ginkgo suite runner |
-| test/test_allocator.c | allocator_test.go | todo | |  |
+| test/test_allocator.c | allocator_test.go | tested | efca0c1 | alignment ENSURE checks Go alignment of T |
 | test/test_bitset.c | bitset_test.go | tested | efca0c1 |  |
 | test/test_body.c | body_test.go | todo | |  |
 | test/test_body_query.c | body_query_test.go | todo | |  |
