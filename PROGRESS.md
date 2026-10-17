@@ -4,8 +4,10 @@
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
 - Current milestone: **1 — Foundation**.
-- Determinism status: no goldens yet (they arrive with milestone 3/5). Fused multiply-add guard
-  (`fma_guard_test.go`) passes for arm64 and amd64 v3.
+- Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
+  matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
+  (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Fused
+  multiply-add guard (`fma_guard_test.go`) passes for arm64 and amd64 v3.
 
 Status legend: `todo`, `blocked (needs X)`, `ported` (compiles, no upstream test exists or test not
 yet ported), `tested` (upstream test file ported and passing), `verified` (goldens or replay pass
