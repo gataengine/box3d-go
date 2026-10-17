@@ -3,20 +3,27 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **5 — Determinism and replay**. Milestone 4 (Joints) is complete: joint.c
-  and the eight per-type joint files (distance, motor, prismatic, revolute, spherical, weld,
-  wheel, parallel) are ported, test_joint.c passes 11/11, and two joint goldens
-  (`joints_a_golden_test.go`, `joints_b_golden_test.go`) match the C build bit for bit at 1, 2 and
-  4 workers on darwin/arm64 and amd64. The specs that waited for joints run: test_broad_phase.c
-  2/2 (BroadPhaseStressTest) and test_world.c 26/26 (BodySimLocatorTest); the shared/ human and
-  determinism scenes build without a tag. Milestone 3 (Dynamics) is complete: every M3 source file
-  (body, shape, contact, mesh_contact, contact_solver + wide, solver_set, constraint_graph, island,
-  solver, scheduler, sensor, physics_world; name_cache pulled forward from M5) is ported and its
-  test file ported. Two specs are pending (`PIt`) and name the missing file: test_name_cache.c's
-  NameRoundTrip and RollbackNames need recording/replay (M5). b3HashWorldState was pulled forward
-  from recording.c because world tests need it; the other recording.c functions are still stubs
-  (listed in `LOOSE_ENDS.md`).
-- Determinism status: upstream's determinism goldens (test_determinism.c) arrive with milestone 5.
+- Current milestone: **6 — Benchmarks, parity audit, docs**. Milestone 5 (Determinism and replay)
+  is complete: recording.c, replay.c, world_snapshot.c and recording_ops.inl are ported (snapshots
+  are Go-native as the spec decides; C snapshot images are rejected by the layout hash before the
+  world is touched), test_recording.c passes 21/21, test_name_cache.c 3/3 (NameRoundTrip and
+  RollbackNames no longer pending), test_determinism.c 6/6 (SIMDWidthTest takes upstream's
+  native-width-4 skip). Recording/replay parity: Go op streams and geometry registries are byte
+  identical to C (`recording_golden_test.go` joint-free, `replay_joints_golden_test.go` every
+  joint type and every recorded joint op); C-made recordings with and without joints replay in Go
+  bit for bit (`replay_golden_test.go`, `replay_joints_golden_test.go`: per-step b3HashWorldState
+  and final bodies/joints); Go-made recordings (started on an empty world and mid-life with live
+  joints) replay and seek/scrub/restart through Go keyframes. All at 1, 2 and 4 workers.
+  Milestone 4 (Joints) is complete: joint.c and the eight per-type joint files are ported,
+  test_joint.c passes 11/11, joint goldens match C at 1, 2 and 4 workers. Milestone 3 (Dynamics)
+  is complete. No spec is pending.
+- Determinism status: test_determinism.c passes with upstream's float goldens verbatim on
+  darwin/arm64 and darwin/amd64 (Rosetta), and under box3d_noassert, box3d_validate and -race:
+  ragdoll (MultithreadingTest, sleep step 291, hash 0xFF4C605B) at 1, 2, 3, 4 and 5 workers and
+  CrossPlatformTest at the default (1); wave pile (272, 0x266F83B0) at 1-4 workers; query spawn
+  (242, 0xF3AD9BA6, 59 hits, query hash 0xE3271F3D) at 1-4 workers; mesh drop (226, 0xD2FF069D)
+  at 1 and 4 workers as upstream (also checked by hand at 2, 3 and 8). The rolling mix and mesh mix
+  scenes (upstream runs them only in SIMDWidthTest) agree run to run at 1, 2 and 4 workers.
   A world-level golden (`world_golden_test.go`, testdata/world_golden_gen.c) steps a joint-free
   scene (grid mesh ground, tilted static box, box stack, rolling sphere, capsule, rock and cylinder
   hulls, a bullet, a pile of small boxes and spheres) 240 steps and matches the C build bit for bit
@@ -60,7 +67,7 @@ each; both point at the same Go file.
 | upstream file | go file | status | ported at commit | notes |
 |---|---|---|---|---|
 | include/box3d/base.h | base.go | ported | efca0c1 | assert/validate via build tags; allocator API not ported |
-| include/box3d/box3d.h | body.go, shape.go, contact.go, joint.go, physics_world.go, physics_world_queries.go | ported | efca0c1 | b3World_*, b3Body_*, b3Shape_*, b3Contact_* done (methods on the ids); b3Joint_* (methods on JointID), b3Create*Joint (methods on WorldID), b3DestroyJoint (JointID.Destroy) and b3Default*JointDef done with joint.c; b3<Kind>Joint_* are JointID methods <Kind>Joint<Method>; recording/replay API is M5 |
+| include/box3d/box3d.h | body.go, shape.go, contact.go, joint.go, physics_world.go, physics_world_queries.go | ported | efca0c1 | b3World_*, b3Body_*, b3Shape_*, b3Contact_* done (methods on the ids); b3Joint_* (methods on JointID), b3Create*Joint (methods on WorldID), b3DestroyJoint (JointID.Destroy) and b3Default*JointDef done with joint.c; b3<Kind>Joint_* are JointID methods <Kind>Joint<Method>; recording/replay API (b3CreateRecording, b3World_StartRecording, b3CreatePlayer, b3RecPlayer_*, …) done with M5 |
 | include/box3d/collision.h | collision.go | ported | efca0c1 | blob helpers + hull, mesh and height field accessors done; compound functions are in compound.go |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
 | include/box3d/constants.h | constants.go | ported | efca0c1 |  |
@@ -117,7 +124,7 @@ each; both point at the same Go file.
 | src/mesh_contact.c | mesh_contact.go | verified | efca0c1 | bit-exact vs C on mesh_contact_golden_test.go (meshes, height fields, sphere/capsule/hull, cache refresh, impulse matching, materials, cullPoints/reduceCluster; darwin/arm64 and amd64; C output identical for NEON, SSE2, BOX3D_DISABLE_SIMD, BOX3D_VALIDATE); world_golden_test.go (mesh ground) |
 | src/motor_joint.c | motor_joint.go | verified | efca0c1 | whole file in upstream order; TestMotorJoint passes; joints_a_golden_test.go (velocity targets, linear and angular springs, setters) |
 | src/mover.c | mover.go | verified | efca0c1 | SolvePlanes (delta, iterations, pushes) and ClipVector in mover_golden_test.go |
-| src/name_cache.c | name_cache.go | tested | efca0c1 | pulled forward from M5; includes b3Hash32 (checked against C) and b3LoadName |
+| src/name_cache.c | name_cache.go | tested | efca0c1 | pulled forward from M5; includes b3Hash32 (checked against C) and b3LoadName; names round trip through recording and rollback |
 | src/name_cache.h | name_cache.go | ported | efca0c1 | header types and inline b3FindNameWithDefault |
 | src/parallel_for.c | parallel_for.go | tested | efca0c1 | no upstream test; parallel_for_test.go (Go-only) checks the block partition, claiming with goroutines, the serial default task system and the B3_MAX_TASKS fallback |
 | src/parallel_for.h | parallel_for.go | tested | efca0c1 |  |
@@ -128,10 +135,10 @@ each; both point at the same Go file.
 | src/prismatic_joint.c | prismatic_joint.go | verified | efca0c1 | whole file in upstream order; TestPrismaticJoint passes; joints_a_golden_test.go (static-dynamic slider on a rotated axis with spring, limit, motor; dynamic pair; setters, GetTranslation/GetSpeed) |
 | src/qsort.h | qsort.go | verified | efca0c1 | macros become functions taking LESS/SWAP closures; call counts and the unstable order of equal keys match C in qsort_test.go (testdata/qsort_golden_gen.c) |
 | src/rapidhash.h | rapidhash.go | tested | efca0c1 | no upstream test; rapidhash_test.go checks C reference values |
-| src/recording.c | recording.go, recording_ops.go | verified | efca0c1 | all functions ported; manifest writer expansions in recording_ops.go; op stream + registry byte-identical to C (recording_golden_test.go, 1/2/4 workers, darwin arm64/amd64); b3HashWorldState pulled forward in M3 |
+| src/recording.c | recording.go, recording_ops.go | verified | efca0c1 | all functions ported; manifest writer expansions in recording_ops.go; op stream + registry byte-identical to C, joint ops included (recording_golden_test.go, replay_joints_golden_test.go; 1/2/4 workers, darwin arm64/amd64); b3HashWorldState pulled forward in M3 |
 | src/recording.h | recording.go | ported | efca0c1 | types, constants, b3FnvMixPosition; b3Recording is the exported opaque `Recording`; dedupMap/tagMap are Go maps |
 | src/recording_ops.inl | recording_ops.go | ported | efca0c1 | arg structs, opcode constants, writer expansions (b3RecWriteArgs_/b3RecWrite_/b3RecWriteRet_); reader expansions in replay_ops.go |
-| src/replay.c | replay.go, replay_ops.go, replay_player.go | verified | efca0c1 | C-made joint-free recording (testdata/replay_golden_gen.c, empty-world seed) replays with every StateHash and the final body states matching C at 1/2/4 workers; player keyframe backward seek and restart match |
+| src/replay.c | replay.go, replay_ops.go, replay_player.go | verified | efca0c1 | C-made recordings without joints (testdata/replay_golden_gen.c) and with every joint type and joint op (testdata/replay_joints_golden_gen.c), empty-world seeds, replay with every StateHash and the final body/joint states matching C at 1/2/4 workers, darwin arm64/amd64; player keyframe seek/scrub and restart match; Go-made recordings replay |
 | src/replay.h | replay.go | verified | efca0c1 | |
 | src/revolute_joint.c | revolute_joint.go | verified | efca0c1 | whole file in upstream order; TestRevoluteJoint passes; joints_a_golden_test.go (hinge with spring, limit, motor; kinematic-driven tilted axis; free dynamic pair; setters, GetAngle) |
 | src/scheduler.c | scheduler.go | verified | efca0c1 | no upstream test; scheduler_test.go (Go-only) checks enqueue/finish at 1/2/4/8 workers, main-thread help, reset, shutdown and parallelFor on the scheduler (race-clean); world_golden_test.go at 2 and 4 workers |
@@ -163,7 +170,7 @@ each; both point at the same Go file.
 | src/wheel_joint.c | wheel_joint.go | verified | efca0c1 | b3WheelJoint_* are JointID methods WheelJoint<Method>; #if 0 b3WheelJoint_Dump not ported; joints_b_golden_test.go (see parallel_joint.c) |
 | src/wide4.c | — | n/a | | dropped: includes the .inl kernels, ported once |
 | src/wide8.c | — | n/a | | dropped: width 8 not ported |
-| src/world_snapshot.c | world_snapshot.go | tested | efca0c1 | Go-native image + Go layout hash; round trip and lock-step stepping in world_snapshot_test.go; C images rejected before the world is touched; player keyframes use it |
+| src/world_snapshot.c | world_snapshot.go | verified | efca0c1 | Go-native image + Go layout hash; round trip and lock-step stepping in world_snapshot_test.go; keyframe seek with every joint type (replay_joints_golden_test.go); C images rejected before the world is touched; player keyframes use it |
 | src/world_snapshot.h | world_snapshot.go | ported | efca0c1 | |
 | test/main.c | box3d_suite_test.go | ported | efca0c1 | Ginkgo suite runner |
 | test/test_allocator.c | allocator_test.go | tested | efca0c1 | alignment ENSURE checks Go alignment of T |
@@ -188,8 +195,8 @@ each; both point at the same Go file.
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | tested | efca0c1 | strided input via `fatPositions` (unsafe.Slice over the interleaved array) |
 | test/test_mover.c | mover_test.go | tested | efca0c1 | all 22 tests |
-| test/test_name_cache.c | name_cache_test.go | tested | efca0c1 | CacheUnit passes; NameRoundTrip and RollbackNames pending (PIt) until recording.c, replay.c, world_snapshot.c (M5) |
-| test/test_recording.c | recording_test.go | todo | |  |
+| test/test_name_cache.c | name_cache_test.go | tested | efca0c1 | all 3 tests (CacheUnit, NameRoundTrip, RollbackNames) |
+| test/test_recording.c | recording_test.go | tested | efca0c1 | all 21 tests; CrossWidthReplay takes upstream's native-width-4 skip |
 | test/test_restitution.c | restitution_test.go | tested | efca0c1 | all 14 subtests (one It each); the measurements match a C build line for line, WorkerParityTest hashes included (1, 2, 4 workers) |
 | test/test_sat.c | sat_test.go | tested | efca0c1 | oracle stats print identical to the C build (NEON and BOX3D_DISABLE_SIMD) |
 | test/test_shape.c | shape_test.go, shape_world_test.go | tested | efca0c1 | all 20 subtests (PointInShapeTest is #if 0 upstream); ShapeNameTest and ShapeFlagsTest are in shape_world_test.go |
