@@ -6,7 +6,16 @@
 - Current milestone: **2 — Collision** (part A in progress).
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
-  (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Fused
+  (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
+  construction (byte images via their hashes), hull queries, GJK distance, shape cast and TOI
+  match the C build on 26 golden lines (`hull_golden_test.go`, darwin/arm64 and amd64).
+- Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
+  allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
+  header structs have C layout, offsets are byte offsets from the header as upstream, and the
+  accessors (`GetHullPoints`, `GetHullPlanes`, …) return slices into the image via
+  `blobSlice[T]`. `BoxHull` is a value whose offsets reach into itself, as in C. `hullBytes`
+  views the image for hashing/cloning/comparing. Mesh, height field and compound blobs follow
+  the same pattern. Fused
   multiply-add guard (`fma_guard_test.go`) passes for arm64 and amd64 v3.
 
 Status legend: `todo`, `blocked (needs X)`, `ported` (compiles, no upstream test exists or test not
@@ -18,15 +27,15 @@ each; both point at the same Go file.
 |---|---|---|---|---|
 | include/box3d/base.h | base.go | ported | efca0c1 | assert/validate via build tags; allocator API not ported |
 | include/box3d/box3d.h | body.go, shape.go, joint.go, physics_world.go, … | todo | | b3Type_* functions live in the file of the object they act on |
-| include/box3d/collision.h | collision.go | blocked (needs blob layout, M2) | efca0c1 | Point2D, MeshQueryFcn, tree GetUserData/GetAABB ported; blob accessors wait for hull/mesh/height_field/compound |
+| include/box3d/collision.h | collision.go | ported | efca0c1 | blob helpers + hull accessors done; mesh/height field accessors land with mesh.c / height_field.c |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
 | include/box3d/constants.h | constants.go | ported | efca0c1 |  |
 | include/box3d/id.h | id.go | tested | efca0c1 |  |
 | include/box3d/math_functions.h | math_functions.go | tested | efca0c1 |  |
-| include/box3d/types.h | types.go | ported | efca0c1 | blob header layout/accessors in M2 |
+| include/box3d/types.h | types.go | ported | efca0c1 | blob headers have C layout (hull sizes asserted in hull.go) |
 | src/aabb.c | aabb.go | ported | efca0c1 | no upstream test (exercised by height_field in M2) |
 | src/aabb.h | aabb.go | ported | efca0c1 |  |
-| src/algorithm.h | — | n/a | | B3_SWAP becomes Go tuple assignment at call sites |
+| src/algorithm.h | — | n/a | | B3_SWAP becomes Go tuple assignment at call sites (hull.go) |
 | src/arena_allocator.c | arena_allocator.go | ported | efca0c1 | bookkeeping shell; typed stackAlloc[T]/bump[T] use make |
 | src/arena_allocator.h | arena_allocator.go | ported | efca0c1 |  |
 | src/bitset.c | bitset.go | tested | efca0c1 | countSetBits lives in table.go as upstream |
@@ -53,13 +62,13 @@ each; both point at the same Go file.
 | src/core.c | core.go | ported | efca0c1 |  |
 | src/core.h | core.go | ported | efca0c1 |  |
 | src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
-| src/distance.c | distance.go | tested | efca0c1 | GJK, shape cast, TOI |
+| src/distance.c | distance.go | verified | efca0c1 | GJK, shape cast, TOI; covered by hull_golden_test.go |
 | src/distance_joint.c | distance_joint.go | todo | |  |
 | src/dynamic_tree.c | dynamic_tree.go | todo | |  |
 | src/dynamic_tree.h | dynamic_tree.go | todo | |  |
 | src/height_field.c | height_field.go | todo | |  |
-| src/hull.c | hull.go | todo | |  |
-| src/hull.h | hull.go | todo | |  |
+| src/hull.c | hull.go | verified | efca0c1 | quickhull builder, box hulls, 2D hull; hull_golden_test.go matches C bytes/hashes |
+| src/hull.h | hull.go | verified | efca0c1 | hullMap = verstable[*HullData, int] |
 | src/id_pool.c | id_pool.go | ported | efca0c1 | no upstream test |
 | src/id_pool.h | id_pool.go | ported | efca0c1 |  |
 | src/island.c | island.go | todo | |  |
@@ -136,7 +145,7 @@ each; both point at the same Go file.
 | test/test_dynamic_tree.c | dynamic_tree_test.go | todo | |  |
 | test/test_hash.c | hash_test.go | todo | |  |
 | test/test_height_field.c | height_field_test.go | todo | |  |
-| test/test_hull.c | hull_test.go | todo | |  |
+| test/test_hull.c | hull_test.go | tested | efca0c1 |  |
 | test/test_id.c | id_test.go | tested | efca0c1 |  |
 | test/test_joint.c | joint_test.go | todo | |  |
 | test/test_large_world.c | large_world_test.go | todo | |  |

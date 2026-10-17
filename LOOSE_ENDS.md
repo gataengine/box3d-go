@@ -65,3 +65,15 @@ site. Upstream bugs are ported as is and listed here too.
 | distance.go | `b3SeparationFunction.type` | field `typ` | `type` is a Go keyword |
 | distance.go | `#if B3_ENABLE_VALIDATION && 0` block in `b3TimeOfImpact` | not ported | compiled out upstream |
 | verstable.go | `verstable.h` (Verstable v2.2.1) | API-level port: generic `verstable[K, V]` with linear probing and backward shift deletion; bucket placement, iteration order and `total_alloc_size` differ; `erase_itr` returns nothing | third party macro library; upstream only does lookups/inserts and an order independent sum |
+| collision.go | geometry blob layout (`b3HullData` …), `(intptr_t)hull + offset` accessors | blob = one `[]uint64` allocation (8-byte aligned, pointer free) viewed through the header pointer; `blobSlice[T]` uses `unsafe.Add` from the header; accessors return slices with the element count (`3 * stride` for SoA arrays, `edgeCount / 2` for cosines) | spec: byte image canonical; decision recorded in PROGRESS.md |
+| collision.go, hull.go | `b3GetHullVertices` … return `const T*` | return writable slices; the `*Write` variants are thin wrappers | Go has no const slices |
+| hull.go | `b3Alloc`/`b3Free` of hulls, `b3DestroyHull` | `blobAlloc`; `DestroyHull` is a no-op | GC owns memory |
+| hull.go | `b3HullBuilder` single work block (`b3HullBuilder_Init( b, mem, sizes )`) | typed slices per pool with the same capacities; `computeHullWorkSizes` keeps the byte offsets (Go sizes); `hullBuilderInit` returns the shifted points buffer | allocators dropped |
+| hull.go | `(b3QHVertex*)node`, `(b3QHFace*)node` intrusive list casts | `vertexOfNode` / `faceOfNode` / `nodeOfFace` unsafe casts (link is the first field) | keeps the intrusive lists literal |
+| hull.go | `#if B3_DEBUG` consistency checks, `#if B3_ENABLE_VALIDATION` `b3IsValidHull` | `if debugBuild` / `if !validateEnabled { return true }` | build tags instead of macros |
+| hull.go | `_Static_assert( sizeof( b3HullData ) == 152 )`, `== 696` | overflowing `uintptr` constant pair | Go has no static assert |
+| hull.go | `b3FindFarthestPointsAlongCardinalAxes( &i1, &i2, … )` | returns `(index1, index2)` | out-parameters become returns |
+| hull.go | `b3CreateHull( points, pointCount, max )`, `b3Hull2D( pts, count, hull )`, `b3SimplifyHull2D( hull, count, target )` | slices plus the explicit count | count may be less than the slice length (tests rely on it) |
+| hull.go | `b3CollideMoverAndHull` proxy `&mover->center1` with count 2 | `[]Vec3{mover.Center1, mover.Center2}` | no pointer arithmetic across fields |
+| hull.go | unrolled SoA copies in `b3MakeTransformedBoxHull` | loops over the same indices | same stores, same order |
+| hull.go | `memmove` in `b3SimplifyHull2D` | `copy` | same semantics |
