@@ -1,4 +1,4 @@
-// Port of src/recording.h (and later src/recording.c) from Box3D (https://github.com/erincatto/box3d)
+// Port of src/recording.h and src/recording.c from Box3D (https://github.com/erincatto/box3d)
 // at commit efca0c184d40fd6a82016983f1601c4d23965867.
 //
 // SPDX-FileCopyrightText: 2026 Erin Catto
@@ -8,18 +8,18 @@
 package box3d
 
 import (
+	"encoding/binary"
 	"math"
+	"os"
 	"unsafe"
 )
 
 // ---- recording.h ----
 
 // PORT: recording.h is ported in full (types, constants, inline). The arg structs and opcode
-// constants it generates from the X-macro manifest are in recording_ops.go. Every function it
-// declares is defined in recording.c, which lands in milestone 5; until then each one is a stub
-// below that does nothing and returns zero values. world.recording stays nil in milestones 3 and 4
-// (startRecordingIntoBuffer is a stub), so the B3_REC hooks in body.c, shape.c, joint.c and
-// physics_world.c never reach the stubs.
+// constants it generates from the X-macro manifest are in recording_ops.go, together with the
+// writer expansions of recording.c. The functions it declares are defined in the recording.c
+// section below.
 //
 // B3_REC( world, Name, args... ) expands at the call site to
 //
@@ -128,10 +128,10 @@ type geometryEntry struct {
 // geometryRegistry is b3GeometryRegistry.
 // Growable array of geometry entries. Ids are array indices, so the array is serialized in order.
 // dedupMap maps content hash to entry id for O(1) dedup; it is opaque here and owned by recording.c.
-// PORT: void* dedupMap is `any` until recording.c types it.
+// PORT: void* dedupMap is the geometryHashMap of recording.c (a Go map).
 type geometryRegistry struct {
 	entries  []geometryEntry
-	dedupMap any
+	dedupMap geometryHashMap
 }
 
 // Limit the maximum query name length to make recording simpler. Query names longer than this
@@ -154,7 +154,8 @@ type recTag struct {
 // destroys it. Opaque across the public API.
 // PORT: exported because the public API (box3d.h) hands it out (b3CreateRecording,
 // b3World_StartRecording); all fields are unexported. b3RecTag* tags is a slice with tagCount and
-// tagCapacity kept; void* tagMap is `any` until recording.c types it.
+// tagCapacity kept (the slice length is tagCapacity); void* tagMap is the recTagMap of recording.c
+// (a Go map).
 type Recording struct {
 	buffer      recBuffer
 	recordStart int32  // offset of the 3-byte size field for u24 backpatch
@@ -166,7 +167,7 @@ type Recording struct {
 	tags        []recTag
 	tagCount    int32
 	tagCapacity int32
-	tagMap      any
+	tagMap      recTagMap
 
 	// Union of world bounds over every recorded step, written at stop.
 	accumulatedBounds AABB
@@ -192,1235 +193,748 @@ type recQueryWriter struct {
 
 // ---- recording.c ----
 
-// PORT: every function below is a stub until milestone 5 (recording.c): it does nothing and returns
-// zero values. The signatures are final; recording.c fills in the bodies in upstream order.
-// Pointer + size parameters are slices; const char* is a string; void* context is any.
+// PORT: pointer + size parameters are slices; const char* is a string (the empty string is NULL);
+// void* context is any. b3Alloc/b3GrowAlloc/b3Free become make/copy and dropped references. The
+// two verstable maps of recording.c (b3GeometryHashMap, b3RecTagMap) are Go maps: they are only
+// probed by key, never iterated, so their order cannot reach the output.
 
-// Low-level buffer helpers
+// Buffer helpers
 
 // recBufAppend is b3RecBufAppend.
 func recBufAppend(buf *recBuffer, data []byte) {
-	// PORT: stub until milestone 5 (recording.c)
+	size := int32(len(data))
+	if size <= 0 {
+		return
+	}
+
+	if buf.countOnly {
+		buf.size += size
+		return
+	}
+
+	if buf.size+size > buf.capacity {
+		newCap := buf.capacity * 2
+		if newCap < buf.size+size+64 {
+			newCap = buf.size + size + 64
+		}
+		// PORT: b3Alloc / b3GrowAlloc: a fresh slice of newCap bytes keeping the written prefix.
+		grown := make([]byte, newCap)
+		copy(grown, buf.data[:buf.size])
+		buf.data = grown
+		buf.capacity = newCap
+	}
+
+	copy(buf.data[buf.size:], data)
+	buf.size += size
 }
 
 // recBufFree is b3RecBufFree.
 func recBufFree(buf *recBuffer) {
-	// PORT: stub until milestone 5 (recording.c)
+	if buf.data != nil {
+		buf.data = nil
+		buf.capacity = 0
+		buf.size = 0
+	}
 }
 
 // Write primitives
+
 // recWU8 is b3RecW_U8.
 func recWU8(buf *recBuffer, v uint8) {
-	// PORT: stub until milestone 5 (recording.c)
+	b := [1]byte{v}
+	recBufAppend(buf, b[:])
 }
 
 // recWU16 is b3RecW_U16.
 func recWU16(buf *recBuffer, v uint16) {
-	// PORT: stub until milestone 5 (recording.c)
+	b := [2]byte{uint8(v), uint8(v >> 8)}
+	recBufAppend(buf, b[:])
 }
 
 // recWU32 is b3RecW_U32.
 func recWU32(buf *recBuffer, v uint32) {
-	// PORT: stub until milestone 5 (recording.c)
+	b := [4]byte{uint8(v), uint8(v >> 8), uint8(v >> 16), uint8(v >> 24)}
+	recBufAppend(buf, b[:])
 }
 
 // recWU64 is b3RecW_U64.
 func recWU64(buf *recBuffer, v uint64) {
-	// PORT: stub until milestone 5 (recording.c)
+	b := [8]byte{uint8(v), uint8(v >> 8), uint8(v >> 16), uint8(v >> 24),
+		uint8(v >> 32), uint8(v >> 40), uint8(v >> 48), uint8(v >> 56)}
+	recBufAppend(buf, b[:])
 }
 
 // recWI32 is b3RecW_I32.
 func recWI32(buf *recBuffer, v int32) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU32(buf, uint32(v))
 }
 
 // recWF32 is b3RecW_F32.
 func recWF32(buf *recBuffer, v float32) {
-	// PORT: stub until milestone 5 (recording.c)
+	bits := math.Float32bits(v)
+	recWU32(buf, bits)
 }
 
 // recWF64 is b3RecW_F64.
 func recWF64(buf *recBuffer, v float64) {
-	// PORT: stub until milestone 5 (recording.c)
+	bits := math.Float64bits(v)
+	recWU64(buf, bits)
 }
 
 // recWBOOL is b3RecW_BOOL.
 func recWBOOL(buf *recBuffer, v bool) {
-	// PORT: stub until milestone 5 (recording.c)
+	if v {
+		recWU8(buf, 1)
+	} else {
+		recWU8(buf, 0)
+	}
 }
 
 // recWVEC3 is b3RecW_VEC3.
 func recWVEC3(buf *recBuffer, v Vec3) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWF32(buf, v.X)
+	recWF32(buf, v.Y)
+	recWF32(buf, v.Z)
 }
 
 // recWQUAT is b3RecW_QUAT.
 func recWQUAT(buf *recBuffer, v Quat) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWF32(buf, v.V.X)
+	recWF32(buf, v.V.Y)
+	recWF32(buf, v.V.Z)
+	recWF32(buf, v.S)
 }
 
 // recWTRANSFORM is b3RecW_TRANSFORM.
 func recWTRANSFORM(buf *recBuffer, v Transform) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWVEC3(buf, v.P)
+	recWQUAT(buf, v.Q)
 }
 
-// World position: doubles in large-world mode, floats otherwise (wire-identical to VEC3 in float build)
 // recWPOSITION is b3RecW_POSITION.
+// World position at full precision so recordings reproduce the simulation far from the origin.
+// In the float build this is three floats, wire-identical to VEC3.
+// PORT: float build only (BOX3D_DOUBLE_PRECISION is not ported).
 func recWPOSITION(buf *recBuffer, v Pos) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWF32(buf, v.X)
+	recWF32(buf, v.Y)
+	recWF32(buf, v.Z)
 }
 
 // recWWORLDXF is b3RecW_WORLDXF.
 func recWWORLDXF(buf *recBuffer, v WorldTransform) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWPOSITION(buf, v.P)
+	recWQUAT(buf, v.Q)
 }
 
 // recWMATRIX3 is b3RecW_MATRIX3.
 func recWMATRIX3(buf *recBuffer, v Matrix3) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWVEC3(buf, v.Cx)
+	recWVEC3(buf, v.Cy)
+	recWVEC3(buf, v.Cz)
 }
 
 // recWAABB is b3RecW_AABB.
 func recWAABB(buf *recBuffer, v AABB) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWVEC3(buf, v.LowerBound)
+	recWVEC3(buf, v.UpperBound)
 }
 
 // recWQUERYFILTER is b3RecW_QUERYFILTER.
 func recWQUERYFILTER(buf *recBuffer, v QueryFilter) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU64(buf, v.CategoryBits)
+	recWU64(buf, v.MaskBits)
 }
 
 // recWSHAPEPROXY is b3RecW_SHAPEPROXY.
+// Variable length: count, then count points, then radius. The point cloud lives behind a pointer so
+// it cannot ride along as POD.
 func recWSHAPEPROXY(buf *recBuffer, v ShapeProxy) {
-	// PORT: stub until milestone 5 (recording.c)
+	count := v.Count
+	if count < 0 {
+		count = 0
+	}
+	if count > MaxShapeCastPoints {
+		count = MaxShapeCastPoints
+	}
+	recWI32(buf, count)
+	for i := 0; i < int(count); i++ {
+		recWVEC3(buf, v.Points[i])
+	}
+	recWF32(buf, v.Radius)
 }
 
 // recWTREESTATS is b3RecW_TREESTATS.
 func recWTREESTATS(buf *recBuffer, v TreeStats) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWI32(buf, v.NodeVisits)
+	recWI32(buf, v.LeafVisits)
 }
 
 // recWRAYRESULT is b3RecW_RAYRESULT.
 func recWRAYRESULT(buf *recBuffer, v RayResult) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWSHAPEID(buf, v.ShapeId)
+	recWPOSITION(buf, v.Point)
+	recWVEC3(buf, v.Normal)
+	recWU64(buf, v.UserMaterialId)
+	recWF32(buf, v.Fraction)
+	recWI32(buf, v.TriangleIndex)
+	recWI32(buf, v.ChildIndex)
+	recWBOOL(buf, v.Hit)
 }
 
 // recWPLANERESULT is b3RecW_PLANERESULT.
 func recWPLANERESULT(buf *recBuffer, v PlaneResult) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWVEC3(buf, v.Plane.Normal)
+	recWF32(buf, v.Plane.Offset)
+	recWVEC3(buf, v.Point)
+	recWI32(buf, v.TriangleIndex)
+	recWI32(buf, v.ChildIndex)
+	recWI32(buf, v.MaterialIndex)
 }
 
 // recWWORLDID is b3RecW_WORLDID.
 func recWWORLDID(buf *recBuffer, v WorldID) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU32(buf, StoreWorldID(v))
 }
 
 // recWBODYID is b3RecW_BODYID.
 func recWBODYID(buf *recBuffer, v BodyID) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU64(buf, StoreBodyID(v))
 }
 
 // recWSHAPEID is b3RecW_SHAPEID.
 func recWSHAPEID(buf *recBuffer, v ShapeID) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU64(buf, StoreShapeID(v))
 }
 
 // recWJOINTID is b3RecW_JOINTID.
 func recWJOINTID(buf *recBuffer, v JointID) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU64(buf, StoreJointID(v))
 }
 
+// PORT: b3RecW_SPHERE and b3RecW_CAPSULE append the raw struct. Sphere and Capsule are plain
+// float32 structs with C's field order and no padding (16 and 28 bytes, checked here), so their
+// native byte image is upstream's.
+var (
+	_ = [1]struct{}{}[unsafe.Sizeof(Sphere{})-16]
+	_ = [1]struct{}{}[unsafe.Sizeof(Capsule{})-28]
+)
+
 // recWSPHERE is b3RecW_SPHERE.
+// Pointer-free POD; pointerWidth in the header gates the layout on replay
 func recWSPHERE(buf *recBuffer, v Sphere) {
-	// PORT: stub until milestone 5 (recording.c)
+	recBufAppend(buf, unsafe.Slice((*byte)(unsafe.Pointer(&v)), unsafe.Sizeof(v)))
 }
 
 // recWCAPSULE is b3RecW_CAPSULE.
 func recWCAPSULE(buf *recBuffer, v Capsule) {
-	// PORT: stub until milestone 5 (recording.c)
+	recBufAppend(buf, unsafe.Slice((*byte)(unsafe.Pointer(&v)), unsafe.Sizeof(v)))
 }
 
 // recWGEOMID is b3RecW_GEOMID.
 func recWGEOMID(buf *recBuffer, v uint32) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU32(buf, v)
 }
 
 // recWFILTER is b3RecW_FILTER.
 func recWFILTER(buf *recBuffer, v Filter) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU64(buf, v.CategoryBits)
+	recWU64(buf, v.MaskBits)
+	recWI32(buf, v.GroupIndex)
 }
 
 // recWMATERIAL is b3RecW_MATERIAL.
 func recWMATERIAL(buf *recBuffer, v SurfaceMaterial) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWF32(buf, v.Friction)
+	recWF32(buf, v.Restitution)
+	recWF32(buf, v.RollingResistance)
+	recWVEC3(buf, v.TangentVelocity)
+	recWU64(buf, v.UserMaterialId)
+	recWU32(buf, v.CustomColor)
 }
 
 // recWMASSDATA is b3RecW_MASSDATA.
 func recWMASSDATA(buf *recBuffer, v MassData) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWF32(buf, v.Mass)
+	recWVEC3(buf, v.Center)
+	recWMATRIX3(buf, v.Inertia)
 }
 
 // recWLOCKS is b3RecW_LOCKS.
 func recWLOCKS(buf *recBuffer, v MotionLocks) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWBOOL(buf, v.LinearX)
+	recWBOOL(buf, v.LinearY)
+	recWBOOL(buf, v.LinearZ)
+	recWBOOL(buf, v.AngularX)
+	recWBOOL(buf, v.AngularY)
+	recWBOOL(buf, v.AngularZ)
 }
+
+// recWSTR is b3RecW_STR.
+// PORT: const char* is a string and the empty string is NULL (0xFFFF), so a def name of "" records
+// as NULL where upstream would record a zero length string. The C string stops at its first NUL;
+// recWStrBytes does the length scan on bytes.
+func recWSTR(buf *recBuffer, s string) {
+	if s == "" {
+		recWU16(buf, 0xFFFF)
+		return
+	}
+	recWStrBytes(buf, []byte(s))
+}
+
+// recWStrBytes is the non-NULL branch of b3RecW_STR on a byte string (a NUL ends it).
+func recWStrBytes(buf *recBuffer, s []byte) {
+	len_ := 0
+	for len_ < len(s) && s[len_] != 0 && len_ < 65534 {
+		len_++
+	}
+	recWU16(buf, uint16(len_))
+	if len_ > 0 {
+		recBufAppend(buf, s[:len_])
+	}
+}
+
+// Hand-written def helpers. Zero pointer and cookie fields before serializing.
+// Readers call b3Default*Def() first to get the cookie, then overwrite fields.
+
+// Tripwire: each def serializer below is paired with a reader in recording_replay.c, and the two must
+// stay field-for-field in sync. Add a field to a def and the size changes, firing the matching assert
+// so the writer and reader both get updated. Only enforced on the 64-bit target; each def lists the
+// single-precision and double-precision sizes (equal for most), so either build configuration passes.
+// PORT: the _Static_asserts check the C sizeof of the defs; the Go defs hold strings, slices and
+// `any` and have other sizes. The tripwire is the DefTripwire spec in recording_golden_test.go,
+// which pins the field count of each Go def.
 
 // recWEXPLOSIONDEF is b3RecW_EXPLOSIONDEF.
 func recWEXPLOSIONDEF(buf *recBuffer, v ExplosionDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU64(buf, v.MaskBits)
+	recWPOSITION(buf, v.Position)
+	recWF32(buf, v.Radius)
+	recWF32(buf, v.Falloff)
+	recWF32(buf, v.ImpulsePerArea)
 }
 
 // recWBODYDEF is b3RecW_BODYDEF.
 func recWBODYDEF(buf *recBuffer, v BodyDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWI32(buf, int32(v.Type))
+	recWPOSITION(buf, v.Position)
+	recWQUAT(buf, v.Rotation)
+	recWVEC3(buf, v.LinearVelocity)
+	recWVEC3(buf, v.AngularVelocity)
+	recWF32(buf, v.LinearDamping)
+	recWF32(buf, v.AngularDamping)
+	recWF32(buf, v.GravityScale)
+	recWF32(buf, v.SleepThreshold)
+	recWF32(buf, v.SafetyFactor)
+	recWSTR(buf, v.Name)
+	// userData: not preserved
+	recWU64(buf, 0)
+	recWLOCKS(buf, v.MotionLocks)
+	recWBOOL(buf, v.EnableSleep)
+	recWBOOL(buf, v.IsAwake)
+	recWBOOL(buf, v.IsBullet)
+	recWBOOL(buf, v.IsEnabled)
+	recWBOOL(buf, v.AllowFastRotation)
+	recWBOOL(buf, v.EnableContactRecycling)
+	// internalValue omitted
 }
 
 // recWSHAPEDEF is b3RecW_SHAPEDEF.
 func recWSHAPEDEF(buf *recBuffer, v ShapeDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWSTR(buf, v.Name)
+
+	// userData: not preserved
+	recWU64(buf, 0)
+	// Per-triangle materials: length-prefixed so the reader can rebuild the array.
+	// Guard NULL so a default def (materialCount=0, materials=NULL) round-trips cleanly.
+	matCount := int32(0)
+	if v.Materials != nil {
+		matCount = v.MaterialCount
+	}
+	recWI32(buf, matCount)
+	for i := 0; i < int(matCount); i++ {
+		recWMATERIAL(buf, v.Materials[i])
+	}
+	recWMATERIAL(buf, v.BaseMaterial)
+	recWF32(buf, v.Density)
+	recWF32(buf, v.ExplosionScale)
+	recWFILTER(buf, v.Filter)
+	recWBOOL(buf, v.EnableCustomFiltering)
+	recWBOOL(buf, v.IsSensor)
+	recWBOOL(buf, v.EnableSensorEvents)
+	recWBOOL(buf, v.EnableContactEvents)
+	recWBOOL(buf, v.EnableHitEvents)
+	recWBOOL(buf, v.EnablePreSolveEvents)
+	recWBOOL(buf, v.InvokeContactCreation)
+	recWBOOL(buf, v.UpdateBodyMass)
+	recWBOOL(buf, v.EnableSpeculativeContact)
+	// internalValue omitted
+}
+
+// recWJointBase is b3RecW_JointBase.
+// Joint defs share a base. Body ids are written as packed ids for replay remapping.
+func recWJointBase(buf *recBuffer, base *JointDef) {
+	// userData: not preserved
+	recWU64(buf, 0)
+	recWBODYID(buf, base.BodyIdA)
+	recWBODYID(buf, base.BodyIdB)
+	recWTRANSFORM(buf, base.LocalFrameA)
+	recWTRANSFORM(buf, base.LocalFrameB)
+	recWF32(buf, base.ForceThreshold)
+	recWF32(buf, base.TorqueThreshold)
+	recWF32(buf, base.ConstraintHertz)
+	recWF32(buf, base.ConstraintDampingRatio)
+	recWF32(buf, base.DrawScale)
+	recWBOOL(buf, base.CollideConnected)
+	// internalValue omitted
 }
 
 // recWPARALLELJOINTDEF is b3RecW_PARALLELJOINTDEF.
 func recWPARALLELJOINTDEF(buf *recBuffer, v ParallelJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWF32(buf, v.Hertz)
+	recWF32(buf, v.DampingRatio)
+	recWF32(buf, v.MaxTorque)
 }
 
 // recWDISTANCEJOINTDEF is b3RecW_DISTANCEJOINTDEF.
 func recWDISTANCEJOINTDEF(buf *recBuffer, v DistanceJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWF32(buf, v.Length)
+	recWBOOL(buf, v.EnableSpring)
+	recWF32(buf, v.LowerSpringForce)
+	recWF32(buf, v.UpperSpringForce)
+	recWF32(buf, v.Hertz)
+	recWF32(buf, v.DampingRatio)
+	recWBOOL(buf, v.EnableLimit)
+	recWF32(buf, v.MinLength)
+	recWF32(buf, v.MaxLength)
+	recWBOOL(buf, v.EnableMotor)
+	recWF32(buf, v.MaxMotorForce)
+	recWF32(buf, v.MotorSpeed)
 }
 
 // recWFILTERJOINTDEF is b3RecW_FILTERJOINTDEF.
 func recWFILTERJOINTDEF(buf *recBuffer, v FilterJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
 }
 
 // recWMOTORJOINTDEF is b3RecW_MOTORJOINTDEF.
 func recWMOTORJOINTDEF(buf *recBuffer, v MotorJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWVEC3(buf, v.LinearVelocity)
+	recWF32(buf, v.MaxVelocityForce)
+	recWVEC3(buf, v.AngularVelocity)
+	recWF32(buf, v.MaxVelocityTorque)
+	recWF32(buf, v.LinearHertz)
+	recWF32(buf, v.LinearDampingRatio)
+	recWF32(buf, v.MaxSpringForce)
+	recWF32(buf, v.AngularHertz)
+	recWF32(buf, v.AngularDampingRatio)
+	recWF32(buf, v.MaxSpringTorque)
 }
 
 // recWPRISMATICJOINTDEF is b3RecW_PRISMATICJOINTDEF.
 func recWPRISMATICJOINTDEF(buf *recBuffer, v PrismaticJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWBOOL(buf, v.EnableSpring)
+	recWF32(buf, v.Hertz)
+	recWF32(buf, v.DampingRatio)
+	recWF32(buf, v.TargetTranslation)
+	recWBOOL(buf, v.EnableLimit)
+	recWF32(buf, v.LowerTranslation)
+	recWF32(buf, v.UpperTranslation)
+	recWBOOL(buf, v.EnableMotor)
+	recWF32(buf, v.MaxMotorForce)
+	recWF32(buf, v.MotorSpeed)
 }
 
 // recWREVOLUTEJOINTDEF is b3RecW_REVOLUTEJOINTDEF.
 func recWREVOLUTEJOINTDEF(buf *recBuffer, v RevoluteJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWF32(buf, v.TargetAngle)
+	recWBOOL(buf, v.EnableSpring)
+	recWF32(buf, v.Hertz)
+	recWF32(buf, v.DampingRatio)
+	recWBOOL(buf, v.EnableLimit)
+	recWF32(buf, v.LowerAngle)
+	recWF32(buf, v.UpperAngle)
+	recWBOOL(buf, v.EnableMotor)
+	recWF32(buf, v.MaxMotorTorque)
+	recWF32(buf, v.MotorSpeed)
 }
 
 // recWSPHERICALJOINTDEF is b3RecW_SPHERICALJOINTDEF.
 func recWSPHERICALJOINTDEF(buf *recBuffer, v SphericalJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWBOOL(buf, v.EnableSpring)
+	recWF32(buf, v.Hertz)
+	recWF32(buf, v.DampingRatio)
+	recWQUAT(buf, v.TargetRotation)
+	recWBOOL(buf, v.EnableConeLimit)
+	recWF32(buf, v.ConeAngle)
+	recWBOOL(buf, v.EnableTwistLimit)
+	recWF32(buf, v.LowerTwistAngle)
+	recWF32(buf, v.UpperTwistAngle)
+	recWBOOL(buf, v.EnableMotor)
+	recWF32(buf, v.MaxMotorTorque)
+	recWVEC3(buf, v.MotorVelocity)
 }
 
 // recWWELDJOINTDEF is b3RecW_WELDJOINTDEF.
 func recWWELDJOINTDEF(buf *recBuffer, v WeldJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWF32(buf, v.LinearHertz)
+	recWF32(buf, v.AngularHertz)
+	recWF32(buf, v.LinearDampingRatio)
+	recWF32(buf, v.AngularDampingRatio)
 }
 
 // recWWHEELJOINTDEF is b3RecW_WHEELJOINTDEF.
 func recWWHEELJOINTDEF(buf *recBuffer, v WheelJointDef) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWJointBase(buf, &v.Base)
+	recWBOOL(buf, v.EnableSuspensionSpring)
+	recWF32(buf, v.SuspensionHertz)
+	recWF32(buf, v.SuspensionDampingRatio)
+	recWBOOL(buf, v.EnableSuspensionLimit)
+	recWF32(buf, v.LowerSuspensionLimit)
+	recWF32(buf, v.UpperSuspensionLimit)
+	recWBOOL(buf, v.EnableSpinMotor)
+	recWF32(buf, v.MaxSpinTorque)
+	recWF32(buf, v.SpinSpeed)
+	recWBOOL(buf, v.EnableSteering)
+	recWF32(buf, v.SteeringHertz)
+	recWF32(buf, v.SteeringDampingRatio)
+	recWF32(buf, v.TargetSteeringAngle)
+	recWF32(buf, v.MaxSteeringTorque)
+	recWBOOL(buf, v.EnableSteeringLimit)
+	recWF32(buf, v.LowerSteeringLimit)
+	recWF32(buf, v.UpperSteeringLimit)
+}
+
+// Query recording. A query collects a variable number of hits through a user callback, so the count
+// is not known until the callback stops firing. The record is built in a local buffer with a
+// reserved hit-count slot, then committed whole under the lock so concurrent query threads never
+// interleave records in the shared buffer.
+
+// recReserveU32 is b3RecReserveU32.
+func recReserveU32(buf *recBuffer) int {
+	offset := int(buf.size)
+	zero := [4]byte{0, 0, 0, 0}
+	recBufAppend(buf, zero[:])
+	return offset
+}
+
+// recPatchU32 is b3RecPatchU32.
+func recPatchU32(buf *recBuffer, offset int, v uint32) {
+	assert(offset >= 0 && offset+4 <= int(buf.size), "offset >= 0 && offset + 4 <= buf->size")
+	p := buf.data[offset:]
+	p[0] = uint8(v)
+	p[1] = uint8(v >> 8)
+	p[2] = uint8(v >> 16)
+	p[3] = uint8(v >> 24)
+}
+
+// recCommitRecordLocked is b3RecCommitRecordLocked.
+// Frame and append one record into the buffer. Caller holds rec->lock.
+func recCommitRecordLocked(rec *Recording, opcode uint8, payload []byte) {
+	payloadSize := len(payload)
+	assert(payloadSize >= 0 && payloadSize < (1<<24), "payloadSize >= 0 && payloadSize < ( 1 << 24 )")
+	recWU8(&rec.buffer, opcode)
+	sz := [3]byte{uint8(payloadSize), uint8(payloadSize >> 8), uint8(payloadSize >> 16)}
+	recBufAppend(&rec.buffer, sz[:])
+	recBufAppend(&rec.buffer, payload)
+}
+
+// recCommitRecord is b3RecCommitRecord.
+// Commit a finished query record under the lock. The payload buffer stays owned by the caller.
+func recCommitRecord(rec *Recording, opcode uint8, payload []byte) {
+	lockMutex(rec.lock)
+	recCommitRecordLocked(rec, opcode, payload)
+	unlockMutex(rec.lock)
+}
+
+// recQueryBegin is b3RecQueryBegin.
+// PORT: setting the union member overlapFcn to NULL clears every member.
+func recQueryBegin(w *recQueryWriter, context any, tagId uint64, tagName string) {
+	w.buf = recBuffer{}
+	w.overlapFcn = nil
+	w.castFcn = nil
+	w.planeFcn = nil
+	w.moverFilterFcn = nil
+	w.userContext = context
+	w.hitCount = 0
+	w.countOffset = 0
+	w.tagId = tagId
+	w.tagName = tagName
+}
+
+// recBufBytes is the written prefix of a buffer: ( buf.data, buf.size ).
+func recBufBytes(buf *recBuffer) []byte {
+	return buf.data[:buf.size]
+}
+
+// recQueryCommit is b3RecQueryCommit.
+func recQueryCommit(rec *Recording, opcode uint8, w *recQueryWriter) {
+	lockMutex(rec.lock)
+	// A tagged query writes its identity key right before the query record, under one lock so the pair
+	// stays adjacent even with concurrent queries. The key is the hash of the caller (id, name), which
+	// are interned once into the trailing tag table so the viewer can show them.
+	tagged := w.tagId != 0 || (w.tagName != "" && w.tagName[0] != 0)
+	if tagged {
+		key := hashQueryTag(w.tagId, w.tagName)
+		recInternTag(rec, key, w.tagId, w.tagName)
+		tagBuf := recBuffer{}
+		recWU64(&tagBuf, key)
+		recCommitRecordLocked(rec, recOpQueryTag, recBufBytes(&tagBuf))
+		recBufFree(&tagBuf)
+	}
+	recCommitRecordLocked(rec, opcode, recBufBytes(&w.buf))
+	unlockMutex(rec.lock)
+	recBufFree(&w.buf)
+}
+
+// recOverlapTrampoline is b3RecOverlapTrampoline.
+// PORT: the C union aliases overlapFcn and moverFilterFcn; Go keeps both members, so the
+// trampoline calls whichever one the query installed.
+func recOverlapTrampoline(id ShapeID, ctx any) bool {
+	w := ctx.(*recQueryWriter)
+	// The user fcn is NULL for an unfiltered mover cast: accept all, still record the decision so
+	// replay reproduces the same per-shape accept stream.
+	ret := true
+	if w.overlapFcn != nil {
+		ret = w.overlapFcn(id, w.userContext)
+	} else if w.moverFilterFcn != nil {
+		ret = w.moverFilterFcn(id, w.userContext)
+	}
+	recWSHAPEID(&w.buf, id)
+	recWBOOL(&w.buf, ret)
+	w.hitCount++
+	return ret
+}
+
+// recCastTrampoline is b3RecCastTrampoline.
+func recCastTrampoline(id ShapeID, point Pos, normal Vec3, fraction float32, userMaterialId uint64, triangleIndex int,
+	childIndex int, ctx any) float32 {
+	w := ctx.(*recQueryWriter)
+	ret := w.castFcn(id, point, normal, fraction, userMaterialId, triangleIndex, childIndex, w.userContext)
+	recWSHAPEID(&w.buf, id)
+	recWPOSITION(&w.buf, point)
+	recWVEC3(&w.buf, normal)
+	recWF32(&w.buf, fraction)
+	recWU64(&w.buf, userMaterialId)
+	recWI32(&w.buf, int32(triangleIndex))
+	recWI32(&w.buf, int32(childIndex))
+	recWF32(&w.buf, ret)
+	w.hitCount++
+	return ret
+}
+
+// recPlaneTrampoline is b3RecPlaneTrampoline.
+// 3D delivers every plane for one shape in a single call. Record the shape, its plane count, each
+// plane, then the user return so replay reproduces the same per-shape batch. One hit per shape.
+// PORT: const b3PlaneResult* planes + planeCount is a slice (as PlaneResultFcn).
+func recPlaneTrampoline(id ShapeID, planes []PlaneResult, ctx any) bool {
+	w := ctx.(*recQueryWriter)
+	ret := w.planeFcn(id, planes, w.userContext)
+	planeCount := len(planes)
+	recWSHAPEID(&w.buf, id)
+	recWI32(&w.buf, int32(planeCount))
+	for i := 0; i < planeCount; i++ {
+		recWPLANERESULT(&w.buf, planes[i])
+	}
+	recWBOOL(&w.buf, ret)
+	w.hitCount++
+	return ret
 }
 
 // Record framing
 
 // recBeginRecord is b3RecBeginRecord.
 func recBeginRecord(rec *Recording, opcode uint8) {
-	// PORT: stub until milestone 5 (recording.c)
+	recWU8(&rec.buffer, opcode)
+	rec.recordStart = rec.buffer.size
+	// Reserve 3 bytes for the u24 payload size, backpatched in b3RecEndRecord.
+	zero := [3]byte{0, 0, 0}
+	recBufAppend(&rec.buffer, zero[:])
 }
 
 // recEndRecord is b3RecEndRecord.
 func recEndRecord(rec *Recording) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// Per-op full writers (framing + args), generated from the manifest (recording_ops.go).
-// PORT: b3RecWriteArgs_Name (args without framing) is only called inside recording.c and lands
-// with it.
-
-// recWriteDestroyWorld is b3RecWrite_DestroyWorld.
-func recWriteDestroyWorld(rec *Recording, a *recArgsDestroyWorld) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteStep is b3RecWrite_Step.
-func recWriteStep(rec *Recording, a *recArgsStep) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldEnableSleeping is b3RecWrite_WorldEnableSleeping.
-func recWriteWorldEnableSleeping(rec *Recording, a *recArgsWorldEnableSleeping) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldEnableContinuous is b3RecWrite_WorldEnableContinuous.
-func recWriteWorldEnableContinuous(rec *Recording, a *recArgsWorldEnableContinuous) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetRestitutionThreshold is b3RecWrite_WorldSetRestitutionThreshold.
-func recWriteWorldSetRestitutionThreshold(rec *Recording, a *recArgsWorldSetRestitutionThreshold) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetHitEventThreshold is b3RecWrite_WorldSetHitEventThreshold.
-func recWriteWorldSetHitEventThreshold(rec *Recording, a *recArgsWorldSetHitEventThreshold) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetGravity is b3RecWrite_WorldSetGravity.
-func recWriteWorldSetGravity(rec *Recording, a *recArgsWorldSetGravity) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldExplode is b3RecWrite_WorldExplode.
-func recWriteWorldExplode(rec *Recording, a *recArgsWorldExplode) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetContactTuning is b3RecWrite_WorldSetContactTuning.
-func recWriteWorldSetContactTuning(rec *Recording, a *recArgsWorldSetContactTuning) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetContactRecycleDistance is b3RecWrite_WorldSetContactRecycleDistance.
-func recWriteWorldSetContactRecycleDistance(rec *Recording, a *recArgsWorldSetContactRecycleDistance) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetMaximumLinearSpeed is b3RecWrite_WorldSetMaximumLinearSpeed.
-func recWriteWorldSetMaximumLinearSpeed(rec *Recording, a *recArgsWorldSetMaximumLinearSpeed) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldEnableWarmStarting is b3RecWrite_WorldEnableWarmStarting.
-func recWriteWorldEnableWarmStarting(rec *Recording, a *recArgsWorldEnableWarmStarting) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldRebuildStaticTree is b3RecWrite_WorldRebuildStaticTree.
-func recWriteWorldRebuildStaticTree(rec *Recording, a *recArgsWorldRebuildStaticTree) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldEnableSpeculative is b3RecWrite_WorldEnableSpeculative.
-func recWriteWorldEnableSpeculative(rec *Recording, a *recArgsWorldEnableSpeculative) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetRestitutionIterations is b3RecWrite_WorldSetRestitutionIterations.
-func recWriteWorldSetRestitutionIterations(rec *Recording, a *recArgsWorldSetRestitutionIterations) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldEnableRestitutionPropagation is b3RecWrite_WorldEnableRestitutionPropagation.
-func recWriteWorldEnableRestitutionPropagation(rec *Recording, a *recArgsWorldEnableRestitutionPropagation) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWorldSetIsotropicInertiaTolerance is b3RecWrite_WorldSetIsotropicInertiaTolerance.
-func recWriteWorldSetIsotropicInertiaTolerance(rec *Recording, a *recArgsWorldSetIsotropicInertiaTolerance) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateBody is b3RecWrite_CreateBody.
-func recWriteCreateBody(rec *Recording, a *recArgsCreateBody) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDestroyBody is b3RecWrite_DestroyBody.
-func recWriteDestroyBody(rec *Recording, a *recArgsDestroyBody) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetTransform is b3RecWrite_BodySetTransform.
-func recWriteBodySetTransform(rec *Recording, a *recArgsBodySetTransform) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetLinearVelocity is b3RecWrite_BodySetLinearVelocity.
-func recWriteBodySetLinearVelocity(rec *Recording, a *recArgsBodySetLinearVelocity) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetType is b3RecWrite_BodySetType.
-func recWriteBodySetType(rec *Recording, a *recArgsBodySetType) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetName is b3RecWrite_BodySetName.
-func recWriteBodySetName(rec *Recording, a *recArgsBodySetName) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetAngularVelocity is b3RecWrite_BodySetAngularVelocity.
-func recWriteBodySetAngularVelocity(rec *Recording, a *recArgsBodySetAngularVelocity) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetTargetTransform is b3RecWrite_BodySetTargetTransform.
-func recWriteBodySetTargetTransform(rec *Recording, a *recArgsBodySetTargetTransform) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyApplyForce is b3RecWrite_BodyApplyForce.
-func recWriteBodyApplyForce(rec *Recording, a *recArgsBodyApplyForce) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyApplyForceToCenter is b3RecWrite_BodyApplyForceToCenter.
-func recWriteBodyApplyForceToCenter(rec *Recording, a *recArgsBodyApplyForceToCenter) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyApplyTorque is b3RecWrite_BodyApplyTorque.
-func recWriteBodyApplyTorque(rec *Recording, a *recArgsBodyApplyTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyApplyLinearImpulse is b3RecWrite_BodyApplyLinearImpulse.
-func recWriteBodyApplyLinearImpulse(rec *Recording, a *recArgsBodyApplyLinearImpulse) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyApplyLinearImpulseToCenter is b3RecWrite_BodyApplyLinearImpulseToCenter.
-func recWriteBodyApplyLinearImpulseToCenter(rec *Recording, a *recArgsBodyApplyLinearImpulseToCenter) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyApplyAngularImpulse is b3RecWrite_BodyApplyAngularImpulse.
-func recWriteBodyApplyAngularImpulse(rec *Recording, a *recArgsBodyApplyAngularImpulse) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetMassData is b3RecWrite_BodySetMassData.
-func recWriteBodySetMassData(rec *Recording, a *recArgsBodySetMassData) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyApplyMassFromShapes is b3RecWrite_BodyApplyMassFromShapes.
-func recWriteBodyApplyMassFromShapes(rec *Recording, a *recArgsBodyApplyMassFromShapes) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetLinearDamping is b3RecWrite_BodySetLinearDamping.
-func recWriteBodySetLinearDamping(rec *Recording, a *recArgsBodySetLinearDamping) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetAngularDamping is b3RecWrite_BodySetAngularDamping.
-func recWriteBodySetAngularDamping(rec *Recording, a *recArgsBodySetAngularDamping) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetGravityScale is b3RecWrite_BodySetGravityScale.
-func recWriteBodySetGravityScale(rec *Recording, a *recArgsBodySetGravityScale) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetAwake is b3RecWrite_BodySetAwake.
-func recWriteBodySetAwake(rec *Recording, a *recArgsBodySetAwake) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyEnableSleep is b3RecWrite_BodyEnableSleep.
-func recWriteBodyEnableSleep(rec *Recording, a *recArgsBodyEnableSleep) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetSleepThreshold is b3RecWrite_BodySetSleepThreshold.
-func recWriteBodySetSleepThreshold(rec *Recording, a *recArgsBodySetSleepThreshold) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyDisable is b3RecWrite_BodyDisable.
-func recWriteBodyDisable(rec *Recording, a *recArgsBodyDisable) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyEnable is b3RecWrite_BodyEnable.
-func recWriteBodyEnable(rec *Recording, a *recArgsBodyEnable) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetMotionLocks is b3RecWrite_BodySetMotionLocks.
-func recWriteBodySetMotionLocks(rec *Recording, a *recArgsBodySetMotionLocks) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetBullet is b3RecWrite_BodySetBullet.
-func recWriteBodySetBullet(rec *Recording, a *recArgsBodySetBullet) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyEnableContactRecycling is b3RecWrite_BodyEnableContactRecycling.
-func recWriteBodyEnableContactRecycling(rec *Recording, a *recArgsBodyEnableContactRecycling) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyEnableHitEvents is b3RecWrite_BodyEnableHitEvents.
-func recWriteBodyEnableHitEvents(rec *Recording, a *recArgsBodyEnableHitEvents) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodyAllowFastRotation is b3RecWrite_BodyAllowFastRotation.
-func recWriteBodyAllowFastRotation(rec *Recording, a *recArgsBodyAllowFastRotation) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteBodySetSafetyFactor is b3RecWrite_BodySetSafetyFactor.
-func recWriteBodySetSafetyFactor(rec *Recording, a *recArgsBodySetSafetyFactor) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateSphereShape is b3RecWrite_CreateSphereShape.
-func recWriteCreateSphereShape(rec *Recording, a *recArgsCreateSphereShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateCapsuleShape is b3RecWrite_CreateCapsuleShape.
-func recWriteCreateCapsuleShape(rec *Recording, a *recArgsCreateCapsuleShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateHullShape is b3RecWrite_CreateHullShape.
-func recWriteCreateHullShape(rec *Recording, a *recArgsCreateHullShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateMeshShape is b3RecWrite_CreateMeshShape.
-func recWriteCreateMeshShape(rec *Recording, a *recArgsCreateMeshShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateHeightFieldShape is b3RecWrite_CreateHeightFieldShape.
-func recWriteCreateHeightFieldShape(rec *Recording, a *recArgsCreateHeightFieldShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateCompoundShape is b3RecWrite_CreateCompoundShape.
-func recWriteCreateCompoundShape(rec *Recording, a *recArgsCreateCompoundShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDestroyShape is b3RecWrite_DestroyShape.
-func recWriteDestroyShape(rec *Recording, a *recArgsDestroyShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetDensity is b3RecWrite_ShapeSetDensity.
-func recWriteShapeSetDensity(rec *Recording, a *recArgsShapeSetDensity) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetFriction is b3RecWrite_ShapeSetFriction.
-func recWriteShapeSetFriction(rec *Recording, a *recArgsShapeSetFriction) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetRestitution is b3RecWrite_ShapeSetRestitution.
-func recWriteShapeSetRestitution(rec *Recording, a *recArgsShapeSetRestitution) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetSurfaceMaterial is b3RecWrite_ShapeSetSurfaceMaterial.
-func recWriteShapeSetSurfaceMaterial(rec *Recording, a *recArgsShapeSetSurfaceMaterial) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetFilter is b3RecWrite_ShapeSetFilter.
-func recWriteShapeSetFilter(rec *Recording, a *recArgsShapeSetFilter) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeEnableSensorEvents is b3RecWrite_ShapeEnableSensorEvents.
-func recWriteShapeEnableSensorEvents(rec *Recording, a *recArgsShapeEnableSensorEvents) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeEnableContactEvents is b3RecWrite_ShapeEnableContactEvents.
-func recWriteShapeEnableContactEvents(rec *Recording, a *recArgsShapeEnableContactEvents) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeEnablePreSolveEvents is b3RecWrite_ShapeEnablePreSolveEvents.
-func recWriteShapeEnablePreSolveEvents(rec *Recording, a *recArgsShapeEnablePreSolveEvents) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeEnableHitEvents is b3RecWrite_ShapeEnableHitEvents.
-func recWriteShapeEnableHitEvents(rec *Recording, a *recArgsShapeEnableHitEvents) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetSphere is b3RecWrite_ShapeSetSphere.
-func recWriteShapeSetSphere(rec *Recording, a *recArgsShapeSetSphere) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetCapsule is b3RecWrite_ShapeSetCapsule.
-func recWriteShapeSetCapsule(rec *Recording, a *recArgsShapeSetCapsule) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeApplyWind is b3RecWrite_ShapeApplyWind.
-func recWriteShapeApplyWind(rec *Recording, a *recArgsShapeApplyWind) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetName is b3RecWrite_ShapeSetName.
-func recWriteShapeSetName(rec *Recording, a *recArgsShapeSetName) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetMeshMaterial is b3RecWrite_ShapeSetMeshMaterial.
-func recWriteShapeSetMeshMaterial(rec *Recording, a *recArgsShapeSetMeshMaterial) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetHull is b3RecWrite_ShapeSetHull.
-func recWriteShapeSetHull(rec *Recording, a *recArgsShapeSetHull) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteShapeSetMesh is b3RecWrite_ShapeSetMesh.
-func recWriteShapeSetMesh(rec *Recording, a *recArgsShapeSetMesh) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateParallelJoint is b3RecWrite_CreateParallelJoint.
-func recWriteCreateParallelJoint(rec *Recording, a *recArgsCreateParallelJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateDistanceJoint is b3RecWrite_CreateDistanceJoint.
-func recWriteCreateDistanceJoint(rec *Recording, a *recArgsCreateDistanceJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateFilterJoint is b3RecWrite_CreateFilterJoint.
-func recWriteCreateFilterJoint(rec *Recording, a *recArgsCreateFilterJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateMotorJoint is b3RecWrite_CreateMotorJoint.
-func recWriteCreateMotorJoint(rec *Recording, a *recArgsCreateMotorJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreatePrismaticJoint is b3RecWrite_CreatePrismaticJoint.
-func recWriteCreatePrismaticJoint(rec *Recording, a *recArgsCreatePrismaticJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateRevoluteJoint is b3RecWrite_CreateRevoluteJoint.
-func recWriteCreateRevoluteJoint(rec *Recording, a *recArgsCreateRevoluteJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateSphericalJoint is b3RecWrite_CreateSphericalJoint.
-func recWriteCreateSphericalJoint(rec *Recording, a *recArgsCreateSphericalJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateWeldJoint is b3RecWrite_CreateWeldJoint.
-func recWriteCreateWeldJoint(rec *Recording, a *recArgsCreateWeldJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteCreateWheelJoint is b3RecWrite_CreateWheelJoint.
-func recWriteCreateWheelJoint(rec *Recording, a *recArgsCreateWheelJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDestroyJoint is b3RecWrite_DestroyJoint.
-func recWriteDestroyJoint(rec *Recording, a *recArgsDestroyJoint) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteJointSetLocalFrameA is b3RecWrite_JointSetLocalFrameA.
-func recWriteJointSetLocalFrameA(rec *Recording, a *recArgsJointSetLocalFrameA) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteJointSetLocalFrameB is b3RecWrite_JointSetLocalFrameB.
-func recWriteJointSetLocalFrameB(rec *Recording, a *recArgsJointSetLocalFrameB) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteJointSetCollideConnected is b3RecWrite_JointSetCollideConnected.
-func recWriteJointSetCollideConnected(rec *Recording, a *recArgsJointSetCollideConnected) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteJointWakeBodies is b3RecWrite_JointWakeBodies.
-func recWriteJointWakeBodies(rec *Recording, a *recArgsJointWakeBodies) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteJointSetConstraintTuning is b3RecWrite_JointSetConstraintTuning.
-func recWriteJointSetConstraintTuning(rec *Recording, a *recArgsJointSetConstraintTuning) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteJointSetForceThreshold is b3RecWrite_JointSetForceThreshold.
-func recWriteJointSetForceThreshold(rec *Recording, a *recArgsJointSetForceThreshold) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteJointSetTorqueThreshold is b3RecWrite_JointSetTorqueThreshold.
-func recWriteJointSetTorqueThreshold(rec *Recording, a *recArgsJointSetTorqueThreshold) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteParallelJointSetSpringHertz is b3RecWrite_ParallelJointSetSpringHertz.
-func recWriteParallelJointSetSpringHertz(rec *Recording, a *recArgsParallelJointSetSpringHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteParallelJointSetSpringDampingRatio is b3RecWrite_ParallelJointSetSpringDampingRatio.
-func recWriteParallelJointSetSpringDampingRatio(rec *Recording, a *recArgsParallelJointSetSpringDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteParallelJointSetMaxTorque is b3RecWrite_ParallelJointSetMaxTorque.
-func recWriteParallelJointSetMaxTorque(rec *Recording, a *recArgsParallelJointSetMaxTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointSetLength is b3RecWrite_DistanceJointSetLength.
-func recWriteDistanceJointSetLength(rec *Recording, a *recArgsDistanceJointSetLength) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointEnableSpring is b3RecWrite_DistanceJointEnableSpring.
-func recWriteDistanceJointEnableSpring(rec *Recording, a *recArgsDistanceJointEnableSpring) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointSetSpringForceRange is b3RecWrite_DistanceJointSetSpringForceRange.
-func recWriteDistanceJointSetSpringForceRange(rec *Recording, a *recArgsDistanceJointSetSpringForceRange) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointSetSpringHertz is b3RecWrite_DistanceJointSetSpringHertz.
-func recWriteDistanceJointSetSpringHertz(rec *Recording, a *recArgsDistanceJointSetSpringHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointSetSpringDampingRatio is b3RecWrite_DistanceJointSetSpringDampingRatio.
-func recWriteDistanceJointSetSpringDampingRatio(rec *Recording, a *recArgsDistanceJointSetSpringDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointEnableLimit is b3RecWrite_DistanceJointEnableLimit.
-func recWriteDistanceJointEnableLimit(rec *Recording, a *recArgsDistanceJointEnableLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointSetLengthRange is b3RecWrite_DistanceJointSetLengthRange.
-func recWriteDistanceJointSetLengthRange(rec *Recording, a *recArgsDistanceJointSetLengthRange) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointEnableMotor is b3RecWrite_DistanceJointEnableMotor.
-func recWriteDistanceJointEnableMotor(rec *Recording, a *recArgsDistanceJointEnableMotor) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointSetMotorSpeed is b3RecWrite_DistanceJointSetMotorSpeed.
-func recWriteDistanceJointSetMotorSpeed(rec *Recording, a *recArgsDistanceJointSetMotorSpeed) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteDistanceJointSetMaxMotorForce is b3RecWrite_DistanceJointSetMaxMotorForce.
-func recWriteDistanceJointSetMaxMotorForce(rec *Recording, a *recArgsDistanceJointSetMaxMotorForce) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetLinearVelocity is b3RecWrite_MotorJointSetLinearVelocity.
-func recWriteMotorJointSetLinearVelocity(rec *Recording, a *recArgsMotorJointSetLinearVelocity) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetAngularVelocity is b3RecWrite_MotorJointSetAngularVelocity.
-func recWriteMotorJointSetAngularVelocity(rec *Recording, a *recArgsMotorJointSetAngularVelocity) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetMaxVelocityForce is b3RecWrite_MotorJointSetMaxVelocityForce.
-func recWriteMotorJointSetMaxVelocityForce(rec *Recording, a *recArgsMotorJointSetMaxVelocityForce) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetMaxVelocityTorque is b3RecWrite_MotorJointSetMaxVelocityTorque.
-func recWriteMotorJointSetMaxVelocityTorque(rec *Recording, a *recArgsMotorJointSetMaxVelocityTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetLinearHertz is b3RecWrite_MotorJointSetLinearHertz.
-func recWriteMotorJointSetLinearHertz(rec *Recording, a *recArgsMotorJointSetLinearHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetLinearDampingRatio is b3RecWrite_MotorJointSetLinearDampingRatio.
-func recWriteMotorJointSetLinearDampingRatio(rec *Recording, a *recArgsMotorJointSetLinearDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetAngularHertz is b3RecWrite_MotorJointSetAngularHertz.
-func recWriteMotorJointSetAngularHertz(rec *Recording, a *recArgsMotorJointSetAngularHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetAngularDampingRatio is b3RecWrite_MotorJointSetAngularDampingRatio.
-func recWriteMotorJointSetAngularDampingRatio(rec *Recording, a *recArgsMotorJointSetAngularDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetMaxSpringForce is b3RecWrite_MotorJointSetMaxSpringForce.
-func recWriteMotorJointSetMaxSpringForce(rec *Recording, a *recArgsMotorJointSetMaxSpringForce) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteMotorJointSetMaxSpringTorque is b3RecWrite_MotorJointSetMaxSpringTorque.
-func recWriteMotorJointSetMaxSpringTorque(rec *Recording, a *recArgsMotorJointSetMaxSpringTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointEnableSpring is b3RecWrite_PrismaticJointEnableSpring.
-func recWritePrismaticJointEnableSpring(rec *Recording, a *recArgsPrismaticJointEnableSpring) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointSetSpringHertz is b3RecWrite_PrismaticJointSetSpringHertz.
-func recWritePrismaticJointSetSpringHertz(rec *Recording, a *recArgsPrismaticJointSetSpringHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointSetSpringDampingRatio is b3RecWrite_PrismaticJointSetSpringDampingRatio.
-func recWritePrismaticJointSetSpringDampingRatio(rec *Recording, a *recArgsPrismaticJointSetSpringDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointSetTargetTranslation is b3RecWrite_PrismaticJointSetTargetTranslation.
-func recWritePrismaticJointSetTargetTranslation(rec *Recording, a *recArgsPrismaticJointSetTargetTranslation) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointEnableLimit is b3RecWrite_PrismaticJointEnableLimit.
-func recWritePrismaticJointEnableLimit(rec *Recording, a *recArgsPrismaticJointEnableLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointSetLimits is b3RecWrite_PrismaticJointSetLimits.
-func recWritePrismaticJointSetLimits(rec *Recording, a *recArgsPrismaticJointSetLimits) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointEnableMotor is b3RecWrite_PrismaticJointEnableMotor.
-func recWritePrismaticJointEnableMotor(rec *Recording, a *recArgsPrismaticJointEnableMotor) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointSetMotorSpeed is b3RecWrite_PrismaticJointSetMotorSpeed.
-func recWritePrismaticJointSetMotorSpeed(rec *Recording, a *recArgsPrismaticJointSetMotorSpeed) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWritePrismaticJointSetMaxMotorForce is b3RecWrite_PrismaticJointSetMaxMotorForce.
-func recWritePrismaticJointSetMaxMotorForce(rec *Recording, a *recArgsPrismaticJointSetMaxMotorForce) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointEnableSpring is b3RecWrite_RevoluteJointEnableSpring.
-func recWriteRevoluteJointEnableSpring(rec *Recording, a *recArgsRevoluteJointEnableSpring) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointSetSpringHertz is b3RecWrite_RevoluteJointSetSpringHertz.
-func recWriteRevoluteJointSetSpringHertz(rec *Recording, a *recArgsRevoluteJointSetSpringHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointSetSpringDampingRatio is b3RecWrite_RevoluteJointSetSpringDampingRatio.
-func recWriteRevoluteJointSetSpringDampingRatio(rec *Recording, a *recArgsRevoluteJointSetSpringDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointSetTargetAngle is b3RecWrite_RevoluteJointSetTargetAngle.
-func recWriteRevoluteJointSetTargetAngle(rec *Recording, a *recArgsRevoluteJointSetTargetAngle) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointEnableLimit is b3RecWrite_RevoluteJointEnableLimit.
-func recWriteRevoluteJointEnableLimit(rec *Recording, a *recArgsRevoluteJointEnableLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointSetLimits is b3RecWrite_RevoluteJointSetLimits.
-func recWriteRevoluteJointSetLimits(rec *Recording, a *recArgsRevoluteJointSetLimits) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointEnableMotor is b3RecWrite_RevoluteJointEnableMotor.
-func recWriteRevoluteJointEnableMotor(rec *Recording, a *recArgsRevoluteJointEnableMotor) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointSetMotorSpeed is b3RecWrite_RevoluteJointSetMotorSpeed.
-func recWriteRevoluteJointSetMotorSpeed(rec *Recording, a *recArgsRevoluteJointSetMotorSpeed) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRevoluteJointSetMaxMotorTorque is b3RecWrite_RevoluteJointSetMaxMotorTorque.
-func recWriteRevoluteJointSetMaxMotorTorque(rec *Recording, a *recArgsRevoluteJointSetMaxMotorTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointEnableConeLimit is b3RecWrite_SphericalJointEnableConeLimit.
-func recWriteSphericalJointEnableConeLimit(rec *Recording, a *recArgsSphericalJointEnableConeLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointSetConeLimit is b3RecWrite_SphericalJointSetConeLimit.
-func recWriteSphericalJointSetConeLimit(rec *Recording, a *recArgsSphericalJointSetConeLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointEnableTwistLimit is b3RecWrite_SphericalJointEnableTwistLimit.
-func recWriteSphericalJointEnableTwistLimit(rec *Recording, a *recArgsSphericalJointEnableTwistLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointSetTwistLimits is b3RecWrite_SphericalJointSetTwistLimits.
-func recWriteSphericalJointSetTwistLimits(rec *Recording, a *recArgsSphericalJointSetTwistLimits) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointEnableSpring is b3RecWrite_SphericalJointEnableSpring.
-func recWriteSphericalJointEnableSpring(rec *Recording, a *recArgsSphericalJointEnableSpring) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointSetSpringHertz is b3RecWrite_SphericalJointSetSpringHertz.
-func recWriteSphericalJointSetSpringHertz(rec *Recording, a *recArgsSphericalJointSetSpringHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointSetSpringDampingRatio is b3RecWrite_SphericalJointSetSpringDampingRatio.
-func recWriteSphericalJointSetSpringDampingRatio(rec *Recording, a *recArgsSphericalJointSetSpringDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointSetTargetRotation is b3RecWrite_SphericalJointSetTargetRotation.
-func recWriteSphericalJointSetTargetRotation(rec *Recording, a *recArgsSphericalJointSetTargetRotation) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointEnableMotor is b3RecWrite_SphericalJointEnableMotor.
-func recWriteSphericalJointEnableMotor(rec *Recording, a *recArgsSphericalJointEnableMotor) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointSetMotorVelocity is b3RecWrite_SphericalJointSetMotorVelocity.
-func recWriteSphericalJointSetMotorVelocity(rec *Recording, a *recArgsSphericalJointSetMotorVelocity) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteSphericalJointSetMaxMotorTorque is b3RecWrite_SphericalJointSetMaxMotorTorque.
-func recWriteSphericalJointSetMaxMotorTorque(rec *Recording, a *recArgsSphericalJointSetMaxMotorTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWeldJointSetLinearHertz is b3RecWrite_WeldJointSetLinearHertz.
-func recWriteWeldJointSetLinearHertz(rec *Recording, a *recArgsWeldJointSetLinearHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWeldJointSetLinearDampingRatio is b3RecWrite_WeldJointSetLinearDampingRatio.
-func recWriteWeldJointSetLinearDampingRatio(rec *Recording, a *recArgsWeldJointSetLinearDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWeldJointSetAngularHertz is b3RecWrite_WeldJointSetAngularHertz.
-func recWriteWeldJointSetAngularHertz(rec *Recording, a *recArgsWeldJointSetAngularHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWeldJointSetAngularDampingRatio is b3RecWrite_WeldJointSetAngularDampingRatio.
-func recWriteWeldJointSetAngularDampingRatio(rec *Recording, a *recArgsWeldJointSetAngularDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointEnableSuspension is b3RecWrite_WheelJointEnableSuspension.
-func recWriteWheelJointEnableSuspension(rec *Recording, a *recArgsWheelJointEnableSuspension) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetSuspensionHertz is b3RecWrite_WheelJointSetSuspensionHertz.
-func recWriteWheelJointSetSuspensionHertz(rec *Recording, a *recArgsWheelJointSetSuspensionHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetSuspensionDampingRatio is b3RecWrite_WheelJointSetSuspensionDampingRatio.
-func recWriteWheelJointSetSuspensionDampingRatio(rec *Recording, a *recArgsWheelJointSetSuspensionDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointEnableSuspensionLimit is b3RecWrite_WheelJointEnableSuspensionLimit.
-func recWriteWheelJointEnableSuspensionLimit(rec *Recording, a *recArgsWheelJointEnableSuspensionLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetSuspensionLimits is b3RecWrite_WheelJointSetSuspensionLimits.
-func recWriteWheelJointSetSuspensionLimits(rec *Recording, a *recArgsWheelJointSetSuspensionLimits) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointEnableSpinMotor is b3RecWrite_WheelJointEnableSpinMotor.
-func recWriteWheelJointEnableSpinMotor(rec *Recording, a *recArgsWheelJointEnableSpinMotor) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetSpinMotorSpeed is b3RecWrite_WheelJointSetSpinMotorSpeed.
-func recWriteWheelJointSetSpinMotorSpeed(rec *Recording, a *recArgsWheelJointSetSpinMotorSpeed) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetMaxSpinTorque is b3RecWrite_WheelJointSetMaxSpinTorque.
-func recWriteWheelJointSetMaxSpinTorque(rec *Recording, a *recArgsWheelJointSetMaxSpinTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointEnableSteering is b3RecWrite_WheelJointEnableSteering.
-func recWriteWheelJointEnableSteering(rec *Recording, a *recArgsWheelJointEnableSteering) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetSteeringHertz is b3RecWrite_WheelJointSetSteeringHertz.
-func recWriteWheelJointSetSteeringHertz(rec *Recording, a *recArgsWheelJointSetSteeringHertz) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetSteeringDampingRatio is b3RecWrite_WheelJointSetSteeringDampingRatio.
-func recWriteWheelJointSetSteeringDampingRatio(rec *Recording, a *recArgsWheelJointSetSteeringDampingRatio) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetMaxSteeringTorque is b3RecWrite_WheelJointSetMaxSteeringTorque.
-func recWriteWheelJointSetMaxSteeringTorque(rec *Recording, a *recArgsWheelJointSetMaxSteeringTorque) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointEnableSteeringLimit is b3RecWrite_WheelJointEnableSteeringLimit.
-func recWriteWheelJointEnableSteeringLimit(rec *Recording, a *recArgsWheelJointEnableSteeringLimit) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetSteeringLimits is b3RecWrite_WheelJointSetSteeringLimits.
-func recWriteWheelJointSetSteeringLimits(rec *Recording, a *recArgsWheelJointSetSteeringLimits) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteWheelJointSetTargetSteeringAngle is b3RecWrite_WheelJointSetTargetSteeringAngle.
-func recWriteWheelJointSetTargetSteeringAngle(rec *Recording, a *recArgsWheelJointSetTargetSteeringAngle) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryOverlapAABB is b3RecWrite_QueryOverlapAABB.
-func recWriteQueryOverlapAABB(rec *Recording, a *recArgsQueryOverlapAABB) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryOverlapShape is b3RecWrite_QueryOverlapShape.
-func recWriteQueryOverlapShape(rec *Recording, a *recArgsQueryOverlapShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryCastRay is b3RecWrite_QueryCastRay.
-func recWriteQueryCastRay(rec *Recording, a *recArgsQueryCastRay) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryCastShape is b3RecWrite_QueryCastShape.
-func recWriteQueryCastShape(rec *Recording, a *recArgsQueryCastShape) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryCastRayClosest is b3RecWrite_QueryCastRayClosest.
-func recWriteQueryCastRayClosest(rec *Recording, a *recArgsQueryCastRayClosest) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryCastMover is b3RecWrite_QueryCastMover.
-func recWriteQueryCastMover(rec *Recording, a *recArgsQueryCastMover) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryCollideMover is b3RecWrite_QueryCollideMover.
-func recWriteQueryCollideMover(rec *Recording, a *recArgsQueryCollideMover) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteQueryTag is b3RecWrite_QueryTag.
-func recWriteQueryTag(rec *Recording, a *recArgsQueryTag) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteStateHash is b3RecWrite_StateHash.
-func recWriteStateHash(rec *Recording, a *recArgsStateHash) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRecordingBounds is b3RecWrite_RecordingBounds.
-func recWriteRecordingBounds(rec *Recording, a *recArgsRecordingBounds) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// Create ops: writers that also append the returned id inside the record.
-
-// recWriteRetCreateBody is b3RecWriteRet_CreateBody.
-func recWriteRetCreateBody(rec *Recording, a *recArgsCreateBody, id BodyID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateSphereShape is b3RecWriteRet_CreateSphereShape.
-func recWriteRetCreateSphereShape(rec *Recording, a *recArgsCreateSphereShape, id ShapeID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateCapsuleShape is b3RecWriteRet_CreateCapsuleShape.
-func recWriteRetCreateCapsuleShape(rec *Recording, a *recArgsCreateCapsuleShape, id ShapeID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateHullShape is b3RecWriteRet_CreateHullShape.
-func recWriteRetCreateHullShape(rec *Recording, a *recArgsCreateHullShape, id ShapeID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateMeshShape is b3RecWriteRet_CreateMeshShape.
-func recWriteRetCreateMeshShape(rec *Recording, a *recArgsCreateMeshShape, id ShapeID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateHeightFieldShape is b3RecWriteRet_CreateHeightFieldShape.
-func recWriteRetCreateHeightFieldShape(rec *Recording, a *recArgsCreateHeightFieldShape, id ShapeID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateCompoundShape is b3RecWriteRet_CreateCompoundShape.
-func recWriteRetCreateCompoundShape(rec *Recording, a *recArgsCreateCompoundShape, id ShapeID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateParallelJoint is b3RecWriteRet_CreateParallelJoint.
-func recWriteRetCreateParallelJoint(rec *Recording, a *recArgsCreateParallelJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateDistanceJoint is b3RecWriteRet_CreateDistanceJoint.
-func recWriteRetCreateDistanceJoint(rec *Recording, a *recArgsCreateDistanceJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateFilterJoint is b3RecWriteRet_CreateFilterJoint.
-func recWriteRetCreateFilterJoint(rec *Recording, a *recArgsCreateFilterJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateMotorJoint is b3RecWriteRet_CreateMotorJoint.
-func recWriteRetCreateMotorJoint(rec *Recording, a *recArgsCreateMotorJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreatePrismaticJoint is b3RecWriteRet_CreatePrismaticJoint.
-func recWriteRetCreatePrismaticJoint(rec *Recording, a *recArgsCreatePrismaticJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateRevoluteJoint is b3RecWriteRet_CreateRevoluteJoint.
-func recWriteRetCreateRevoluteJoint(rec *Recording, a *recArgsCreateRevoluteJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateSphericalJoint is b3RecWriteRet_CreateSphericalJoint.
-func recWriteRetCreateSphericalJoint(rec *Recording, a *recArgsCreateSphericalJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateWeldJoint is b3RecWriteRet_CreateWeldJoint.
-func recWriteRetCreateWeldJoint(rec *Recording, a *recArgsCreateWeldJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRetCreateWheelJoint is b3RecWriteRet_CreateWheelJoint.
-func recWriteRetCreateWheelJoint(rec *Recording, a *recArgsCreateWheelJoint, id JointID) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// Patch helpers for the query hit-count backfill
-
-// recReserveU32 is b3RecReserveU32.
-func recReserveU32(buf *recBuffer) int {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
-}
-
-// recPatchU32 is b3RecPatchU32.
-func recPatchU32(buf *recBuffer, offset int, v uint32) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recCommitRecord is b3RecCommitRecord.
-// Commit a finished query record under the lock. The payload buffer stays owned by the caller.
-func recCommitRecord(rec *Recording, opcode uint8, payload []byte) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recQueryBegin is b3RecQueryBegin.
-func recQueryBegin(w *recQueryWriter, context any, tagId uint64, tagName string) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recQueryCommit is b3RecQueryCommit.
-func recQueryCommit(rec *Recording, opcode uint8, w *recQueryWriter) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// Recording trampolines: replace the user fcn so hits are captured before dispatch. The overlap
-// trampoline doubles for the mover filter, which has the same bool(shapeId, ctx) shape.
-
-// recOverlapTrampoline is b3RecOverlapTrampoline.
-func recOverlapTrampoline(id ShapeID, ctx any) bool {
-	// PORT: stub until milestone 5 (recording.c)
-	return false
-}
-
-// recCastTrampoline is b3RecCastTrampoline.
-func recCastTrampoline(id ShapeID, point Pos, normal Vec3, fraction float32, userMaterialId uint64, triangleIndex int,
-	childIndex int, ctx any) float32 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0.0
-}
-
-// recPlaneTrampoline is b3RecPlaneTrampoline.
-// PORT: const b3PlaneResult* planes + planeCount is a slice (as PlaneResultFcn).
-func recPlaneTrampoline(id ShapeID, planes []PlaneResult, ctx any) bool {
-	// PORT: stub until milestone 5 (recording.c)
-	return false
-}
+	payloadSize := rec.buffer.size - rec.recordStart - 3
+	assert(payloadSize >= 0 && payloadSize < (1<<24), "payloadSize >= 0 && payloadSize < ( 1 << 24 )")
+	p := rec.buffer.data[rec.recordStart:]
+	p[0] = uint8(payloadSize)
+	p[1] = uint8(payloadSize >> 8)
+	p[2] = uint8(payloadSize >> 16)
+}
+
+// PORT: the codegen passes of recording.c (b3RecWriteArgs_Name, b3RecWrite_Name and
+// b3RecWriteRet_Name from the recording_ops.inl manifest) are written out in recording_ops.go.
 
 // Geometry registry
 
+// Content hash to chain head, so dedup is near O(1). Colliding hashes share a head and are walked
+// through b3GeometryEntry::hashNext, so the byteCount + memcmp check always finds an existing blob.
+// PORT: b3GeometryHashMap (verstable, uint64_t -> uint32_t) is geometryHashMap, a Go map.
+type geometryHashMap = map[uint64]uint32
+
+// Tag key to tag index, so interning a query tag is O(1) rather than a linear scan over the tag table.
+// PORT: b3RecTagMap (verstable, uint64_t -> uint32_t) is recTagMap, a Go map.
+type recTagMap = map[uint64]uint32
+
+// registryPush is b3RegistryPush.
+// Append a fresh entry and splice it onto the front of its hash chain. The map value is the chain head.
+// PORT: the map iterator is replaced by the key: hashPresent says whether m[contentHash] exists.
+func registryPush(reg *geometryRegistry, m geometryHashMap, hashPresent bool, kind geometryKind, contentHash uint64,
+	bytes []byte) uint32 {
+	byteCount := len(bytes)
+	assert(byteCount > 0, "byteCount > 0")
+	copy_ := make([]byte, byteCount)
+	copy(copy_, bytes)
+
+	id := uint32(len(reg.entries))
+	entry := arrayEmplace(&reg.entries)
+	entry.contentHash = contentHash
+	entry.id = id
+	entry.kind = kind
+	entry.byteCount = int32(byteCount)
+	entry.bytes = copy_
+	if hashPresent {
+		entry.hashNext = int32(m[contentHash])
+	} else {
+		entry.hashNext = NullIndex
+	}
+
+	m[contentHash] = id
+	return id
+}
+
+// registryMap is b3RegistryMap.
+func registryMap(reg *geometryRegistry) geometryHashMap {
+	if reg.dedupMap == nil {
+		fresh := make(geometryHashMap)
+		reg.dedupMap = fresh
+	}
+	return reg.dedupMap
+}
+
 // internGeometry is b3InternGeometry.
 func internGeometry(reg *geometryRegistry, kind geometryKind, contentHash uint64, bytes []byte) uint32 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+	m := registryMap(reg)
+
+	head, hashPresent := m[contentHash]
+	if hashPresent {
+		// Walk every entry sharing this hash so a collision still finds the identical blob.
+		for index := int32(head); index != NullIndex; index = reg.entries[index].hashNext {
+			e := &reg.entries[index]
+			if int(e.byteCount) == len(bytes) && string(e.bytes) == string(bytes) {
+				return e.id
+			}
+		}
+	}
+
+	return registryPush(reg, m, hashPresent, kind, contentHash, bytes)
 }
 
 // appendGeometry is b3AppendGeometry.
@@ -1428,77 +942,324 @@ func internGeometry(reg *geometryRegistry, kind geometryKind, contentHash uint64
 // b3InternGeometry it never deduplicates, so the keyframe seed can mirror slots 1:1 even when an
 // already-recorded file carries byte-identical duplicate slots (a hash collision wrote them apart).
 func appendGeometry(reg *geometryRegistry, kind geometryKind, contentHash uint64, bytes []byte) uint32 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+	m := registryMap(reg)
+	_, hashPresent := m[contentHash]
+	return registryPush(reg, m, hashPresent, kind, contentHash, bytes)
 }
 
 // freeRegistry is b3FreeRegistry.
 func freeRegistry(reg *geometryRegistry) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// recWriteRegistry is b3RecWriteRegistry.
-func recWriteRegistry(rec *Recording) {
-	// PORT: stub until milestone 5 (recording.c)
+	arrayDestroy(&reg.entries)
+	reg.dedupMap = nil
 }
 
 // hashQueryTag is b3HashQueryTag.
 // Hash a query (id, name) pair into the stable key the viewer tracks the query by. Never returns 0,
 // so the key doubles as a tagged/untagged flag.
 func hashQueryTag(id uint64, name string) uint64 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+	h := snapFnvInit
+	for i := 0; i < 8; i++ {
+		h = (h ^ ((id >> (8 * i)) & 0xFF)) * snapFnvPrime
+	}
+	for i := 0; i < len(name) && name[i] != 0; i++ {
+		h = (h ^ uint64(name[i])) * snapFnvPrime
+	}
+	// Never 0 so the key doubles as the tagged flag.
+	if h != 0 {
+		return h
+	}
+	return 1
+}
+
+// recTags is b3RecTags.
+func recTags(rec *Recording) recTagMap {
+	if rec.tagMap == nil {
+		fresh := make(recTagMap)
+		rec.tagMap = fresh
+	}
+	return rec.tagMap
 }
 
 // recInternTag is b3RecInternTag.
 // Record a key->(id, name) mapping once, deduped by key (a repeated key keeps its first id/name).
 func recInternTag(rec *Recording, key uint64, id uint64, name string) {
-	// PORT: stub until milestone 5 (recording.c)
+	m := recTags(rec)
+	if _, found := m[key]; found {
+		return // first id/name for a key wins
+	}
+
+	if rec.tagCount == rec.tagCapacity {
+		newCap := int32(8)
+		if rec.tagCapacity != 0 {
+			newCap = 2 * rec.tagCapacity
+		}
+		// PORT: b3GrowAlloc; the slice length is the capacity.
+		grown := make([]recTag, newCap)
+		copy(grown, rec.tags[:rec.tagCount])
+		rec.tags = grown
+		rec.tagCapacity = newCap
+	}
+
+	index := uint32(rec.tagCount)
+	tag := &rec.tags[rec.tagCount]
+	rec.tagCount++
+	tag.key = key
+	tag.id = id
+	n := 0
+	for n < len(name) && name[n] != 0 && n < maxQueryNameLength {
+		tag.queryName[n] = name[n]
+		n++
+	}
+	tag.queryName[n] = 0
+	m[key] = index
 }
 
-// Intern each large geometry kind and return a stable u32 id for use in create ops.
+// recWriteRegistry is b3RecWriteRegistry.
+// Write the trailing registry block: u32 entryCount then per-entry { u8 kind, u32 byteCount, bytes },
+// followed by the query-tag table { u32 tagCount, per-tag uu64 id, STR name }. A reader built before
+// the tag table stops after the geometry entries and ignores the trailing tag bytes.
+func recWriteRegistry(rec *Recording) {
+	recWU32(&rec.buffer, uint32(len(rec.registry.entries)))
+	for i := 0; i < len(rec.registry.entries); i++ {
+		e := &rec.registry.entries[i]
+		recWU8(&rec.buffer, uint8(e.kind))
+		recWU32(&rec.buffer, uint32(e.byteCount))
+		recBufAppend(&rec.buffer, e.bytes[:e.byteCount])
+	}
 
-// recInternHull is b3RecInternHull.
-func recInternHull(rec *Recording, hull *HullData) uint32 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+	recWU32(&rec.buffer, uint32(rec.tagCount))
+	for i := 0; i < int(rec.tagCount); i++ {
+		recWU64(&rec.buffer, rec.tags[i].key)
+		recWU64(&rec.buffer, rec.tags[i].id)
+		// PORT: queryName is a char array, never NULL.
+		recWStrBytes(&rec.buffer, rec.tags[i].queryName[:])
+	}
 }
 
-// recInternMesh is b3RecInternMesh.
-func recInternMesh(rec *Recording, mesh *MeshData) uint32 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+// Lifecycle
+
+// CreateRecording is b3CreateRecording: create an empty recording buffer. byteCapacity is the
+// initial capacity (0 picks a default).
+func CreateRecording(byteCapacity int) *Recording {
+	rec := &Recording{}
+
+	initCap := 65536
+	if byteCapacity > 0 {
+		initCap = byteCapacity
+	}
+	rec.buffer.data = make([]byte, initCap)
+	rec.buffer.capacity = int32(initCap)
+	rec.buffer.size = 0
+	rec.lock = createMutex()
+	return rec
 }
 
-// recInternHeightField is b3RecInternHeightField.
-func recInternHeightField(rec *Recording, hf *HeightFieldData) uint32 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+// DestroyRecording is b3DestroyRecording: destroy a recording created by CreateRecording or
+// LoadRecordingFromFile.
+func DestroyRecording(recording *Recording) {
+	if recording == nil {
+		return
+	}
+
+	recBufFree(&recording.buffer)
+	freeRegistry(&recording.registry)
+	recording.tags = nil
+	recording.tagMap = nil
+	destroyMutex(recording.lock)
+	// PORT: b3Free( recording ) is dropped; the fields are cleared so a stale handle reads empty.
+	*recording = Recording{}
 }
 
-// recInternCompound is b3RecInternCompound.
-func recInternCompound(rec *Recording, compound *CompoundData) uint32 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+// GetData is b3Recording_GetData: the recorded bytes.
+// PORT: returns the recorded prefix of the buffer (GetSize bytes) instead of the raw pointer.
+func (recording *Recording) GetData() []byte {
+	return recording.buffer.data[:recording.buffer.size]
 }
 
-// Lifecycle engine-side hooks
-
-// startRecordingIntoBuffer is b3StartRecordingIntoBuffer.
-// PORT: the stub leaves world.recording nil, so recording stays off until milestone 5.
-func startRecordingIntoBuffer(world *world, recording *Recording) {
-	// PORT: stub until milestone 5 (recording.c)
-}
-
-// stopRecordingInternal is b3StopRecordingInternal.
-func stopRecordingInternal(world *world) {
-	// PORT: stub until milestone 5 (recording.c)
+// GetSize is b3Recording_GetSize: the recorded byte count.
+func (recording *Recording) GetSize() int {
+	return int(recording.buffer.size)
 }
 
 // recAccumulateBounds is b3RecAccumulateBounds.
 // Fold one step's world bounds into the running union.
 func recAccumulateBounds(rec *Recording, bounds AABB) {
-	// PORT: stub until milestone 5 (recording.c)
+	if rec.haveBounds {
+		rec.accumulatedBounds = rec.accumulatedBounds.Union(bounds)
+	} else {
+		rec.accumulatedBounds = bounds
+	}
+	rec.haveBounds = true
+}
+
+// recHeaderBytes is the native (little-endian) byte image of a b3RecHeader, as the memcpy of the
+// struct in b3StartRecordingIntoBuffer writes it.
+func recHeaderBytes(hdr *recHeader) []byte {
+	return unsafe.Slice((*byte)(unsafe.Pointer(hdr)), unsafe.Sizeof(*hdr))
+}
+
+// startRecordingIntoBuffer is b3StartRecordingIntoBuffer.
+func startRecordingIntoBuffer(world *world, recording *Recording) {
+	// Reset so a recording handle can be reused for a fresh session
+	recording.buffer.size = 0
+	recording.recordStart = 0
+	recording.haveBounds = false
+	freeRegistry(&recording.registry)
+	if recording.tags != nil {
+		recording.tags = nil
+	}
+	if recording.tagMap != nil {
+		recording.tagMap = nil
+	}
+	recording.tagCount = 0
+	recording.tagCapacity = 0
+
+	hdr := recHeader{}
+	hdr.magic = recMagic
+	hdr.versionMajor = recVersionMajor
+	hdr.versionMinor = recVersionMinor
+	// PORT: sizeof( void* ) is written as 8. The Go def writers are field by field and do not depend
+	// on the pointer size, so a Go recording is always the 64-bit C layout.
+	hdr.pointerWidth = 8
+	hdr.bigEndian = 0
+	if validateEnabled {
+		hdr.validationEnabled = 1
+	}
+	hdr.lengthScale = GetLengthUnitsPerMeter()
+	hdr.registryOffset = 0 // backpatched in b3StopRecordingInternal
+	hdr.registryByteCount = 0
+
+	world.recording = recording
+
+	// Every recording is snapshot-seeded. The seed blob follows the header so replay restores in
+	// place and the world id stays stable across a restart or backward scrub. An empty world still
+	// serializes a valid blob, so there is no from-creation special case.
+	snapBuf := recBuffer{}
+	serializeWorld(world, &snapBuf, recording)
+	hdr.snapshotSize = uint64(snapBuf.size)
+
+	recBufAppend(&recording.buffer, recHeaderBytes(&hdr))
+	recBufAppend(&recording.buffer, recBufBytes(&snapBuf))
+	recBufFree(&snapBuf)
+
+	// Anchor the recording with the current world state hash so replay can assert
+	// determinism from the very first step.
+	worldId := WorldID{world.worldId + 1, world.generation}
+	stateHash := recArgsStateHash{worldId, hashWorldState(world)}
+	recWriteStateHash(recording, &stateHash)
+}
+
+// stopRecordingInternal is b3StopRecordingInternal.
+func stopRecordingInternal(world *world) {
+	if world.recording == nil {
+		return
+	}
+
+	rec := world.recording
+	world.recording = nil
+
+	// Write accumulated bounds so a viewer can frame the whole recorded motion
+	rb := recArgsRecordingBounds{}
+	if rec.haveBounds {
+		rb.bounds = rec.accumulatedBounds
+	}
+	recWriteRecordingBounds(rec, &rb)
+
+	// End-of-stream marker; the buffer is now self-contained
+	wid := WorldID{world.worldId + 1, world.generation}
+	a := recArgsDestroyWorld{wid}
+	recWriteDestroyWorld(rec, &a)
+
+	// Write the trailing registry block
+	registryOffset := rec.buffer.size
+	recWriteRegistry(rec)
+	registryByteCount := rec.buffer.size - registryOffset
+
+	// Backpatch registryOffset and registryByteCount into the header
+	hdrBytes := rec.buffer.data
+	regOff := uint64(registryOffset)
+	regSz := uint64(registryByteCount)
+	// Little-endian backpatch in place; offsetof keeps this correct if the header layout shifts
+	pOff := hdrBytes[unsafe.Offsetof(recHeader{}.registryOffset):]
+	pSz := hdrBytes[unsafe.Offsetof(recHeader{}.registryByteCount):]
+	for i := 0; i < 8; i++ {
+		pOff[i] = uint8(regOff >> (8 * i))
+		pSz[i] = uint8(regSz >> (8 * i))
+	}
+}
+
+// Convenience file I/O
+
+// SaveRecordingToFile is b3SaveRecordingToFile: write the recorded bytes to a file.
+func SaveRecordingToFile(recording *Recording, path string) bool {
+	if recording == nil || path == "" {
+		return false
+	}
+
+	// PORT: fopen/fwrite/fclose become os.WriteFile.
+	err := os.WriteFile(path, recording.buffer.data[:recording.buffer.size], 0o644)
+	return err == nil
+}
+
+// LoadRecordingFromFile is b3LoadRecordingFromFile: load a recording file. The caller owns the
+// returned recording and must destroy it with DestroyRecording.
+func LoadRecordingFromFile(path string) *Recording {
+	if path == "" {
+		return nil
+	}
+
+	// PORT: fopen/fseek/ftell/fread become os.ReadFile.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+
+	fileSize := len(data)
+	// Anything smaller than the fixed header can't be a recording
+	if fileSize < int(unsafe.Sizeof(recHeader{})) || fileSize > math.MaxInt32 {
+		return nil
+	}
+
+	rec := CreateRecording(fileSize)
+	copy(rec.buffer.data, data)
+
+	// Validate magic so a wrong file fails at load rather than deep in the player
+	magic := binary.LittleEndian.Uint32(rec.buffer.data[0:4])
+	if magic != recMagic {
+		DestroyRecording(rec)
+		return nil
+	}
+
+	rec.buffer.size = int32(fileSize)
+	return rec
+}
+
+// Geometry interning helpers
+
+// recInternBlob is b3RecInternBlob.
+func recInternBlob(rec *Recording, kind geometryKind, bytes []byte) uint32 {
+	h := hash64NonZero(bytes)
+	return internGeometry(&rec.registry, kind, h, bytes)
+}
+
+// recInternHull is b3RecInternHull.
+func recInternHull(rec *Recording, hull *HullData) uint32 {
+	return recInternBlob(rec, geometryHull, hullBytes(hull))
+}
+
+// recInternMesh is b3RecInternMesh.
+func recInternMesh(rec *Recording, mesh *MeshData) uint32 {
+	return recInternBlob(rec, geometryMesh, meshBytes(mesh))
+}
+
+// recInternHeightField is b3RecInternHeightField.
+func recInternHeightField(rec *Recording, hf *HeightFieldData) uint32 {
+	return recInternBlob(rec, geometryHeightField, heightFieldBytes(hf))
+}
+
+// recInternCompound is b3RecInternCompound.
+func recInternCompound(rec *Recording, compound *CompoundData) uint32 {
+	return recInternBlob(rec, geometryCompound, compoundBytes(compound))
 }
 
 // hashWorldState is b3HashWorldState.
