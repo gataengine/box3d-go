@@ -157,3 +157,20 @@ site. Upstream bugs are ported as is and listed here too.
 | geometry_golden_test.go | testdata/geometry_golden_gen.c defines `b3MakeLocalProxy` / `b3ComputeProxyAABB` (verbatim from shape.c) | the generator links them itself | shape.c needs the whole world |
 | collision_test.go | `#if defined( BOX3D_DOUBLE_PRECISION )` halves of `LargeWorldManifoldTest`, `LargeWorldAABBTest` | not ported | double precision not ported; upstream's float build compiles them out too |
 | qsort.go | `QSORT( N, LESS, SWAP )` and the `Q_*` helper macros | `qsort(n, less, swap)` with closures; `Q_SUBFILES` is a local closure; indices are `int` instead of `unsigned long` (never wraps); stack size fixed at 32 (the size for a 32-bit `Q_N`, which every call site passes) | Go has no macros |
+| body.go, contact.go, joint.go, physics_world.go, constraint_graph.go, solver_set.go, island.go, sensor.go, name_cache.go, contact_solver.go, solver.go | milestone 3+ headers ported early as types only | struct types and enums only; `.c` functions and most static inline helpers land with their `.c` files | broad_phase.c reaches into `b3World`, which embeds or points to all of them; types are kept field for field so `b3World` is faithful |
+| body.go, contact.go | `b3BodyFlags`, `b3ContactFlags` enums | untyped constants | they are or-ed into `uint32` fields |
+| body.go, contact.go, joint.go | `b3Body.type`, `b3Joint.type`, `b3JointSim.type` | field `typ` | `type` is a Go keyword |
+| contact.go | `b3ContactCache` union, `b3Contact` anonymous union `{ convexContact; meshContact }` | all members present | Go has no unions |
+| contact.go | `b3Contact.manifolds` (`b3Manifold*`) | `[]Manifold` plus the kept `manifoldCount` | pointer + count is a slice |
+| joint.go | `b3JointSim` anonymous union of the eight joint structs | all members present; `typ` says which is valid | Go has no unions; revisit the size if it matters (M4) |
+| constraint_graph.go | `b3GraphColor.wideConstraints`, `wideMeshConstraints` (`void*`), `manifoldConstraints`, `contactConstraints`, `wideMeshManifoldStarts` (pointers) | `any` for the `void*` buffers until contact_solver_wide.go types them; the typed pointers are slices | pointer arrays become slices |
+| contact_solver.go | `b3ContactConstraint.constraints` (`b3ManifoldConstraint*`) | `[]manifoldConstraint` | pointer + count is a slice |
+| name_cache.go | `b3NameEntry.name` (`char*`), `b3NameCache.map` (`void*`) | `string`; `nameMap any` | `map` is a Go keyword; typed with name_cache.c (M5) |
+| physics_world.go | `b3World.hullDatabase` (`void*` holding a `b3HullMap*`) | `*hullMap` | upstream type-erases only to keep verstable out of the header |
+| physics_world.go | `b3World.manifoldAllocators` (`b3Array( b3BlockAllocator )`) | `[]blockAllocator[Manifold]` | typed block allocator (see block_allocator.go) |
+| physics_world.go | `b3World` callbacks and `void*` contexts | the public callback types; contexts are `any`; `userTreeTask` is `any` | translation rules |
+| scheduler.go, recording.go | `struct b3Scheduler*`, `struct b3Recording*` in `b3World` | empty forward-declared structs `scheduler`, `recording` | defined in scheduler.c / recording.h, which land in milestones 3 / 5 |
+| body.go | `b3GetBodyTransformQuick`, `b3GetBodyTransform`, `b3GetBodySim`, `b3ShouldBodiesCollide` (body.c) | ported early in a `body.c` section | broad_phase.c calls them in milestone 2; the rest of body.c lands in milestone 3 around them |
+| contact.go | `b3CreateContact` (contact.c) | placeholder that panics | needs the contact registers and collide functions of contact.c (M3); unreachable without a world |
+| physics_world.go | `b3ValidateSolverSets` (physics_world.c) | no-op placeholder | assertion-only function over world state that cannot exist before milestone 3 |
+| broad_phase.go | `B3_PROXY_TYPE`, `B3_PROXY_ID`, `B3_PROXY_KEY` macros; `b3BroadPhase_MarkProxyMoved*` inlines | functions `proxyType`, `proxyId`, `proxyKey`; methods on `*broadPhase` | Go has no macros; spec naming rule `b3Type_Method` |

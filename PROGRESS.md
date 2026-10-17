@@ -52,19 +52,19 @@ each; both point at the same Go file.
 | src/bitset.h | bitset.go | tested | efca0c1 |  |
 | src/block_allocator.c | block_allocator.go | tested | efca0c1 | typed blockAllocator[T]; elements are []T of elementSize values |
 | src/block_allocator.h | block_allocator.go | tested | efca0c1 |  |
-| src/body.c | body.go | todo | |  |
-| src/body.h | body.go | todo | |  |
+| src/body.c | body.go | todo | | b3GetBodyTransformQuick, b3GetBodyTransform, b3GetBodySim, b3ShouldBodiesCollide ported early (broad_phase.c needs them); the rest is M3 |
+| src/body.h | body.go | ported | efca0c1 | header types only (b3BodyFlags, b3Body, b3BodyState, b3_identityBodyState, b3BodySim); the static inline helpers land with body.c (M3) |
 | src/broad_phase.c | broad_phase.go | todo | |  |
-| src/broad_phase.h | broad_phase.go | todo | |  |
+| src/broad_phase.h | broad_phase.go | ported | efca0c1 | proxy key macros are functions; mark helpers are methods on *broadPhase |
 | src/capsule.c | capsule.go | verified | efca0c1 | mass, AABB, ray cast (incl. parallel/degenerate), mover plane, overlap in hull_golden_test.go |
 | src/compound.c | compound.go | verified | efca0c1 | creation (material/hull/mesh dedup, blob bytes hashed), ValidateCompound, children, sweep, ray/shape casts, overlap, mover, queries in geometry_golden_test.go; b3CompoundTimeOfImpact is #if 0 upstream (not ported) |
 | src/compound.h | compound.go | verified | efca0c1 | getCompoundTreeView, makeCompoundChildSweep, collideMoverAndCompound |
 | src/constraint_graph.c | constraint_graph.go | todo | |  |
-| src/constraint_graph.h | constraint_graph.go | todo | |  |
+| src/constraint_graph.h | constraint_graph.go | ported | efca0c1 | header types only (b3GraphColor, b3ConstraintGraph); void* wide buffers are `any` until contact_solver_wide (M3) |
 | src/contact.c | contact.go | todo | |  |
-| src/contact.h | contact.go | todo | |  |
+| src/contact.h | contact.go | ported | efca0c1 | header types only; unions keep all members. contact.go also holds a panicking createContact placeholder until contact.c (M3) |
 | src/contact_solver.c | contact_solver.go | todo | |  |
-| src/contact_solver.h | contact_solver.go | todo | |  |
+| src/contact_solver.h | contact_solver.go | ported | efca0c1 | header types only (b3ManifoldConstraintPoint, b3ManifoldConstraint, b3ContactConstraint) |
 | src/contact_solver_wide.inl | contact_solver_wide.go | todo | |  |
 | src/container.h | container.go | tested | efca0c1 | b3Array(T) is []T; generic arrayPush/arrayPop/… keep growth policy |
 | src/convex_manifold.c | convex_manifold.go | verified | efca0c1 | sphere/capsule/hull collide functions, SAT cache and manual modes; test_sat, test_manifold, manifold_golden_test.go |
@@ -82,9 +82,9 @@ each; both point at the same Go file.
 | src/id_pool.c | id_pool.go | ported | efca0c1 | no upstream test |
 | src/id_pool.h | id_pool.go | ported | efca0c1 |  |
 | src/island.c | island.go | todo | |  |
-| src/island.h | island.go | todo | |  |
+| src/island.h | island.go | ported | efca0c1 | header types only |
 | src/joint.c | joint.go | todo | |  |
-| src/joint.h | joint.go | todo | |  |
+| src/joint.h | joint.go | ported | efca0c1 | header types only; b3JointSim union keeps all joint members; inline b3SolvePointConstraint lands with joint.c (M4) |
 | src/manifold.c | manifold.go | verified | efca0c1 | findIncidentFace, clipPolygon, flipPair checked in hull_golden_test.go |
 | src/manifold.h | manifold.go | ported | efca0c1 | separating axis / clip types; b3ComputeSeparatingAxis*, b3CollideHullsAtWidth are in convex_manifold.go (W4 → computeSeparatingAxisW in convex_manifold_wide.go) |
 | src/math_functions.c | math_functions.go | tested | efca0c1 |  |
@@ -94,26 +94,26 @@ each; both point at the same Go file.
 | src/motor_joint.c | motor_joint.go | todo | |  |
 | src/mover.c | mover.go | verified | efca0c1 | SolvePlanes (delta, iterations, pushes) and ClipVector in mover_golden_test.go |
 | src/name_cache.c | name_cache.go | todo | |  |
-| src/name_cache.h | name_cache.go | todo | |  |
+| src/name_cache.h | name_cache.go | ported | efca0c1 | header types only; inline b3FindNameWithDefault lands with name_cache.c (M5) |
 | src/parallel_for.c | parallel_for.go | todo | |  |
 | src/parallel_for.h | parallel_for.go | todo | |  |
 | src/parallel_joint.c | parallel_joint.go | todo | |  |
 | src/physics_world.c | physics_world.go | todo | |  |
-| src/physics_world.h | physics_world.go | todo | |  |
+| src/physics_world.h | physics_world.go | ported | efca0c1 | header types only (b3SetType, b3DebugPoint/Line, b3TaskContext, b3World); inline b3AllocateManifolds/b3FreeManifolds land with physics_world.c (M3). physics_world.go also holds a no-op validateSolverSets placeholder |
 | src/platform.h | platform.go | ported | efca0c1 |  |
 | src/prismatic_joint.c | prismatic_joint.go | todo | |  |
 | src/qsort.h | qsort.go | verified | efca0c1 | macros become functions taking LESS/SWAP closures; call counts and the unstable order of equal keys match C in qsort_test.go (testdata/qsort_golden_gen.c) |
 | src/rapidhash.h | rapidhash.go | tested | efca0c1 | no upstream test; rapidhash_test.go checks C reference values |
 | src/recording.c | recording.go | todo | |  |
-| src/recording.h | recording.go | todo | |  |
+| src/recording.h | recording.go | todo | | only an empty `recording` forward declaration (b3World holds a pointer) |
 | src/recording_ops.inl | recording_ops.go | todo | |  |
 | src/replay.c | replay.go | todo | |  |
 | src/replay.h | replay.go | todo | |  |
 | src/revolute_joint.c | revolute_joint.go | todo | |  |
 | src/scheduler.c | scheduler.go | todo | |  |
-| src/scheduler.h | scheduler.go | todo | |  |
+| src/scheduler.h | scheduler.go | ported | efca0c1 | b3TaskCallback is the public TaskCallback; b3Scheduler is an empty forward declaration until scheduler.c (M3) defines it |
 | src/sensor.c | sensor.go | todo | |  |
-| src/sensor.h | sensor.go | todo | |  |
+| src/sensor.h | sensor.go | ported | efca0c1 | header types only |
 | src/shape.c | shape.go | todo | | b3ComputeShapeAABB, b3ComputeFatShapeAABB, b3MakeLocalProxy and b3ComputeProxyAABB ported early (needed by mesh/height field/compound and test_collision); the rest is M3 |
 | src/shape.h | shape.go | ported | efca0c1 | b3Shape (union members all present), b3ShapeFlags, filter/convex inlines, b3GetHeightFieldTriangleCount, b3GetMeshTriangle; declared functions land with shape.c (M3) |
 | src/simd.c | simd.go | ported | efca0c1 | also holds IsAVX2Available / Get/SetSIMDWidth; Go-only simd_test.go |
@@ -124,9 +124,9 @@ each; both point at the same Go file.
 | src/simd_sse2.h | — | n/a | | dropped: scalar lanes only |
 | src/simd_wide.h | simd_wide.go | ported | efca0c1 | name map only + wideAlignment |
 | src/solver.c | solver.go | todo | |  |
-| src/solver.h | solver.go | todo | |  |
+| src/solver.h | solver.go | todo | | only b3Softness so far (joint and contact constraint structs need it) |
 | src/solver_set.c | solver_set.go | todo | |  |
-| src/solver_set.h | solver_set.go | todo | |  |
+| src/solver_set.h | solver_set.go | ported | efca0c1 | header types only |
 | src/sphere.c | sphere.go | verified | efca0c1 | mass, AABB, ray casts, mover plane, overlap in hull_golden_test.go |
 | src/spherical_joint.c | spherical_joint.go | todo | |  |
 | src/table.c | table.go | tested | efca0c1 | hashSet keeps upstream slot order |
