@@ -3,7 +3,7 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **1 — Foundation**.
+- Current milestone: **2 — Collision** (part A in progress).
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Fused
@@ -97,13 +97,13 @@ each; both point at the same Go file.
 | src/sensor.h | sensor.go | todo | |  |
 | src/shape.c | shape.go | todo | |  |
 | src/shape.h | shape.go | todo | |  |
-| src/simd.c | simd.go | todo | | M2: also holds IsAVX2Available / Get/SetSIMDWidth |
-| src/simd.h | simd.go | todo | |  |
+| src/simd.c | simd.go | ported | efca0c1 | also holds IsAVX2Available / Get/SetSIMDWidth; Go-only simd_test.go |
+| src/simd.h | simd.go | ported | efca0c1 | b3V32 non-SSE2 path as `v32`; b3Vec3W4 as `vec3W` |
 | src/simd_avx2.h | — | n/a | | dropped: scalar lanes only (see spec, SIMD lane layer) |
 | src/simd_neon.h | — | n/a | | dropped: scalar lanes only |
-| src/simd_scalar.h | simd_scalar.go | todo | | M2 (laneCount = 4) |
+| src/simd_scalar.h | simd_scalar.go | ported | efca0c1 | `floatW{v [laneCount]float32}`, laneCount = 4; W4 suffix dropped |
 | src/simd_sse2.h | — | n/a | | dropped: scalar lanes only |
-| src/simd_wide.h | simd_wide.go | todo | | M2: nothing in the foundation uses lanes |
+| src/simd_wide.h | simd_wide.go | ported | efca0c1 | name map only + wideAlignment |
 | src/solver.c | solver.go | todo | |  |
 | src/solver.h | solver.go | todo | |  |
 | src/solver_set.c | solver_set.go | todo | |  |

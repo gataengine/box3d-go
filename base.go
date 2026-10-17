@@ -73,8 +73,8 @@ type Version struct {
 	Revision int32
 }
 
-// GetVersion, IsDoublePrecision, GetMaxManifoldPoints and IsAVX2Available are implemented in
-// core.go.
+// GetVersion, IsDoublePrecision and GetMaxManifoldPoints are implemented in core.go,
+// IsAVX2Available in simd.go.
 
 // GetTicks, GetMilliseconds, GetMillisecondsAndReset, Yield, Sleep and Hash are implemented in
 // timer.go.

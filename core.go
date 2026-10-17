@@ -15,7 +15,7 @@ import (
 // ---- core.h ----
 
 // PORT: the platform, CPU, SIMD and compiler detection macros, B3_AVX2_BEGIN/END and the Tracy
-// zone macros are not ported. The SIMD lane width lives in simd_scalar.go (milestone 2).
+// zone macros are not ported. The SIMD lane width lives in simd_scalar.go.
 
 // debugBuild is B3_DEBUG: 1 unless NDEBUG. Tied to assertions (box3d_noassert is the NDEBUG build).
 const debugBuild = assertEnabled

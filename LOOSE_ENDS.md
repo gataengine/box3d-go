@@ -53,3 +53,8 @@ site. Upstream bugs are ported as is and listed here too.
 | allocator_test.go | `TestBlockAlignment` byte sizes and `B3_BLOCK_ALIGNMENT` check | element types `byte`×12, `Manifold`×1, `Manifold`×3; alignment checked against `unsafe.Alignof(T)` | issue #78 (free-list link in the element) cannot occur in Go |
 | aabb.go | `b3RayCastAABB( a, p1, p2, &minFraction, &maxFraction )` | returns `(hit, minFraction, maxFraction)`; fractions are 0 on a miss | out-parameters become trailing returns |
 | collision.go | `b3DynamicTree_GetUserData`, `b3DynamicTree_GetAABB` | methods on `*DynamicTree` | spec naming rule `b3Type_Method` |
+| simd_scalar.go, simd.go, simd_wide.go | `simd_neon.h`, `simd_sse2.h`, `simd_avx2.h`, `B3_WIDE`, W8 functions | scalar lane backend only; `W4` suffix dropped (`b3AddW4` → `addW`); `floatW` is `struct{ v [laneCount]float32 }` | spec: scalar lanes first, SIMD backend later behind a build tag |
+| simd_scalar.go | `b3LoadW4( const float* )`, `b3StoreW4`, `b3SoftMaskW4( const int* … )`, `b3UnionPairV( const b3TreeNode* )` | slices instead of pointers | Go has no pointer arithmetic |
+| simd_scalar.go | `b3TransposeW4( …, b3FloatW4* c0, … )` | returns `(c0, c1, c2, c3)` | out-parameters become returns |
+| simd.go | `b3HasAVX2`, `b3CpuId`, `b3GetExtendedControlRegister` | not ported; `detectSIMDWidth` returns `laneCount`, `IsAVX2Available` is false, `SetSIMDWidth(8)` stores 4 | width 8 not ported |
+| simd.go | `b3128` union, `b3GetV` | switch on the index | Go has no unions |
