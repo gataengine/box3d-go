@@ -58,7 +58,7 @@ each; both point at the same Go file.
 | src/contact_solver.h | contact_solver.go | todo | |  |
 | src/contact_solver_wide.inl | contact_solver_wide.go | todo | |  |
 | src/container.h | container.go | tested | efca0c1 | b3Array(T) is []T; generic arrayPush/arrayPop/… keep growth policy |
-| src/convex_manifold.c | convex_manifold.go | ported | efca0c1 | sphere/capsule/hull collide functions, SAT dispatch; b3ComputeSeparatingAxis covered by test_sat (Collide* tests land with test_manifold) |
+| src/convex_manifold.c | convex_manifold.go | tested | efca0c1 | sphere/capsule/hull collide functions, SAT dispatch; covered by test_sat and test_manifold |
 | src/convex_manifold_wide.inl | convex_manifold_wide.go | tested | efca0c1 | computeSeparatingAxisW; both B3_SIMD_NONE and lane edge loops ported, selected by simdNone (simd_scalar.go) |
 | src/core.c | core.go | ported | efca0c1 |  |
 | src/core.h | core.go | ported | efca0c1 |  |
@@ -123,7 +123,7 @@ each; both point at the same Go file.
 | src/table.c | table.go | tested | efca0c1 | hashSet keeps upstream slot order |
 | src/table.h | table.go | tested | efca0c1 |  |
 | src/timer.c | timer.go | tested | efca0c1 | no upstream test; timer_test.go (Go-only) |
-| src/triangle_manifold.c | triangle_manifold.go | todo | |  |
+| src/triangle_manifold.c | triangle_manifold.go | tested | efca0c1 | triangle vs sphere/capsule/hull; triangle vertices are a slice |
 | src/types.c | types.go | ported | efca0c1 |  |
 | src/verstable.h | verstable.go | ported | efca0c1 | generic `verstable[K, V]` (linear probing) with the API subset upstream uses; Go-only verstable_test.go |
 | src/weld_joint.c | weld_joint.go | todo | |  |
@@ -151,7 +151,7 @@ each; both point at the same Go file.
 | test/test_joint.c | joint_test.go | todo | |  |
 | test/test_large_world.c | large_world_test.go | todo | |  |
 | test/test_macros.h | test_macros_test.go | ported | efca0c1 | ENSURE / ENSURE_SMALL helpers |
-| test/test_manifold.c | manifold_test.go | blocked (needs convex_manifold.c, triangle_manifold.c) | | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
+| test/test_manifold.c | manifold_test.go | tested | efca0c1 | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | todo | |  |
 | test/test_mover.c | mover_test.go | todo | |  |

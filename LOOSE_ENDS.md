@@ -100,3 +100,9 @@ site. Upstream bugs are ported as is and listed here too.
 | sat_test.go, manifold_test.go | `g_seed` / `NextFloat` / `NextDirection` | `satSeed`/`satNextFloat`/…, `manifoldSeed`/`manifoldNextFloat`/… | one package holds all test files |
 | sat_test.go, manifold_test.go | `NextFloat()` calls inside initializer lists and argument lists | explicit temporaries in left to right order | C leaves the order unspecified; clang (the reference build) evaluates left to right |
 | sat_test.go | `printf` statistics | `GinkgoWriter.Printf` | shown with `-ginkgo.v` |
+| triangle_manifold.go | `b3CollideTriangleAndSphere( …, const b3Vec3* triangleA, … )`, `b3CollideTriangleAndCapsule` | `triangleA []Vec3` (at least three vertices) | pointer to an array becomes a slice |
+| triangle_manifold.go | `#if B3_FORCE_GHOST_COLLISIONS` in `b3QueryTriangleAndHullEdges` | only the default (`triangle->flags`) branch | the macro is not defined upstream |
+| triangle_manifold.go | `b3_triangleConvexCalls`, `b3_triangleCacheHits` | package `atomicInt` variables, unused as upstream | kept for the file mapping |
+| manifold_test.go | `MinSeparation` | `manifoldMinSeparation` | avoids shadowing by the many `minSeparation` locals |
+| manifold_test.go | `OverlapNeverEmptyTest` draws from `g_seed` without reseeding | reseeds to the initial 12345 first | Ginkgo may run specs alone or in another order; upstream reaches this test with the seed untouched |
+| manifold_test.go | `x * B3_PI / 180.0f` | `degreesToRadians(x)`, rounded per operation as the C float expression | Go folds constant chains exactly |
