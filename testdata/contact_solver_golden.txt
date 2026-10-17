@@ -1,0 +1,779 @@
+run 0 initial body 0 | 3fc2496c 3e39a740 bed8f268 c03fdd17 402c0498 403e42fa
+run 0 initial body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 initial body 2 | bf1a7614 3fa9a04a 3fb899b4 3f5d5de0 bfa6ef51 3e8731d0
+run 0 initial body 3 | 3f83a66c bf6ef60c be34a810 3f9ab2e0 c032db6b bfa72437
+run 0 initial body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 initial body 5 | 3fe286fc bf489f7c be117c60 bfa9fa2e bf555880 4037a79a
+run 0 initial body 6 | bf73ba80 3e79e320 be646e90 bfcc62bb 403c368e 3fa58550
+run 0 initial body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 initial body 8 | bfac2536 bfa1eba6 bf84b87e 4033aa30 40386fcc 3fe08a74
+run 0 initial body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 initial body 10 | bf9e0ae6 bf5d3e90 bfb0c30c 4028b456 c015c472 3fb59df4
+run 0 initial body 11 | bffd84dc 3fbac3e2 3e12bc70 3fdd9178 bfe1b4a5 402c5e20
+run 0 initial body 12 | 3fdc330e bff8b116 bf4496d4 402c7944 3fff1d68 be5c36e0
+run 0 initial body 13 | 3f347df0 bfd983b2 bfa1646c bf791868 bf6bff78 c026426b
+run 0 initial body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 initial body 15 | 3f2742e0 bec45650 3fed5cc0 beed63f0 3f89f06c be60b580
+run 0 initial body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 initial body 17 | be16a1b0 3e799ba0 3f0cff34 c033f2ad 3f288de4 bea2f320
+run 0 initial body 18 | bff2285a 3fd8e412 bff1c4ec bc81d800 bfa44831 3ff68d84
+run 0 initial body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 initial body 20 | 3e7efb70 bf123668 3fc5a4dc bf985ddf c038cb08 3fe96d68
+run 0 initial body 21 | 3fe78ab6 bf41e400 bf09951c bf572ca8 bf5f6e28 3fa98084
+run 0 initial body 22 | bf07e93c 3fda8f92 3ec89d48 bf06f0f0 c0347c68 c026a072
+run 0 initial body 23 | bf868d0c be90c9d8 bfc778b6 be5ce1e0 bf3cbac8 c006776b
+run 0 prepare | anyRestitution 1
+run 0 prepare body 0 | 3fc2496c 3e39a740 bed8f268 c03fdd17 402c0498 403e42fa
+run 0 prepare body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 prepare body 2 | bf1a7614 3fa9a04a 3fb899b4 3f5d5de0 bfa6ef51 3e8731d0
+run 0 prepare body 3 | 3f83a66c bf6ef60c be34a810 3f9ab2e0 c032db6b bfa72437
+run 0 prepare body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 prepare body 5 | 3fe286fc bf489f7c be117c60 bfa9fa2e bf555880 4037a79a
+run 0 prepare body 6 | bf73ba80 3e79e320 be646e90 bfcc62bb 403c368e 3fa58550
+run 0 prepare body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 prepare body 8 | bfac2536 bfa1eba6 bf84b87e 4033aa30 40386fcc 3fe08a74
+run 0 prepare body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 prepare body 10 | bf9e0ae6 bf5d3e90 bfb0c30c 4028b456 c015c472 3fb59df4
+run 0 prepare body 11 | bffd84dc 3fbac3e2 3e12bc70 3fdd9178 bfe1b4a5 402c5e20
+run 0 prepare body 12 | 3fdc330e bff8b116 bf4496d4 402c7944 3fff1d68 be5c36e0
+run 0 prepare body 13 | 3f347df0 bfd983b2 bfa1646c bf791868 bf6bff78 c026426b
+run 0 prepare body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 prepare body 15 | 3f2742e0 bec45650 3fed5cc0 beed63f0 3f89f06c be60b580
+run 0 prepare body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 prepare body 17 | be16a1b0 3e799ba0 3f0cff34 c033f2ad 3f288de4 bea2f320
+run 0 prepare body 18 | bff2285a 3fd8e412 bff1c4ec bc81d800 bfa44831 3ff68d84
+run 0 prepare body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 prepare body 20 | 3e7efb70 bf123668 3fc5a4dc bf985ddf c038cb08 3fe96d68
+run 0 prepare body 21 | 3fe78ab6 bf41e400 bf09951c bf572ca8 bf5f6e28 3fa98084
+run 0 prepare body 22 | bf07e93c 3fda8f92 3ec89d48 bf06f0f0 c0347c68 c026a072
+run 0 prepare body 23 | bf868d0c be90c9d8 bfc778b6 be5ce1e0 bf3cbac8 c006776b
+run 0 sub0-warm body 0 | 40434876 be477b6e bf4989a4 c037ae04 400a90b1 40677948
+run 0 sub0-warm body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 sub0-warm body 2 | bbb6a280 be84b188 3f805556 3fa91e0c bf7585b6 be4dc566
+run 0 sub0-warm body 3 | bf155cd0 c032c768 bdc2ccc8 3f96d74c c01953a8 bf516bcb
+run 0 sub0-warm body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 sub0-warm body 5 | 3fb9e6d6 becc0bea bedcae56 bfd0cd6f bf936d7a 4045acd2
+run 0 sub0-warm body 6 | bfa3030e 3eb4719b bf0ebb72 bfd18489 40266a25 3fff50f6
+run 0 sub0-warm body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 sub0-warm body 8 | bfa816a5 bfb3dbec bf94c63b 40336a41 40353fb7 3fddb90c
+run 0 sub0-warm body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 sub0-warm body 10 | bf961c50 beba8330 3f52953f 404383c5 c03006c3 401c7ade
+run 0 sub0-warm body 11 | c0202834 402a0f10 3e38f6c0 4013d108 bf5db9b4 4020cd1c
+run 0 sub0-warm body 12 | 402012ef c0215e87 bdef82f5 40216d23 40169457 bfd4d6bc
+run 0 sub0-warm body 13 | 3f80c19f bf5a8a5e bf4c15ce bf92d9a8 bf4e88b2 c0395810
+run 0 sub0-warm body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 sub0-warm body 15 | 3faa9dd4 c01922f2 4035a5da bf700c9e 3f8d3b5d 3e27780e
+run 0 sub0-warm body 16 | 3edb7d7a bfb277de bfba20c6 bff15648 3fbf7d3c 40241923
+run 0 sub0-warm body 17 | bf17a96c bf21c2d3 3e402d9c c0214a18 3f0fb3c5 bf41b4be
+run 0 sub0-warm body 18 | bfe0aecd 3fdef624 bffefb05 3cd61730 bf9bb564 3ff21dfe
+run 0 sub0-warm body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 sub0-warm body 20 | 3f4bcce0 be86e454 4019a016 bfbc6a61 c030a7aa 3ff49619
+run 0 sub0-warm body 21 | 3f206792 3df123e8 3eff2758 bfc1feb6 bf540bee 3f8a11df
+run 0 sub0-warm body 22 | bfd15b5a 4057801f be198314 bf037cf4 c035b1a2 bfe51112
+run 0 sub0-warm body 23 | bf59e330 c03de211 c0066977 bdf953e0 bf0703e0 c022b79f
+run 0 sub0-solve body 0 | 3f9ba615 3f14d42c 3e1081bb c030417e 401aa0c8 404e1e17
+run 0 sub0-solve body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 sub0-solve body 2 | c0318f74 405c1140 3fae1cb1 be91c288 bf978ffa bf38e1af
+run 0 sub0-solve body 3 | 3f83a66b bf6ef60d be34a812 3f93e330 c03153c6 bfab1c71
+run 0 sub0-solve body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 sub0-solve body 5 | 3faddc73 bf344533 bf3e9b21 bfbe5319 bf7ee68e 404088e1
+run 0 sub0-solve body 6 | bf1bc4da 3e4da7b7 bf3db7cb bf8cdb39 3f0eded2 4004eac1
+run 0 sub0-solve body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 sub0-solve body 8 | bf8ba0cd bfaf95ec bf98fa6e 402fbebc 40331545 3fdfbe74
+run 0 sub0-solve body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 sub0-solve body 10 | bde8cfce c00168e6 3f1adfa8 3fa900bf c00b822d 3fc8f069
+run 0 sub0-solve body 11 | bf062732 3d28cd88 3e4b07e2 402c10e3 bf6fa764 3feed58a
+run 0 sub0-solve body 12 | 3f7ee472 c00b5112 3f0d77f3 4027b485 3faf517c bee2134d
+run 0 sub0-solve body 13 | 3e668d7a be91b1f5 3ecb88e7 bf8e5dd6 3e3f0865 c0502216
+run 0 sub0-solve body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 sub0-solve body 15 | 3f2742df bec4564e 3fed5cbd bed9baae 3f7b7654 bea1db0e
+run 0 sub0-solve body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 sub0-solve body 17 | be4f2c54 bf4c6f3d bf8fc3bc bff3bea4 3e4a43f9 c00337f9
+run 0 sub0-solve body 18 | bff2285a 3fd8e412 bff1c4ec bc81d7fd bfa44831 3ff68d83
+run 0 sub0-solve body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 sub0-solve body 20 | bf7462ec 3f38c360 3e350100 3f03d13e bff84716 3feb6374
+run 0 sub0-solve body 21 | 3fe78ab6 bf41e3ff bf09951d bf572ca8 bf5f6e29 3fa98082
+run 0 sub0-solve body 22 | bf524eb1 3fcbe945 3dcb5faf bf048ddf bf96bfdb bfe53d85
+run 0 sub0-solve body 23 | bf4dad05 3fcb2c8b 3ebc762b 3ef7a2b9 beae8a9a bf4ff57a
+run 0 sub0-push body 0 | 3f7f0d0e 3f235f9b 3e722915 c039d2ce 40137102 4059124b
+run 0 sub0-push body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 sub0-push body 2 | bfae477f 3fd158d3 3e04e0c0 3f1cc947 bf5c8edc 3f4afb52
+run 0 sub0-push body 3 | 3f38d34c bf8de14e 3d87cd92 3f9025c0 c027c605 bf9f92a0
+run 0 sub0-push body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 sub0-push body 5 | 3fb217ec bf4215ad bf337a52 bfb97769 bf7be4b8 403f8d37
+run 0 sub0-push body 6 | bf0fde7e 3e74b87d bf7c5759 bf623045 be9967fa 40084c61
+run 0 sub0-push body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 sub0-push body 8 | bf52289c bfc6a11c bfb31991 4028f637 402d548e 3fdfe157
+run 0 sub0-push body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 sub0-push body 10 | bf875df7 bf8aae8c 3f0d3218 3ffb56a8 bff325cd 3f9c7612
+run 0 sub0-push body 11 | bff502df 3f8975cc 3f7a9c74 402d7cea bf8e3558 3fee953d
+run 0 sub0-push body 12 | 3f675d42 c011c481 3f880e5e 402a2cec 3f9c1c89 be884d13
+run 0 sub0-push body 13 | 3e6d8dd0 3e188f98 3f3ab483 bfa9ab19 3c8ebef8 c059e413
+run 0 sub0-push body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 sub0-push body 15 | 3f6325a2 bf16e742 3fff7ced bf1a0654 3f512dbc be8238dd
+run 0 sub0-push body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 sub0-push body 17 | be96be76 bf96e4a9 bf8f88cb bfe32784 3e2a0aca c01d8d87
+run 0 sub0-push body 18 | bff2285a 3fd8e412 bff1c4ec bc81d7fd bfa44831 3ff68d83
+run 0 sub0-push body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 sub0-push body 20 | bd4ee470 3ed7cefb 3ef54307 3ed81636 bff2caf3 400b3adf
+run 0 sub0-push body 21 | 3fe78ab6 bf41e3ff bf09951d bf572ca8 bf5f6e29 3fa98082
+run 0 sub0-push body 22 | bf80b1e2 3fd77e79 3ea97cc0 3e36b5e2 bf8832ec c0016741
+run 0 sub0-push body 23 | bf55d11d 3dd1ad22 bdeaf81e 3e279595 3dfaafde bf211622
+run 0 sub1-warm body 0 | 3ef30e87 3f8c2ab4 3f658dbe c033c884 3ff5bad9 4073e19b
+run 0 sub1-warm body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 sub1-warm body 2 | c007a9fa 3ff9115a bf976184 3eb86964 bed67e32 3fa92ede
+run 0 sub1-warm body 3 | 3ed4b385 bfa44796 3e9e3ad2 3f8598a1 c01cb09f bf980109
+run 0 sub1-warm body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 sub1-warm body 5 | 3f81a8dc bf3b8bde bfa14ac6 bfc8f4a5 bf913878 404772d3
+run 0 sub1-warm body 6 | be3009ea 3e6f8ddb bfdfc988 be2e6c44 c062908c 403dd61c
+run 0 sub1-warm body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 sub1-warm body 8 | be980d9c bfeb5692 bfe17aa4 401e423e 4022394f 3fdf383a
+run 0 sub1-warm body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 sub1-warm body 10 | bf616215 bfa6bdd0 401efa92 3fa5449e bfbac2b3 3f834e31
+run 0 sub1-warm body 11 | bfec80e2 3f304f71 3fe844e7 406c3118 beead830 3f846e3a
+run 0 sub1-warm body 12 | 3db2a36e c0273076 40393414 4027e096 3ee46eb4 bea27eb5
+run 0 sub1-warm body 13 | be76dc20 3fffa798 402e0c78 bfd6c9fc 3f74eb68 c086c2de
+run 0 sub1-warm body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 sub1-warm body 15 | 3f8f8432 bf4ba35d 4008ce8f bf3d5ab0 3f0e7aa0 be9416fa
+run 0 sub1-warm body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 sub1-warm body 17 | bee22c18 c0267e63 c032c898 bf3cd35f bea71102 c0935e55
+run 0 sub1-warm body 18 | bff2285a 3fd8e412 bff1c4ec bc81d7fd bfa44831 3ff68d83
+run 0 sub1-warm body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 sub1-warm body 20 | beb336d4 3fb502b2 bf1606ae 4002347c bf67ffa8 4021bf0a
+run 0 sub1-warm body 21 | 3fe78ab6 bf41e3ff bf09951d bf572ca8 bf5f6e29 3fa98082
+run 0 sub1-warm body 22 | bfbd6f26 3fd46d61 3e8a5c38 3f624bdf 3f3125ee bfb85c21
+run 0 sub1-warm body 23 | bf1e8824 3ef9a062 3faa19b0 3f0b034a 3f7b66bc 3f57b168
+run 0 sub1-solve body 0 | 3f7edc21 3f426a04 3ef21a3e c0316f8f 400d7ffc 4059bc21
+run 0 sub1-solve body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 sub1-solve body 2 | bfea63d8 3fe62699 3f436369 3f2ce2ae bf2eda72 3e82b4ae
+run 0 sub1-solve body 3 | 3f38d34c bf8de14e 3d87cd92 3f895611 c0263e60 bfa38ada
+run 0 sub1-solve body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 sub1-solve body 5 | 3fa33d68 bf3cf603 bf588f88 bfbe523f bf8415d0 40420f0e
+run 0 sub1-solve body 6 | bf0fde7d 3e74b87d bf7c575a bf623045 be9967fb 40084c61
+run 0 sub1-solve body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 sub1-solve body 8 | bf52289c bfc6a11c bfb31992 4028f637 402d548e 3fdfe157
+run 0 sub1-solve body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 sub1-solve body 10 | bf875df8 bf8aae8c 3f0d3216 3ffb56a7 bff325cb 3f9c7611
+run 0 sub1-solve body 11 | bfccae81 3f77013c 3f0dcf01 4039b055 3fcf6954 3fbf1410
+run 0 sub1-solve body 12 | 3f61a66f c01cb6af 3f989b4e 4027ef93 3f8c4d3e bf0bf313
+run 0 sub1-solve body 13 | 3e6d8dd0 3e188f9a 3f3ab485 bfa9ab19 3c8ebf08 c059e413
+run 0 sub1-solve body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 sub1-solve body 15 | 3f6325a1 bf16e742 3fff7cee bf1031b2 3f38c338 beb3b92b
+run 0 sub1-solve body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 sub1-solve body 17 | be96be78 bf96e4a8 bf8f88cc bfe32782 3e2a0ac7 c01d8d87
+run 0 sub1-solve body 18 | bff2285a 3fd8e412 bff1c4ec bc81d7fd bfa44831 3ff68d83
+run 0 sub1-solve body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 sub1-solve body 20 | bf37437f 3f890a8d 3ed1caca 3f3ceae2 bfbeabc4 400a7b26
+run 0 sub1-solve body 21 | 3fe78ab6 bf41e3ff bf09951d bf572ca8 bf5f6e29 3fa98082
+run 0 sub1-solve body 22 | bf4106a7 3facc064 3e119e52 3ef9a77a bed0781b bff46b65
+run 0 sub1-solve body 23 | bf96f8b9 3ea30618 3e73f5c7 3e003398 3e42ddbe be743db8
+run 0 sub1-push body 0 | 3f7b57fd 3f245ecc 3ebf1ae2 c03bee07 400a5a53 4059d8d3
+run 0 sub1-push body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 sub1-push body 2 | c0004ea7 3f9c282a 3e7d7968 3f4df152 bf136371 3e129cea
+run 0 sub1-push body 3 | 3f1a4907 bf9698ec 3e24a216 3f87e176 c022868f bf9f0d50
+run 0 sub1-push body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 sub1-push body 5 | 3fab4a81 bf573d7b bf436438 bfb5145e bf813994 40403050
+run 0 sub1-push body 6 | bf098004 3e7e8bef bf856f21 bf5415b7 bf0364a7 400a0063
+run 0 sub1-push body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 sub1-push body 8 | bf35dc29 bfd01119 bfbdcc42 40262f08 402af969 3fdfefa1
+run 0 sub1-push body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 sub1-push body 10 | bf85a589 bf803906 3f263eaa 4003cfac bfefbc4f 3f965064
+run 0 sub1-push body 11 | bfe7ac3c 3f9c6021 3f5de0c1 4020fbd7 3f4a77f0 3fd0a064
+run 0 sub1-push body 12 | 3f53dcce c01c00fc 3fa51d59 402aadcf 3f8badca bef49999
+run 0 sub1-push body 13 | 3e8562fd 3e6357de 3f405231 bfac71f3 bc2bd628 c05e95aa
+run 0 sub1-push body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 sub1-push body 15 | 3f6325a1 bf16e742 3fff7cee bf1031b2 3f38c338 beb3b92b
+run 0 sub1-push body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 sub1-push body 17 | bebe047e bfbd3f73 bf8fe518 bfd5d557 3e0fec5c c0326d51
+run 0 sub1-push body 18 | bff2285a 3fd8e412 bff1c4ec bc81d7fd bfa44831 3ff68d83
+run 0 sub1-push body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 sub1-push body 20 | bddda538 3f89e2d4 3f26f7e6 3f774ea6 bfba34ee 4006f2e8
+run 0 sub1-push body 21 | 3fdc61ea bf32c2a7 beec2eaa bf66f20f bf55e29d 3f98ae14
+run 0 sub1-push body 22 | bf920d8f 3fc27f81 3e105308 3f4977bd bf137537 bfd6d5aa
+run 0 sub1-push body 23 | bf38a15f b9ec1f00 be1b729e 3e923040 3ec13259 bee7cc46
+run 0 restitution body 0 | 3f77afb1 3f103d45 3ea0d8f7 c03fdee9 400b7783 40560320
+run 0 restitution body 1 | 3f2737d0 3ff92b72 bf867f6e 3e54fa60 be2bd7c0 3e9d9368
+run 0 restitution body 2 | c00823fc 3f931baa 3ea03cf0 3f4e38fc bee6df2c be9a86a1
+run 0 restitution body 3 | 3f1a4906 bf9698ec 3e24a219 3f87e176 c022868f bf9f0d50
+run 0 restitution body 4 | 3fe43872 3fa0ed0e bfd87bbc 3f5d68b8 3fcc48c8 bfb5c79a
+run 0 restitution body 5 | 3fab4a81 bf573d7b bf436438 bfb5145e bf813994 40403050
+run 0 restitution body 6 | bf098004 3e7e8bef bf856f21 bf5415b7 bf0364a7 400a0063
+run 0 restitution body 7 | bf9971e0 3ff5dd2e bfae9c70 c004ebe6 bec9d6f0 c01f0fa5
+run 0 restitution body 8 | bf35dc29 bfd01119 bfbdcc42 40262f08 402af969 3fdfefa1
+run 0 restitution body 9 | bfb13792 3e85cb90 bee8b030 4021d64e 3fc2ac54 bff548f1
+run 0 restitution body 10 | 3ddcb620 c00365f3 3fcbb62c 3fd4c25a bfeec29c 3fd47c16
+run 0 restitution body 11 | bfdd2965 3fa27251 3f52a3c4 401e4770 3f9ab04e 3fc021ce
+run 0 restitution body 12 | 3f584311 c02625eb 3fb0c3b5 4028aff8 3f8262ef bf403b9c
+run 0 restitution body 13 | 3e8562fe 3e6357df 3f405231 bfac71f3 bc2bd643 c05e95aa
+run 0 restitution body 14 | bf1b5d08 3e9f78b8 bf396c2c bff819e1 3fd6c42c c0374527
+run 0 restitution body 15 | 3f6325a1 bf16e742 3fff7cee bf1031b2 3f38c338 beb3b92b
+run 0 restitution body 16 | 3efd4ac8 bfb6ff3c bf9e208a bfd87299 3fca6138 40251c2e
+run 0 restitution body 17 | bf3dcfad bfc3f77c bfbec579 bfbe0a04 3d98e8ed c040c8fc
+run 0 restitution body 18 | bff2285a 3fd8e412 bff1c4ec bc81d7fd bfa44831 3ff68d83
+run 0 restitution body 19 | bf6fbffc 3f823bb0 bf8a4b44 bf8df6bd 40390b06 3fb26140
+run 0 restitution body 20 | bf8d2f2d 3fe67ef1 bde09857 3fa0a2a0 bf8adb27 40095627
+run 0 restitution body 21 | 3fdbf868 bf32339a beeabe19 bf67872b bf55885e 3f980f08
+run 0 restitution body 22 | bf5b7550 3fabbbb7 3dc7822e 3f2bf582 be77e00a bff8e08f
+run 0 restitution body 23 | bf601234 3e7c8ae4 3dc13d9a be98b318 3e741186 bf051783
+run 0 store contact 0 manifold 0 | 30b4eaac bd25640b bd809760 bd41757f 00000000 00000000 00000000 | 00000000 3f0c1780 00000000
+run 0 store contact 1 manifold 0 | 00000000 80000000 80000000 00000000 00000000 00000000 00000000 | 00000000 00000000 bfed27c2 3dea3265 40599ec5 c02a97ea 00000000 00000000 bfacafa9
+run 0 store contact 2 manifold 0 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 3ed76110 00000000 00000000
+run 0 store contact 3 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 3e832664 3f66ad74 00000000
+run 0 store contact 4 manifold 0 | 00000000 80000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000
+run 0 store contact 5 manifold 0 | 00000000 00000000 00000000 00000000 80000000 80000000 80000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 6 manifold 0 | 00000000 00000000 80000000 00000000 00000000 80000000 00000000 | 00000000 00000000 00000000 3db68848 33200000 00000000
+run 0 store contact 7 manifold 0 | bd4048d1 3dc255b6 3d86f082 bdac7781 00000000 00000000 00000000 | 3ea2fd2f 3f3f28f2 00000000 3e6a1afe 3f0948b8 00000000
+run 0 store contact 8 manifold 0 | 00000000 00000000 00000000 80000000 00000000 80000000 00000000 | 00000000 00000000 40206bba 00000000 00000000 3fe258d2 00000000 00000000 3fbbc7ab 00000000 00000000 3fda1209
+run 0 store contact 9 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 3ee12748 3fca89ba bfe29fd1
+run 0 store contact 10 manifold 0 | 00000000 80000000 00000000 80000000 00000000 00000000 00000000 | 00000000 00000000 3f8a07b5
+run 0 store contact 11 manifold 0 | 3e489650 3d3ad03c 3ed123d2 be9e7276 00000000 00000000 00000000 | 00000000 00000000 00000000 3e8100fa 4093c6e3 00000000 3e9a1de4 3e6c04af 00000000
+run 0 store contact 11 manifold 1 | 3da32ad2 bdf66fd1 3c044320 be337e1f 00000000 00000000 00000000 | 00000000 00000000 00000000 3eeb5bb2 3ed65920 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 12 manifold 0 | 00000000 80000000 00000000 80000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 12 manifold 1 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000
+run 0 store contact 12 manifold 2 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 3df8936d 3b8da7d0 00000000
+run 0 store contact 13 manifold 0 | 00000000 00000000 80000000 00000000 00000000 80000000 80000000 | 00000000 3dab5b34 00000000 3f2de1cd 3fe4b0a2 00000000 00000000 00000000 00000000 00000000 3e3ac0ae 00000000
+run 0 store contact 13 manifold 1 | 00000000 00000000 80000000 80000000 00000000 80000000 80000000 | 00000000 00000000 00000000 00000000 00000000 00000000 3fa8b5f1 40305dc6 00000000 00000000 00000000 00000000
+run 0 store contact 14 manifold 0 | 00000000 80000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 3fedf1d2
+run 0 store contact 14 manifold 1 | 00000000 80000000 00000000 00000000 00000000 00000000 00000000 | 00000000 3e60cb9c bf4b7ca3 00000000 00000000 408a3a96 00000000 00000000 40195178 00000000 00000000 404bc40d
+run 0 store contact 14 manifold 2 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 3e381e2b 3fd3078c c04aa776
+run 0 store contact 15 manifold 0 | 00000000 80000000 00000000 00000000 00000000 80000000 00000000 | 00000000 00000000 405e4222 00000000 00000000 3fd45316
+run 0 store contact 15 manifold 1 | 00000000 00000000 00000000 00000000 00000000 80000000 00000000 | 00000000 00000000 3fcef293 00000000 00000000 3f8f5424 00000000 00000000 bebf7c7a
+run 0 store contact 16 manifold 0 | be073c8c 3e47ed28 3e462556 3d99f862 00000000 00000000 00000000 | 3ea0fd56 4019ce8b 00000000 3fa48342 3ff26fd9 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 16 manifold 1 | 3d1cc728 bdf8b896 be1fca12 bb0c7c0d 00000000 00000000 00000000 | 00000000 00000000 00000000 3f1a450d 3f88b658 00000000 00000000 00000000 00000000 3ebdabdd 3eb70c86 00000000
+run 0 store contact 16 manifold 2 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 3f11e046 3e86a5ee 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 17 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 3dc850bd 3e47e796 00000000
+run 0 store contact 18 manifold 0 | 00000000 80000000 00000000 80000000 00000000 00000000 00000000 | 00000000 00000000 3fd404c7 00000000 00000000 400c405d 00000000 00000000 bd126100 00000000 00000000 3e1555f8
+run 0 store contact 18 manifold 1 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 c015d944
+run 0 store contact 18 manifold 2 | 3cc42108 bd728d35 3c676e06 3d128f2a 00000000 00000000 00000000 | 00000000 00000000 3f32d0ed 00000000 00000000 3fdb63cb 00000000 00000000 4004fc4d 3f01509f 3f90d098 be2dd036
+run 0 store contact 19 manifold 0 | 00000000 00000000 00000000 80000000 00000000 00000000 00000000 | 00000000 00000000 3f4f02e2 00000000 00000000 c023493f 00000000 00000000 c015b644 3dda3512 3e0cddc5 3f4c8dea
+run 0 store contact 19 manifold 1 | 00000000 00000000 00000000 80000000 00000000 00000000 00000000 | 00000000 00000000 3f0f5bf4 00000000 00000000 3f14dc50
+run 0 store contact 20 manifold 0 | bd87eaf6 bc199dc0 3de1112a 3de12fc5 bae02698 3c91e69e bd2854ab | 00000000 bebd9de3 00000000 3eb2003e 3ef3c418 00000000 00000000 00000000 00000000
+run 0 store contact 20 manifold 1 | 00000000 bd632b56 3f3f4688 3e6881f5 bc2aaaab 3dafb86e be6bfe28 | 3f908c57 40097ce5 00000000
+run 0 store contact 21 manifold 0 | 80000000 80000000 00000000 00000000 bb788260 bcc5d7e7 3cab4556 | 00000000 00000000 3f2ad75f
+run 0 store contact 21 manifold 1 | 80000000 00000000 00000000 00000000 bd0614bd 3d1df923 bd20356b | 00000000 00000000 bead48e8
+run 0 store contact 22 manifold 0 | 00000000 80000000 00000000 00000000 3c813e06 bcc24cdd bcdde557 | 00000000 00000000 00000000
+run 0 store contact 22 manifold 1 | 00000000 00000000 00000000 00000000 3cf8a2ea 3a342d40 bcfdcafd | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 22 manifold 2 | 80000000 80000000 00000000 00000000 bd029a3a bc276d2c 3cda67e6 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 23 manifold 0 | bd194f27 bd15a960 bd5974bc 3daba75b 3c81bd0b bcb16da4 bc8815df | 00000000 00000000 00000000 00000000 3f068d1c 00000000
+run 0 store contact 24 manifold 0 | 3cfdfc72 3c8ffc42 3cf7e059 3d166514 bc6aff54 bc607b54 3cbebcee | 3ec59745 3f3758a6 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 0 store contact 24 manifold 1 | 3e06efd0 3df0ae7a 3e56ad93 3e76c59d bc53d6cc 3bb08140 bd31932d | 00000000 00000000 00000000 3e6f41b2 3f90ab58 00000000
+run 0 store contact 24 manifold 2 | 3d11b126 3df44385 3dd476e5 ba821691 bd07a865 3bd80b30 bd30eb93 | 00000000 00000000 00000000 3b288600 3df76f30 00000000 00000000 00000000 00000000
+run 0 hits worker 0 | 1 | 1 9
+run 0 hits worker 1 | 1 | 14
+run 1 initial body 0 | bf3bcee8 3fc05caa bd88ce20 c03dba84 40194d24 40364ebc
+run 1 initial body 1 | 3febce92 3d9a8980 3f14dba4 be1787b0 c03ba112 3f9b5aec
+run 1 initial body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 initial body 3 | bea8deb8 bfd67182 3ebb7588 bf0179d0 3f3b7754 3ee826f0
+run 1 initial body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 initial body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 initial body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 initial body 7 | 3f2cc194 bf233214 bf9edb54 bfedf3ff bf458098 401c2576
+run 1 initial body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 initial body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 initial body 10 | bf9ede1e 3ff30208 3ff7dd9e bf3ecf80 bfc3d935 bd52e940
+run 1 initial body 11 | bf70f508 3ea1fbb8 bfbf5568 3f9b1638 3fd92c78 40130938
+run 1 initial body 12 | 3e641220 3fd10486 3f70d3e4 bfb636d6 beb23620 bfe9a28e
+run 1 initial body 13 | bfd89c06 3f3b8b30 bfc9593c 3f0bd010 3fa14d88 3edee990
+run 1 initial body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 initial body 15 | 3ff8f2f8 3f330da8 3fe63a08 c00d0e19 3f64b25c bfd70847
+run 1 initial body 16 | 3fdbfbc2 beb7c690 bfd36454 bfc7d5c2 bf80fce2 403f2784
+run 1 initial body 17 | 3da2aa40 3f88fb38 3e0f0bd0 be4a0c80 bf447110 c02a7c7c
+run 1 initial body 18 | bfa30254 bef02770 be2f81a0 3f919298 3f7986dc 3fb7e908
+run 1 initial body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 initial body 20 | bfd17af0 3e5f8510 bcbff200 400eefc2 bf381544 bf6c3454
+run 1 initial body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 initial body 22 | 3f84d68c 3ffa4d5e bf98e46c 3ffb6950 c02f57fb 3e2135e0
+run 1 initial body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 prepare | anyRestitution 1
+run 1 prepare body 0 | bf3bcee8 3fc05caa bd88ce20 c03dba84 40194d24 40364ebc
+run 1 prepare body 1 | 3febce92 3d9a8980 3f14dba4 be1787b0 c03ba112 3f9b5aec
+run 1 prepare body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 prepare body 3 | bea8deb8 bfd67182 3ebb7588 bf0179d0 3f3b7754 3ee826f0
+run 1 prepare body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 prepare body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 prepare body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 prepare body 7 | 3f2cc194 bf233214 bf9edb54 bfedf3ff bf458098 401c2576
+run 1 prepare body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 prepare body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 prepare body 10 | bf9ede1e 3ff30208 3ff7dd9e bf3ecf80 bfc3d935 bd52e940
+run 1 prepare body 11 | bf70f508 3ea1fbb8 bfbf5568 3f9b1638 3fd92c78 40130938
+run 1 prepare body 12 | 3e641220 3fd10486 3f70d3e4 bfb636d6 beb23620 bfe9a28e
+run 1 prepare body 13 | bfd89c06 3f3b8b30 bfc9593c 3f0bd010 3fa14d88 3edee990
+run 1 prepare body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 prepare body 15 | 3ff8f2f8 3f330da8 3fe63a08 c00d0e19 3f64b25c bfd70847
+run 1 prepare body 16 | 3fdbfbc2 beb7c690 bfd36454 bfc7d5c2 bf80fce2 403f2784
+run 1 prepare body 17 | 3da2aa40 3f88fb38 3e0f0bd0 be4a0c80 bf447110 c02a7c7c
+run 1 prepare body 18 | bfa30254 bef02770 be2f81a0 3f919298 3f7986dc 3fb7e908
+run 1 prepare body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 prepare body 20 | bfd17af0 3e5f8510 bcbff200 400eefc2 bf381544 bf6c3454
+run 1 prepare body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 prepare body 22 | 3f84d68c 3ffa4d5e bf98e46c 3ffb6950 c02f57fb 3e2135e0
+run 1 prepare body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 sub0-warm body 0 | bf3bcee8 3fc05caa bd88ce20 c03dba84 40194d24 40364ebc
+run 1 sub0-warm body 1 | 3febce92 3d9a8980 3f14dba4 be1787b0 c03ba112 3f9b5aec
+run 1 sub0-warm body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 sub0-warm body 3 | bea8deb8 bfd67182 3ebb7588 bf0179d0 3f3b7754 3ee826f0
+run 1 sub0-warm body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 sub0-warm body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 sub0-warm body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 sub0-warm body 7 | 3f2cc194 bf233214 bf9edb54 bfedf3ff bf458098 401c2576
+run 1 sub0-warm body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 sub0-warm body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 sub0-warm body 10 | bf9ede1e 3ff30208 3ff7dd9e bf3ecf80 bfc3d935 bd52e940
+run 1 sub0-warm body 11 | bf70f508 3ea1fbb8 bfbf5568 3f9b1638 3fd92c78 40130938
+run 1 sub0-warm body 12 | 3e641220 3fd10486 3f70d3e4 bfb636d6 beb23620 bfe9a28e
+run 1 sub0-warm body 13 | bfd89c06 3f3b8b30 bfc9593c 3f0bd010 3fa14d88 3edee990
+run 1 sub0-warm body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 sub0-warm body 15 | 3ff8f2f8 3f330da8 3fe63a08 c00d0e19 3f64b25c bfd70847
+run 1 sub0-warm body 16 | 3fdbfbc2 beb7c690 bfd36454 bfc7d5c2 bf80fce2 403f2784
+run 1 sub0-warm body 17 | 3da2aa40 3f88fb38 3e0f0bd0 be4a0c80 bf447110 c02a7c7c
+run 1 sub0-warm body 18 | bfa30254 bef02770 be2f81a0 3f919298 3f7986dc 3fb7e908
+run 1 sub0-warm body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 sub0-warm body 20 | bfd17af0 3e5f8510 bcbff200 400eefc2 bf381544 bf6c3454
+run 1 sub0-warm body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 sub0-warm body 22 | 3f84d68c 3ffa4d5e bf98e46c 3ffb6950 c02f57fb 3e2135e0
+run 1 sub0-warm body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 sub0-solve body 0 | bf7334e5 3f3b6b8f 3d52e52c c02a44b2 40154cc9 4024e68f
+run 1 sub0-solve body 1 | 3f01a1f6 bd68a2e8 3e3d837a bf162be2 c034391a 3f8b345a
+run 1 sub0-solve body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 sub0-solve body 3 | bf85d9f0 3f8f0b64 bff85a4f 3f30b264 3e3e5330 bf7d56dd
+run 1 sub0-solve body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 sub0-solve body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 sub0-solve body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 sub0-solve body 7 | 3f277104 bf1bc46e bf8d387d c002cce8 bf79d078 401a6ff1
+run 1 sub0-solve body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 sub0-solve body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 sub0-solve body 10 | bf90730a 3fdedb08 3f982ce4 bf3058a2 bfdc4483 3c5f6a40
+run 1 sub0-solve body 11 | bf7abd64 3eb8a00b bfb1e8ee 3f9287c4 3fd1741d 4013078e
+run 1 sub0-solve body 12 | 3d992548 3fb5360a 3f6defa6 bfbb28e2 bebb8b67 bfee5151
+run 1 sub0-solve body 13 | be89d988 3f703b71 bfa6e288 3f1892d2 3f83968e bf29a86d
+run 1 sub0-solve body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 sub0-solve body 15 | 3f78c301 be9166cc be5022d0 bfb868af 3f891828 c00bbc25
+run 1 sub0-solve body 16 | 3ffbd24e 3df226d8 bf466725 bf981639 bdada5f0 40336fd3
+run 1 sub0-solve body 17 | 3da2aa40 3f88fb38 3e0f0bd0 be4a0c80 bf447110 c02a7c7c
+run 1 sub0-solve body 18 | bf71a582 3c73de00 be15bd97 3f8b9d2c 3f8c6203 3fc26c76
+run 1 sub0-solve body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 sub0-solve body 20 | bef50b51 bf4ea762 be1f2fd8 3fed0b8a bf7cfe31 bf45f116
+run 1 sub0-solve body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 sub0-solve body 22 | 3f89f7d8 3ff45d8f bfa6f8a1 3ffaed8d c02cd3ad 3e0cb8eb
+run 1 sub0-solve body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 sub0-push body 0 | c011347d 3f01f2bc 3e8a019a c00fbedf 400c65db 3ff750a2
+run 1 sub0-push body 1 | 3efd2747 bd72e6b9 3e293b72 bf189d35 c03459c9 3f8c3a55
+run 1 sub0-push body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 sub0-push body 3 | bf6051ec 3fe42f62 3ee80fc4 3f2f9cd0 bec4c3fe bf150480
+run 1 sub0-push body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 sub0-push body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 sub0-push body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 sub0-push body 7 | 3ec5c045 bf063f79 bf9c577c bffb2686 bf1d7928 400dffe2
+run 1 sub0-push body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 sub0-push body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 sub0-push body 10 | 3ea64166 3fa479b9 3fea3839 bf0b36ae bf999341 bebba518
+run 1 sub0-push body 11 | bf7efed0 3eb9b51a bfb00d33 3f9157ae 3fd04bda 4012c9b6
+run 1 sub0-push body 12 | 3ca71dc8 3f98ae9f 3f8ca681 bfc45903 becf6af4 bfff8bad
+run 1 sub0-push body 13 | 3f080a1a 401b7c19 bec24ddd 3f922252 3fcfe19c c0244a06
+run 1 sub0-push body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 sub0-push body 15 | 3f627c95 bf40d910 bf52ecb4 bf86e564 3f8a8a72 c00dda29
+run 1 sub0-push body 16 | 3fc9f0c4 3f2723cc be873650 bf89ce66 3e553722 401958bb
+run 1 sub0-push body 17 | 3e339c98 3f6fe82f 3da42a40 bd11a692 bf144079 c02df6d7
+run 1 sub0-push body 18 | bf52cc4d 3f02cbda bf06115b 3f829efe 3fa53ecc 3fe024d6
+run 1 sub0-push body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 sub0-push body 20 | 3f4d873e bf76817a 3f7f9eb9 3fde3d90 bf9e4e35 bf6ed40a
+run 1 sub0-push body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 sub0-push body 22 | 3f8c3324 3ff414ea bfa8eb94 3ffafdf1 c02ce4a9 3e0df90a
+run 1 sub0-push body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 sub1-warm body 0 | c0737540 bef9a7b8 3f1b1b5e bfc38672 3ffefd25 3f8203cb
+run 1 sub1-warm body 1 | bf5a75de be46b81c be807bd5 bf85ac3f c02d1281 3f7a337c
+run 1 sub1-warm body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 sub1-warm body 3 | bfb61a3d 40a7b411 3f0a54f8 3ff059b8 bfc01da6 bfcf0e3e
+run 1 sub1-warm body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 sub1-warm body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 sub1-warm body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 sub1-warm body 7 | 3dc7f594 bed299bc bf99d3a3 c0042c86 beeae371 3fffb49e
+run 1 sub1-warm body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 sub1-warm body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 sub1-warm body 10 | 3ff1fed0 3f2be2d4 3fdc92d4 beaf3bb9 bf5e9a9a bf2e7684
+run 1 sub1-warm body 11 | bf86844c 3ed16e7c bfa0c4fe 3f879924 3fc76b3c 40128a34
+run 1 sub1-warm body 12 | be3a4aaf 3f40b171 3fa0e310 bfd27b2e beec9fc8 c00aba66
+run 1 sub1-warm body 13 | 40305310 40840ab3 3f50649b 3fde5c9d 3ffe75ae c0b2389f
+run 1 sub1-warm body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 sub1-warm body 15 | be33b318 c00d2ff3 c05c935e 3dc5169c 3fa2bbb7 c030302e
+run 1 sub1-warm body 16 | 3fb7e5c4 3fd51570 3f8fc92b bf178e14 3fb64aaa 3fe713e5
+run 1 sub1-warm body 17 | 3e8af208 3f4dd9ee 3ca8f37a 3e013936 bec81fc5 c0317132
+run 1 sub1-warm body 18 | bebf27e3 3fbed5b6 bf60424e 3f6756c7 3fcdba2a 40043052
+run 1 sub1-warm body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 sub1-warm body 20 | 404f8116 c009390e 40014f40 3f9e9b9c bfe091c8 bf7173c1
+run 1 sub1-warm body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 sub1-warm body 22 | 3f938fbc 3feddc76 bfb8f2bc 3ffa9291 c02a7158 3df57868
+run 1 sub1-warm body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 sub1-solve body 0 | c011347e 3f01f2ba 3e8a0199 c00fbedf 400c65dc 3ff750a2
+run 1 sub1-solve body 1 | 3edb6844 bd9534d7 3dd17d2c bf24ddc7 c032e533 3f882fda
+run 1 sub1-solve body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 sub1-solve body 3 | bf6051eb 3fe42f62 3ee80fbc 3f2f9cce bec4c3f4 bf150481
+run 1 sub1-solve body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 sub1-solve body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 sub1-solve body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 sub1-solve body 7 | 3e9c0578 bec07cfe bf3cc899 bff5225b bfa92d07 4023f7a1
+run 1 sub1-solve body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 sub1-solve body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 sub1-solve body 10 | 3f445630 3ef57f90 bf4bd1c1 be942df1 bf836c11 bfc9f085
+run 1 sub1-solve body 11 | bf7efed0 3eb9b519 bfb00d33 3f9157ae 3fd04bda 4012c9b6
+run 1 sub1-solve body 12 | 3ca71dc1 3f98ae9f 3f8ca681 bfc45903 becf6af4 bfff8bad
+run 1 sub1-solve body 13 | 3f080a18 401b7c19 bec24ddc 3f922253 3fcfe19a c0244a04
+run 1 sub1-solve body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 sub1-solve body 15 | 3f627c95 bf40d910 bf52ecb5 bf86e564 3f8a8a72 c00dda29
+run 1 sub1-solve body 16 | 3f9dbe77 3ea84770 bd7fe480 bf495a03 3e1684c2 3ffd623a
+run 1 sub1-solve body 17 | 3e83a903 3f8bfa16 be25e23a 3f2428ed bf90d1b8 c02cf7a2
+run 1 sub1-solve body 18 | bf52cc4d 3f02cbda bf06115b 3f829efe 3fa53ecc 3fe024d5
+run 1 sub1-solve body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 sub1-solve body 20 | 3f4d873b bf76817a 3f7f9eb7 3fde3d91 bf9e4e35 bf6ed40a
+run 1 sub1-solve body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 sub1-solve body 22 | 3f8c3324 3ff414ea bfa8eb94 3ffafdf1 c02ce4aa 3e0df90a
+run 1 sub1-solve body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 sub1-push body 0 | c0205c74 3eb6736b 3ea8ef2e c00bcedc 40095147 3fea046f
+run 1 sub1-push body 1 | 3ee30b43 bd8ecb22 3e0215f0 bf21d072 c032bc5c 3f86e883
+run 1 sub1-push body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 sub1-push body 3 | bf6051eb 3fe42f62 3ee80fbc 3f2f9cce bec4c3f4 bf150481
+run 1 sub1-push body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 sub1-push body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 sub1-push body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 sub1-push body 7 | 3e90e267 bef26284 bf65760c bfd61796 bf9fdccf 400f713b
+run 1 sub1-push body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 sub1-push body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 sub1-push body 10 | 3f628ce0 3f810e9a 3d871dfe bf02892c bfa982a4 bf696782
+run 1 sub1-push body 11 | bf836884 3ebbb24d bfaca2de 3f8f28cf 3fce2b5b 4012580d
+run 1 sub1-push body 12 | bd6be9a2 3f8df779 3f8e0b6f bfd1f046 bebac52f bff6c9c2
+run 1 sub1-push body 13 | 3f113921 4023163b bea18afd 3f974ce7 3fd54a9c c02f2664
+run 1 sub1-push body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 sub1-push body 15 | 3f6dbc81 bf3536ea bf3fc228 bf743deb 3f8646f8 c00e04ef
+run 1 sub1-push body 16 | 3f87f3bc 3ee00e15 3cb41270 bf463d45 3e1c8108 3ff0a788
+run 1 sub1-push body 17 | 3e99c9d8 3f8894dc be17f76a 3ee1f858 bf440733 c0346ccf
+run 1 sub1-push body 18 | bf4e6614 3f14e7e2 bf13d93e 3f8156b0 3fa8ca40 3fe46178
+run 1 sub1-push body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 sub1-push body 20 | 3f5f73c5 bf69560d 3f884bde 3fdeeb31 bf9fc7b5 bf6fdbd8
+run 1 sub1-push body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 sub1-push body 22 | 3f904d1d 3ff38f66 bfac8096 3ffb1c10 c02d03e1 3e104562
+run 1 sub1-push body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 restitution body 0 | c011347e 3f01f2ba 3e8a0199 c00fbedf 400c65dc 3ff750a2
+run 1 restitution body 1 | 3ee8a4c9 bd8a1756 3e14aadc bf1f9386 c0329e6a 3f85f87c
+run 1 restitution body 2 | 3f50d860 3e9afc20 bfc9621c bf179cd4 c0127164 bdda4400
+run 1 restitution body 3 | bf6051eb 3fe42f62 3ee80fbc 3f2f9cce bec4c3f4 bf150481
+run 1 restitution body 4 | 3f2aa664 3f2afe70 bccf9d00 3f9a39b4 3e47f400 bf9a8c27
+run 1 restitution body 5 | bfefcd70 bffc6552 3f9dc466 3f15eeb4 bf44c338 c0230983
+run 1 restitution body 6 | 3f28932c bf1d9e0c 3f477628 c02636f5 401d7d40 3f1310e8
+run 1 restitution body 7 | 3e8a0080 bf018f20 bf74810a bfca2822 bf92d490 400ad89b
+run 1 restitution body 8 | bf3d2cbc 3ec55ac0 3dd86f60 400c6452 3f9d4368 be511b20
+run 1 restitution body 9 | bf823384 3fbe038c bfc71858 3faa0a1c bfa4ec0b c00ba184
+run 1 restitution body 10 | 3f7538c2 3f97c14b 3ec50511 bf15aa47 bfb2087a bf298a1a
+run 1 restitution body 11 | bf7efed0 3eb9b519 bfb00d33 3f9157ae 3fd04bda 4012c9b6
+run 1 restitution body 12 | bdd8af79 3f8cbd4f 3f89998c bfda6940 bea539ac bfeb64f0
+run 1 restitution body 13 | 3f4e652e 401dbb23 befe735f 3f8f3ff6 3fc1366e c02d74a6
+run 1 restitution body 14 | 3fcffcdc be897a00 3f34d0e4 bf050898 3f91f1a0 3f1139d0
+run 1 restitution body 15 | 3f695695 bf34da1a bf2e04b1 bf5a875a 3f81ef65 c00c35ac
+run 1 restitution body 16 | 3fa93ffb 3eadab08 bd00449d bf45e1d0 3e57a671 3ffe9bd9
+run 1 restitution body 17 | 3e6b8c8f 3f8c12f3 be424eb0 3ec027e6 bf8aab8b c02e5561
+run 1 restitution body 18 | bf52cc4d 3f02cbda bf06115a 3f829efe 3fa53ecc 3fe024d5
+run 1 restitution body 19 | 3f9acfa8 3f957eb8 bff0b5d8 c03f2056 3fcbb40c 40011804
+run 1 restitution body 20 | 3f4d873b bf76817a 3f7f9eb7 3fde3d91 bf9e4e35 bf6ed40a
+run 1 restitution body 21 | 3fc78daa bfd13cb0 be844150 c00d7e46 c0037978 3ffd2758
+run 1 restitution body 22 | 3f8c3324 3ff414ea bfa8eb94 3ffafdf1 c02ce4aa 3e0df90a
+run 1 restitution body 23 | bff9d584 bf849b44 3f69b344 bffe3d30 3f308978 bf9cc003
+run 1 store contact 0 manifold 0 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 3ece45f6 00000000
+run 1 store contact 1 manifold 0 | 00000000 00000000 00000000 80000000 00000000 00000000 00000000 | 00000000 3f184b07 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 2 manifold 0 | 00000000 80000000 00000000 80000000 00000000 00000000 00000000 | 00000000 3e80fdef 00000000 00000000 00000000 00000000 00000000 38a42973 00000000
+run 1 store contact 3 manifold 0 | 00000000 80000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000
+run 1 store contact 4 manifold 0 | 00000000 80000000 00000000 80000000 80000000 80000000 00000000 | 00000000 00000000 c0284ce3
+run 1 store contact 5 manifold 0 | 00000000 00000000 80000000 80000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 6 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 7 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 8 manifold 0 | 00000000 00000000 00000000 80000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 9 manifold 0 | 00000000 80000000 00000000 00000000 00000000 00000000 00000000 | 00000000 3f84eb0b 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 3e356b6c 00000000
+run 1 store contact 10 manifold 0 | 00000000 80000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 11 manifold 0 | be14592c bdece724 3df4f8bc be0993fd 3c8f0ee5 bc5069cd 3cf57dfa | 00000000 00000000 3f6a23ad 3cf0af20 3e3a0023 3d5318c0 00000000 00000000 3f69f9a4 00000000 bed23223 3f6e78b6
+run 1 store contact 11 manifold 1 | 3dd6d4a8 3e17013f 3e4e55a8 be3aac78 3cd85418 bc09c7ac 3d3afbe2 | 3e1f317e be06a2e6 be686482 00000000 00000000 bd393a40
+run 1 store contact 12 manifold 0 | 3cc2ffe8 3c9374b0 3b671bfe bc390e8d bb8fd3b0 bc6e6e46 3b58b43f | 3d0c114b 3f7b06cd 00000000 00000000 00000000 00000000
+run 1 store contact 12 manifold 1 | 00000000 00000000 80000000 00000000 80000000 80000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 13 manifold 0 | 00000000 80000000 00000000 00000000 80000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 13 manifold 1 | 00000000 80000000 00000000 00000000 80000000 00000000 00000000 | 00000000 00000000 00000000 00000000 3eb67e6c 00000000
+run 1 store contact 13 manifold 2 | 00000000 80000000 80000000 00000000 80000000 00000000 00000000 | 00000000 3f0b0314 00000000
+run 1 store contact 14 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000
+run 1 store contact 14 manifold 1 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 3e757e94 3e000457 00000000
+run 1 store contact 15 manifold 0 | bc9c2c84 be065ee5 bf427e7d 3d54a1d6 00000000 00000000 00000000 | 3f57c8aa 3f0fc90a bee665d4 00000000 00000000 bb5fde40
+run 1 store contact 15 manifold 1 | 00000000 3ecc8242 bdc8d722 be224389 00000000 00000000 00000000 | 00000000 00000000 bffd130c 3f1573ac 3fd5080b c063e302
+run 1 store contact 15 manifold 2 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 00000000 00000000 403f5aac 00000000 00000000 3fc786b6 00000000 00000000 3f7aedaf
+run 1 store contact 16 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 3ea94c98 00000000
+run 1 store contact 16 manifold 1 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000
+run 1 store contact 17 manifold 0 | 00000000 be5d638b bd5eddd4 bd9402f9 3c5163b9 3c7ca1d9 bc056b4a | 3de04640 bf8b8734 00000000
+run 1 store contact 17 manifold 1 | 00000000 80000000 00000000 00000000 00000000 00000000 80000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 18 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 19 manifold 0 | 00000000 80000000 80000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 19 manifold 1 | 00000000 80000000 80000000 00000000 00000000 00000000 00000000 | 00000000 be12adb2 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 19 manifold 2 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 00000000 3ea6f026 00000000 00000000 00000000 00000000 3e934f84 3f5407bb 00000000
+run 1 store contact 20 manifold 0 | 00000000 00000000 00000000 00000000 80000000 00000000 00000000 | 00000000 4019ccac c0804d65 00000000 00000000 c05e72b8 00000000 00000000 c00519e7
+run 1 store contact 21 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 80000000 | 00000000 00000000 4058fb1e 00000000 00000000 bedbde08 00000000 00000000 3fb7f589
+run 1 store contact 21 manifold 1 | 80000000 00000000 00000000 00000000 80000000 80000000 80000000 | 00000000 00000000 3f78a7ae 00000000 00000000 bdd9f9a0 00000000 00000000 3fbdcbd2
+run 1 store contact 21 manifold 2 | b1c265da b1bc0950 31c7632a 31d7260c 80000000 00000000 80000000 | 00000000 00000000 3e810bd8 3e882454 3df14d89 3f9090b7 00000000 00000000 3fa1e430
+run 1 store contact 22 manifold 0 | 80000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 4000a94e
+run 1 store contact 22 manifold 1 | 80000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 3f97912d
+run 1 store contact 22 manifold 2 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 40229aac 00000000 00000000 4021ce76 00000000 00000000 4027a1ec 00000000 00000000 4062f50e
+run 1 store contact 23 manifold 0 | 80000000 00000000 00000000 00000000 80000000 80000000 80000000 | 00000000 3d03f8a2 00000000
+run 1 store contact 23 manifold 1 | 00000000 00000000 00000000 00000000 00000000 80000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 1 store contact 24 manifold 0 | 80000000 3ed29ebd 3ef4b536 bed5bd37 80000000 00000000 80000000 | 3d8e7a3c 3fb394e5 00000000
+run 1 store contact 24 manifold 1 | bed62ac2 3cfecf30 bf06a9a8 bef1c64e 00000000 00000000 00000000 | 00000000 00000000 00000000 3c398971 3e363229 00000000 00000000 00000000 00000000 00000000 3ec54a4f 00000000
+run 1 hits worker 0 | 1 | 20
+run 1 hits worker 1 | 1 | 15
+run 2 initial body 0 | bf11bed8 bfef05aa bfe38ab0 bfc7e063 c0266390 3faa4480
+run 2 initial body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3128 4010cb2c
+run 2 initial body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 initial body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 initial body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 initial body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 initial body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 initial body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 initial body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 initial body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 initial body 10 | 3f21acb0 be616e10 bfdcca3c 4032a1e0 3eee1e30 be440ce0
+run 2 initial body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 initial body 12 | bfb84fc8 bfaf369e be21bee0 c03b2f74 c012b455 bf5073d8
+run 2 initial body 13 | 3fd5141a 3f9e2502 bdd5a480 be1f9ab0 bf5c2168 40056dfc
+run 2 initial body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 initial body 15 | bdb70340 bf27cc48 3f46d924 bf0f6228 c0119eed c007c3e8
+run 2 initial body 16 | 3fd7510a 3edb4218 3fe6e5a2 3d8ecdc0 3ecbc710 4012370a
+run 2 initial body 17 | bfe862f6 3f5afe78 3fd4bd5a 3fc64df8 bfa54de2 3fb7d480
+run 2 initial body 18 | bf9fccfc bfed5692 bebf0fb0 3bd73400 3ea78590 3fab6e0c
+run 2 initial body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 initial body 20 | 3f8e2188 bfa3f5a2 3fee9828 3fea4684 4038c1a4 401e4a30
+run 2 initial body 21 | bffece32 3e999b60 bfaf1706 bf514298 bf9e57df c03e96a7
+run 2 initial body 22 | 3f0aa7c8 bffd2892 3dd22ae0 c00cbfa8 3f868040 bfdd8275
+run 2 initial body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 prepare | anyRestitution 1
+run 2 prepare body 0 | bf11bed8 bfef05aa bfe38ab0 bfc7e063 c0266390 3faa4480
+run 2 prepare body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3128 4010cb2c
+run 2 prepare body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 prepare body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 prepare body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 prepare body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 prepare body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 prepare body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 prepare body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 prepare body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 prepare body 10 | 3f21acb0 be616e10 bfdcca3c 4032a1e0 3eee1e30 be440ce0
+run 2 prepare body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 prepare body 12 | bfb84fc8 bfaf369e be21bee0 c03b2f74 c012b455 bf5073d8
+run 2 prepare body 13 | 3fd5141a 3f9e2502 bdd5a480 be1f9ab0 bf5c2168 40056dfc
+run 2 prepare body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 prepare body 15 | bdb70340 bf27cc48 3f46d924 bf0f6228 c0119eed c007c3e8
+run 2 prepare body 16 | 3fd7510a 3edb4218 3fe6e5a2 3d8ecdc0 3ecbc710 4012370a
+run 2 prepare body 17 | bfe862f6 3f5afe78 3fd4bd5a 3fc64df8 bfa54de2 3fb7d480
+run 2 prepare body 18 | bf9fccfc bfed5692 bebf0fb0 3bd73400 3ea78590 3fab6e0c
+run 2 prepare body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 prepare body 20 | 3f8e2188 bfa3f5a2 3fee9828 3fea4684 4038c1a4 401e4a30
+run 2 prepare body 21 | bffece32 3e999b60 bfaf1706 bf514298 bf9e57df c03e96a7
+run 2 prepare body 22 | 3f0aa7c8 bffd2892 3dd22ae0 c00cbfa8 3f868040 bfdd8275
+run 2 prepare body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 sub0-warm body 0 | bfa5dab0 c007fd43 bf8550ac bfd13010 c017c4f7 3fdb3d77
+run 2 sub0-warm body 1 | be98ddb4 bc5e7a50 3f00e396 3fd8fda7 3f0e6f04 4015a9a3
+run 2 sub0-warm body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 sub0-warm body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 sub0-warm body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 sub0-warm body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 sub0-warm body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 sub0-warm body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 sub0-warm body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 sub0-warm body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 sub0-warm body 10 | 3fef9544 3e266f66 bfbe6dfc 403e83a4 3d89c100 bf2d365d
+run 2 sub0-warm body 11 | 3fab27c2 bfc3b6f4 3fd86c90 bf88b630 3f8a34bf c0094e7d
+run 2 sub0-warm body 12 | bfaf1954 bfe23920 beea410e c01d68ef c010b000 bf476981
+run 2 sub0-warm body 13 | 400d54df 3fbc7f0f 3f394ecf be3498f7 bf644184 4005f88b
+run 2 sub0-warm body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 sub0-warm body 15 | 3fe3dfef 3f4a5dde c0022fbc 3e08917e c02c7980 c01a53d0
+run 2 sub0-warm body 16 | 3eee3cb8 bed3180c 401d7c3c 3ea07c24 bf559ddc 4012fba4
+run 2 sub0-warm body 17 | c00345c4 3f5c35b4 3fd27cb6 3fbdb3e3 bf112391 3fce99e8
+run 2 sub0-warm body 18 | c02ad785 c0827f8c bfa685d9 3de33fc3 3e5aceec 3fbac2d5
+run 2 sub0-warm body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 sub0-warm body 20 | 3f58e4a5 bfd43db8 3feab62e 3feb0b86 4026d67c 4035857a
+run 2 sub0-warm body 21 | bfdf2723 3ea1da80 c0657b63 bf4c3478 bfbf60b6 c0303096
+run 2 sub0-warm body 22 | c000b557 c030fd6b bec56b62 bffbce32 3f535fc6 c011d0d9
+run 2 sub0-warm body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 sub0-solve body 0 | bf1cf43a bfeb4e41 bfe25b40 bfc85c6c c026a4cf 3fa96de1
+run 2 sub0-solve body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3127 4010cb2b
+run 2 sub0-solve body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 sub0-solve body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 sub0-solve body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 sub0-solve body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 sub0-solve body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 sub0-solve body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 sub0-solve body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 sub0-solve body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 sub0-solve body 10 | 3f21acae be616e11 bfdcca3d 4032a1de 3eee1e31 be440ce6
+run 2 sub0-solve body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 sub0-solve body 12 | bf90b345 bfd8a16f bea9a15d c035fbba bfca3c0d bf517bab
+run 2 sub0-solve body 13 | be1db6f0 beae5bda 3ebdeb49 bea509b1 3e0a7108 4005e4e0
+run 2 sub0-solve body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 sub0-solve body 15 | 3e9b0918 bf850a7e be84852e be241a38 bf99fd6a bfe55b28
+run 2 sub0-solve body 16 | 3fc8047b 3ea4ad98 3fe192b9 3e0d4493 3ec0d620 400e1614
+run 2 sub0-solve body 17 | bfe862f7 3f5afe77 3fd4bd5a 3fc64df9 bfa54de0 3fb7d482
+run 2 sub0-solve body 18 | bf9fccfc bfed5691 bebf0fb2 3bd733fa 3ea7858f 3fab6e0b
+run 2 sub0-solve body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 sub0-solve body 20 | 3ede791b 3de73534 3f5594ac 3febab92 3fafe7cf 3fe72687
+run 2 sub0-solve body 21 | be715463 c0546de0 3fa72721 bf38fb5c bf02693f c074e4a7
+run 2 sub0-solve body 22 | 3f0aa7cc bffd2890 3dd22ae0 c00cbfa7 3f86803f bfdd8277
+run 2 sub0-solve body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 sub0-push body 0 | c0223064 bf8a303a bfe40fc8 bfd7ab65 c03ab6a1 3fa79869
+run 2 sub0-push body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3127 4010cb2b
+run 2 sub0-push body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 sub0-push body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 sub0-push body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 sub0-push body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 sub0-push body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 sub0-push body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 sub0-push body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 sub0-push body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 sub0-push body 10 | 3f8656dd 3e0fdaa4 bfcd1602 402a432b 3e75fcde bd565c46
+run 2 sub0-push body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 sub0-push body 12 | bf8fd010 c025526d bf4be6f8 c02b0580 bf2ea792 bfa6bacb
+run 2 sub0-push body 13 | 40022b77 beed53df bedf9729 bf0a1244 be14dc1b 3fe6ead3
+run 2 sub0-push body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 sub0-push body 15 | bfa0e85f bed2d19d c00cb22f 3e87d84f c0000e71 c00cdc98
+run 2 sub0-push body 16 | 3f9ee7fd 3d32a758 3ffeaccc 3e622a3a 3d3df510 400d4c9f
+run 2 sub0-push body 17 | bf7b4f34 3fb1af00 3f7f92de bf1c38a6 be500340 3f2ca5f6
+run 2 sub0-push body 18 | bf9fccfc bfed5691 bebf0fb2 3bd733fa 3ea7858f 3fab6e0b
+run 2 sub0-push body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 sub0-push body 20 | 3f2dcd2c be4c70de 3f5f2506 4021a38a 400f8228 3f9ef7cb
+run 2 sub0-push body 21 | bf738618 c02c3608 be02880e bf125520 bf243bdc c0233875
+run 2 sub0-push body 22 | bea32dec c02e15c3 be1980d4 bf9fbbe1 3ed6e849 bff967b4
+run 2 sub0-push body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 sub1-warm body 0 | c08ff88a be956b26 bfe494e1 bfe77666 c04f09b4 3fa4ec51
+run 2 sub1-warm body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3127 4010cb2b
+run 2 sub1-warm body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 sub1-warm body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 sub1-warm body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 sub1-warm body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 sub1-warm body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 sub1-warm body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 sub1-warm body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 sub1-warm body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 sub1-warm body 10 | 3fbbd764 3f0048d6 bfbd61c7 4021e478 3c7bd5b0 3db1bd81
+run 2 sub1-warm body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 sub1-warm body 12 | bf4ea0b1 c073098b bfb7af1c c01adb8c 3f6d8230 bfe53baa
+run 2 sub1-warm body 13 | 4019cce1 c00a6779 bf44e294 bf6c3ddd 3f11b35a 3fc2f9ac
+run 2 sub1-warm body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 sub1-warm body 15 | c01b3044 be2c155c c0a58d53 3f8b9d3c bfdcfbe8 c011f548
+run 2 sub1-warm body 16 | 3f4cfddf beae9840 400b39fb 3ebe76cb be9c49cb 40086234
+run 2 sub1-warm body 17 | be1761e8 3ff5dec5 3eab5610 c0314350 3f629a22 bdb2e8c0
+run 2 sub1-warm body 18 | bf9fccfc bfed5691 bebf0fb2 3bd733fa 3ea7858f 3fab6e0b
+run 2 sub1-warm body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 sub1-warm body 20 | 3e7d5d1e 3f61b2d4 bdf73218 404e23d3 3fcc8558 3c2d9980
+run 2 sub1-warm body 21 | 3db481d0 c0b5cfbe 3f8e7501 bea6cf52 bd3c7f80 c007da41
+run 2 sub1-warm body 22 | bf96eadc c05d973e bece0b8e be97e1ce be5860d6 c00aa679
+run 2 sub1-warm body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 sub1-solve body 0 | c0223064 bf8a303a bfe40fc8 bfd7ab66 c03ab6a1 3fa79868
+run 2 sub1-solve body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3127 4010cb2b
+run 2 sub1-solve body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 sub1-solve body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 sub1-solve body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 sub1-solve body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 sub1-solve body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 sub1-solve body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 sub1-solve body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 sub1-solve body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 sub1-solve body 10 | 3f8726e7 3e0f7d26 bfc9cb90 40293291 3e7218b8 bd71a448
+run 2 sub1-solve body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 sub1-solve body 12 | bf8fd010 c025526d bf4be6f9 c02b0580 bf2ea790 bfa6bacc
+run 2 sub1-solve body 13 | 3f0b765d 395a41a0 3e559ee2 3f17f288 3ef3d6f8 40009bca
+run 2 sub1-solve body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 sub1-solve body 15 | bf99c080 bec1af9b c00bb2b4 3e6f7e90 c005d0ba c00766a7
+run 2 sub1-solve body 16 | 3f98824c 3c607a80 3ffce3ff 3e79156d 3d0620a8 400bd917
+run 2 sub1-solve body 17 | bf7b4f34 3fb1af00 3f7f92de bf1c38a8 be500338 3f2ca5f6
+run 2 sub1-solve body 18 | bf9fccfc bfed5691 bebf0fb2 3bd733fa 3ea7858f 3fab6e0b
+run 2 sub1-solve body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 sub1-solve body 20 | 3f2382da be3c23f0 3f5a8098 40227809 400ea888 3f965eb0
+run 2 sub1-solve body 21 | bf6635ae c03191fa bf6d48d8 bef75dd6 bf82c0b4 c0250936
+run 2 sub1-solve body 22 | bea9debb c02e09bc be4fb0c0 bf9bde06 3ed6780a bff7cd3f
+run 2 sub1-solve body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 sub1-push body 0 | c0223064 bf8a303a bfe40fc8 bfd7ab66 c03ab6a1 3fa79868
+run 2 sub1-push body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3127 4010cb2b
+run 2 sub1-push body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 sub1-push body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 sub1-push body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 sub1-push body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 sub1-push body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 sub1-push body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 sub1-push body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 sub1-push body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 sub1-push body 10 | 3f91d297 3e65fac5 bfc34024 4027016c 3e45d563 bc417c3c
+run 2 sub1-push body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 sub1-push body 12 | bf8fd010 c025526d bf4be6f9 c02b0580 bf2ea790 bfa6bacc
+run 2 sub1-push body 13 | 3fcdcc91 bf12e0b6 bed78e8f 3ea65629 3eaaf4b3 3ff4fc8e
+run 2 sub1-push body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 sub1-push body 15 | bf545ea8 be93cba8 c01a8c94 3e867c8a c0073fce c007b41c
+run 2 sub1-push body 16 | 3f8d38d2 bd80438d 400270b3 3e86d6e3 bd79cb6e 400aebb2
+run 2 sub1-push body 17 | bf4996a6 3fc190e0 3f57ffa1 bf8e7e97 3d4e40b0 3efe7356
+run 2 sub1-push body 18 | bf9fccfc bfed5691 bebf0fb2 3bd733fa 3ea7858f 3fab6e0b
+run 2 sub1-push body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 sub1-push body 20 | 3f299bbd be5b547f 3f5b6f32 40227e9e 400f2624 3f9cc4c2
+run 2 sub1-push body 21 | bf690f2b c0252b73 bdcc1199 bf0e77fa bf2bc0a8 c027303b
+run 2 sub1-push body 22 | bf00dc92 c0392a19 be9dba5f bf820580 3e9ace92 bffc39b3
+run 2 sub1-push body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 restitution body 0 | c0223064 bf8a303a bfe40fc8 bfd7ab66 c03ab6a1 3fa79868
+run 2 restitution body 1 | bf3b9294 be1f0480 3f0cbbdc 3fd1eaf0 3ebe3127 4010cb2b
+run 2 restitution body 2 | 3fc6e0b6 3fd4d45a bf28e00c 40183028 c0045474 401867fa
+run 2 restitution body 3 | bff0b676 bc72c200 3f80e7ec befee5a0 3fad3410 c0181144
+run 2 restitution body 4 | bff28b58 3f901616 3df732a0 c01e6046 bf200a38 bfc0da4f
+run 2 restitution body 5 | 3fa3ad70 3fbfaf12 3fe2ad36 bf266f38 3e0ce020 bf6b1ea4
+run 2 restitution body 6 | bff9e054 3f85b280 3f40d6d8 4005b07a 3f930acc 3def7ea0
+run 2 restitution body 7 | bf486980 3f8e6360 3fa9088c 3ffc1580 c01b6b74 bf7cc468
+run 2 restitution body 8 | bfa850c2 3fba5c9c 3e39b9e0 402dfbe2 c00f223f c025cee2
+run 2 restitution body 9 | 3e9bacc8 bfabe82a 3f6f46e0 c01fceeb bfb441f7 be99e300
+run 2 restitution body 10 | 3f91529b 3e59feab bfb9e4e3 4026f814 3e6349ce 3c9c75fa
+run 2 restitution body 11 | 3fc5ffac bfc389d4 3fc02574 bf52d6a4 3f83c8b0 c008ea78
+run 2 restitution body 12 | bf8fd010 c025526d bf4be6f9 c02b0580 bf2ea790 bfa6bacc
+run 2 restitution body 13 | 3ead1a9e bdbca422 3ef71003 3f3fdee2 3f1746e2 400857d6
+run 2 restitution body 14 | bfd66910 bfff7f62 bf853952 3f5aa5d8 3ff7255c 3da11dc0
+run 2 restitution body 15 | bf653a82 bf255818 c03b54d5 3f1b649a bfe1ca6a c0060099
+run 2 restitution body 16 | 3f882197 bdc6c516 40043df7 3e8b7bdf bdd37a0a 400a80a0
+run 2 restitution body 17 | bf449338 3fc32ad7 3f540217 bf94fc82 3d9b7907 3ef54a5c
+run 2 restitution body 18 | bf9fccfc bfed5691 bebf0fb2 3bd733fa 3ea7858f 3fab6e0b
+run 2 restitution body 19 | bfdc7468 3f052c44 3f3cb1bc be3a5340 3fe85f90 c0373945
+run 2 restitution body 20 | 3f299bbd be5b547f 3f5b6f32 40227e9e 400f2624 3f9cc4c2
+run 2 restitution body 21 | bf690f2b c0252b73 bdcc1199 bf0e77fa bf2bc0a8 c027303b
+run 2 restitution body 22 | befd9b6e c0379f69 beeac2d7 bf8f40d4 3ec16a10 bffc66ba
+run 2 restitution body 23 | bf74efac 3f990320 bfa2cdb4 bfbd82bf bdcc68a0 403a4eee
+run 2 store contact 0 manifold 0 | 3d19c6de 3dc2c408 3e36ad45 bd096968 00000000 00000000 00000000 | 3ec37123 3f6538d7 bff6583a 3dad5d10 3e2d5d10 c0274c63
+run 2 store contact 1 manifold 0 | 3c60fb8f 3a7b0aa9 bd2b6ddc 3bba0ce9 00000000 00000000 00000000 | 00000000 3e95c9ee 401bfe4c 00000000 3e4a2b95 4010cff3
+run 2 store contact 2 manifold 0 | 00000000 00000000 80000000 80000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 2 store contact 3 manifold 0 | be1f3808 3f08f2df bf1810d7 3ea94617 bd25a832 3d9b4b4a 3e6720db | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 40072dc0 409480e5 00000000
+run 2 store contact 4 manifold 0 | 00000000 00000000 80000000 00000000 80000000 80000000 80000000 | 00000000 00000000 00000000
+run 2 store contact 5 manifold 0 | 00000000 80000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 403477fe 00000000 00000000 40120bef 00000000 00000000 40162b66 00000000 00000000 401acac0
+run 2 store contact 6 manifold 0 | 00000000 00000000 00000000 00000000 00000000 80000000 80000000 | 00000000 00000000 3ff746e0 00000000 00000000 404dc443 00000000 00000000 bd628127
+run 2 store contact 7 manifold 0 | 3c1c57f0 3cc9c826 3cb3202c 3cb28bd7 00000000 00000000 00000000 | 00000000 3f9533b6 00000000 00000000 3fa7107b 00000000 00000000 00000000 00000000
+run 2 store contact 8 manifold 0 | bcc42afc 3cb31e9e 3b9d10b4 3d1686c1 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 3e7fda9f 3e743abe 00000000 00000000 00000000 00000000
+run 2 store contact 9 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 401ddd3c
+run 2 store contact 10 manifold 0 | bd91a292 3d109ff5 bd9178f3 3bc4bd80 bc162b18 bc15547f bb5c13e4 | 3e7c8a4e 3f31913f 00000000 3e789fd3 3f2ed060 00000000 3cfa1b30 3d7a1b30 00000000
+run 2 store contact 11 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 c00e28e3
+run 2 store contact 12 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 4014b424 00000000 00000000 404ba336 00000000 00000000 400dfa00
+run 2 store contact 13 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 3f2dd7ba 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 2 store contact 14 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 80000000 | 00000000 00000000 00000000
+run 2 store contact 15 manifold 0 | 00000000 bc1514d5 bb8524f0 3c049b38 00000000 00000000 00000000 | 3cc5c730 3d45c730 bf94243b
+run 2 store contact 15 manifold 1 | 3cf48fec bd44de36 be1403b2 3e16d51b 00000000 00000000 00000000 | 3d76dd30 3df6dd30 bd5c8740 3d950be0 3e150be0 bfd95ef0 3e7957f4 3f123852 c0041d26 3e8cb55e 3f250748 c06b6265
+run 2 store contact 15 manifold 2 | 00000000 bdb530d3 bc880775 bb8cd318 00000000 00000000 00000000 | 3e2d8b68 3ead8b68 bf19df2b
+run 2 store contact 16 manifold 0 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 2 store contact 16 manifold 1 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 3f2d2652 3d7dc130 00000000 00000000 00000000 00000000
+run 2 store contact 16 manifold 2 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000
+run 2 store contact 17 manifold 0 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 3cf3cdf0 00000000
+run 2 store contact 17 manifold 1 | 00000000 00000000 80000000 80000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000
+run 2 store contact 18 manifold 0 | 00000000 00000000 80000000 80000000 00000000 00000000 00000000 | 00000000 be99efa0 00000000 00000000 00000000 00000000
+run 2 store contact 18 manifold 1 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 3eb8f24a 00000000 00000000 00000000 00000000
+run 2 store contact 19 manifold 0 | bc0e7fd0 3bc4d463 3c62ce89 bc43ca02 00000000 00000000 00000000 | 00000000 00000000 00000000 3e814c7b 3d286aa8 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 2 store contact 19 manifold 1 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 2 store contact 19 manifold 2 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 | 00000000 bdbf81be 00000000
+run 2 store contact 20 manifold 0 | 00000000 80000000 00000000 80000000 80000000 80000000 80000000 | 00000000 00000000 3ff2b5d0 00000000 00000000 3eb1c216 00000000 00000000 3fa9b8be 00000000 00000000 bf10a7b7
+run 2 store contact 21 manifold 0 | 00000000 00000000 00000000 80000000 00000000 80000000 80000000 | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+run 2 store contact 22 manifold 0 | 00000000 00000000 80000000 00000000 00000000 00000000 00000000 | 3c8e73e0 bf4cd4ac 3c10d638 00000000 00000000 bfa6acce
+run 2 store contact 22 manifold 1 | bc92557c 3c12acee bc05b05a 3d5fe4b3 3ca9dc50 3d2c803b 3e455215 | 3ea746dc 3ea25409 400c0511 00000000 00000000 3fe15932 3f0734b2 3f80fc73 3fde51c7 00000000 be662264 40218e08
+run 2 store contact 22 manifold 2 | 00000000 00000000 00000000 80000000 00000000 00000000 00000000 | 00000000 00000000 bf1cefad
+run 2 store contact 23 manifold 0 | 3cc9a12c 3da44def 3dc1746c be138529 bd4b1410 3c01b948 bca04b6a | 3e2446fc 3ee703d2 bf350fb7 3e48bb64 3ec8bb64 3e84394e 3e48c796 3ec8c796 be236744 3e352198 3eb52198 3e8d2a04
+run 2 store contact 23 manifold 1 | bc9a6778 3d30297e 3da19e7a ba53f84c 3d059471 bcdc3cc3 3d353bd7 | 3ec10a1d 3f410a1d 3f95c252 3e4d73db 3f107576 bf24ad5c 3e32c4e5 3efb64e2 bec8c924 3c470f71 3d0bf6db 3e513caa
+run 2 store contact 24 manifold 0 | 00000000 80000000 00000000 00000000 bd0274dc 3d1b5bc9 3c351f20 | 00000000 00000000 00000000
+run 2 store contact 24 manifold 1 | 80000000 00000000 00000000 00000000 3c490d20 bd41cac5 3d24e0c9 | 00000000 00000000 00000000 3f3aa602 3fcaf6bf 00000000 00000000 3e4ec1b2 00000000 00000000 00000000 00000000
+run 2 hits worker 0 | 1 | 0
+run 2 hits worker 1 | 1 | 15
