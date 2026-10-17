@@ -59,7 +59,63 @@ type contactConstraint struct {
 }
 
 // PORT: the b3*_ConvexW4 / b3*_MeshWideW4 declarations and the W4 byte counts are the kernels of
-// contact_solver_wide.go (W suffix: solveContactsConvexW, …). The W8 declarations are not ported.
+// contact_solver_wide.go (W suffix: solveContactsConvexW, …). The W8 declarations are the
+// wideKernels table (wide_kernels.go), filled by the width 8 backend.
+
+// wideBuffer is the typed form of upstream's `void*` wide constraint buffers
+// (b3StepContext.wideConstraints / wideMeshConstraints, b3GraphColor.wideConstraints /
+// wideMeshConstraints), generic over the lane width's constraint and manifold types
+// (wideConstraintBuffer at width 4, wideConstraintBuffer8 at width 8).
+//
+// PORT: upstream stores a heterogeneous byte stream: each b3ContactConstraintWide is followed by
+// its b3ContactManifoldWide array (one manifold for convex contacts, manifoldCount for mesh
+// contacts), and b3GetConstraintW / b3NextConstraintW / b3GetManifoldsW walk it with byte
+// offsets. Go keeps the two element types in two parallel slices instead, so the buffers are typed
+// and need no unsafe:
+//
+//   - constraint index i is constraints[i];
+//   - its manifolds start at manifolds[i*fixedManifoldCount] for convex constraints
+//     (fixedManifoldCount == 1) and at manifolds[manifoldStarts[i]-manifoldStarts[0]] for mesh
+//     constraints, exactly the offsets b3GetConstraintW computes;
+//   - a byte pointer into the stream (base + constraintIndex*sizeof(constraint) +
+//     manifoldIndex*sizeof(manifold), as solver.c slices the buffer per color) is the pair of
+//     sub-slices {constraints[constraintIndex:], manifolds[manifoldIndex:]};
+//   - NULL is the zero value.
+//
+// solver.c allocates the two slices with stackAlloc in place of one byte allocation sized with
+// b3GetWide*ByteCount (allocWideBuffer, sliceWideBuffer and freeWideBuffer). The kernels and their
+// helpers (b3GetConstraintW and friends) carry the constraint and manifold positions as indices
+// into these slices.
+type wideBuffer[C, M any] struct {
+	constraints []C
+	manifolds   []M
+}
+
+// allocWideBuffer allocates a wide buffer of constraintCount constraints and manifoldCount
+// manifolds on the stack allocator, constraints first.
+// PORT: the one b3AllocateArenaItem of solver.c, split into the two typed slices of wideBuffer.
+func allocWideBuffer[C, M any](stack *stack, constraintCount, manifoldCount int, constraintName, manifoldName string) wideBuffer[C, M] {
+	var buffer wideBuffer[C, M]
+	buffer.constraints = stackAlloc[C](stack, constraintCount, constraintName)
+	buffer.manifolds = stackAlloc[M](stack, manifoldCount, manifoldName)
+	return buffer
+}
+
+// sliceWideBuffer is the part of buffer starting at constraint constraintBase and manifold
+// manifoldBase, holding constraintCount constraints and the manifolds up to manifoldEnd.
+// PORT: the byte offset solver.c adds to the buffer base when it slices the buffer per color.
+func sliceWideBuffer[C, M any](buffer wideBuffer[C, M], constraintBase, constraintCount, manifoldBase, manifoldEnd int) wideBuffer[C, M] {
+	return wideBuffer[C, M]{
+		constraints: buffer.constraints[constraintBase : constraintBase+constraintCount],
+		manifolds:   buffer.manifolds[manifoldBase:manifoldEnd],
+	}
+}
+
+// freeWideBuffer frees a buffer of allocWideBuffer, in the reverse order of the allocation.
+func freeWideBuffer[C, M any](stack *stack, buffer wideBuffer[C, M]) {
+	stackFree(stack, buffer.manifolds)
+	stackFree(stack, buffer.constraints)
+}
 
 // ---- contact_solver.c ----
 
@@ -1060,84 +1116,153 @@ func storeImpulsesOverflow(context *stepContext) {
 	storeImpulsesMesh(block, context, 0)
 }
 
-// PORT: the dispatchers below drop the B3_SIMD_HAS_WIDTH_8 branches (world->simdWidth == 8 →
-// the W8 kernels). The Go port has one lane width (laneCount), so each always calls the single
-// wide kernel of contact_solver_wide.go.
+// PORT: the B3_SIMD_HAS_WIDTH_8 branches of the dispatchers below call the W8 kernels through the
+// wide8 table (wide_kernels.go). world.simdWidth is 8 only when wide8 is set (detectSIMDWidth), so
+// the branches need no nil check.
 
 // prepareContactsConvex is b3PrepareContacts_Convex.
 func prepareContactsConvex(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.prepareContactsConvex(block, context)
+		return
+	}
+
 	prepareContactsConvexW(block, context)
 }
 
 // warmStartContactsConvex is b3WarmStartContacts_Convex.
 func warmStartContactsConvex(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.warmStartContactsConvex(block, context)
+		return
+	}
+
 	warmStartContactsConvexW(block, context)
 }
 
 // pushContactsConvex is b3PushContacts_Convex.
 func pushContactsConvex(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.pushContactsConvex(block, context)
+		return
+	}
+
 	pushContactsConvexW(block, context)
 }
 
 // solveContactsConvex is b3SolveContacts_Convex.
 func solveContactsConvex(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.solveContactsConvex(block, context)
+		return
+	}
+
 	solveContactsConvexW(block, context)
 }
 
 // applyRestitutionConvex is b3ApplyRestitution_Convex.
 func applyRestitutionConvex(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.applyRestitutionConvex(block, context)
+		return
+	}
+
 	applyRestitutionConvexW(block, context)
 }
 
 // storeImpulsesConvex is b3StoreImpulses_Convex.
 func storeImpulsesConvex(block solverBlock, context *stepContext, workerIndex int) {
+	if context.world.simdWidth == 8 {
+		wide8.storeImpulsesConvex(block, context, workerIndex)
+		return
+	}
+
 	storeImpulsesConvexW(block, context, workerIndex)
 }
 
 // getWideContactConstraintByteCount is b3GetWideContactConstraintByteCount.
-// PORT: simdWidth is unused (B3_UNUSED upstream without width 8).
 func getWideContactConstraintByteCount(simdWidth int) int {
+	if simdWidth == 8 {
+		return wide8.contactConstraintByteCount()
+	}
+
 	return getWideContactConstraintByteCountW()
 }
 
 // prepareContactsMeshWide is b3PrepareContacts_MeshWide.
 func prepareContactsMeshWide(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.prepareContactsMeshWide(block, context)
+		return
+	}
+
 	prepareContactsMeshWideW(block, context)
 }
 
 // warmStartContactsMeshWide is b3WarmStartContacts_MeshWide.
 func warmStartContactsMeshWide(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.warmStartContactsMeshWide(block, context)
+		return
+	}
+
 	warmStartContactsMeshWideW(block, context)
 }
 
 // pushContactsMeshWide is b3PushContacts_MeshWide.
 func pushContactsMeshWide(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.pushContactsMeshWide(block, context)
+		return
+	}
+
 	pushContactsMeshWideW(block, context)
 }
 
 // solveContactsMeshWide is b3SolveContacts_MeshWide.
 func solveContactsMeshWide(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.solveContactsMeshWide(block, context)
+		return
+	}
+
 	solveContactsMeshWideW(block, context)
 }
 
 // applyRestitutionMeshWide is b3ApplyRestitution_MeshWide.
 func applyRestitutionMeshWide(block solverBlock, context *stepContext) {
+	if context.world.simdWidth == 8 {
+		wide8.applyRestitutionMeshWide(block, context)
+		return
+	}
+
 	applyRestitutionMeshWideW(block, context)
 }
 
 // storeImpulsesMeshWide is b3StoreImpulses_MeshWide.
 func storeImpulsesMeshWide(block solverBlock, context *stepContext, workerIndex int) {
+	if context.world.simdWidth == 8 {
+		wide8.storeImpulsesMeshWide(block, context, workerIndex)
+		return
+	}
+
 	storeImpulsesMeshWideW(block, context, workerIndex)
 }
 
 // getWideMeshConstraintByteCount is b3GetWideMeshConstraintByteCount.
-// PORT: simdWidth is unused (B3_UNUSED upstream without width 8).
 func getWideMeshConstraintByteCount(simdWidth int) int {
+	if simdWidth == 8 {
+		return wide8.meshConstraintByteCount()
+	}
+
 	return getWideMeshConstraintByteCountW()
 }
 
 // getWideMeshManifoldByteCount is b3GetWideMeshManifoldByteCount.
-// PORT: simdWidth is unused (B3_UNUSED upstream without width 8).
 func getWideMeshManifoldByteCount(simdWidth int) int {
+	if simdWidth == 8 {
+		return wide8.meshManifoldByteCount()
+	}
+
 	return getWideMeshManifoldByteCountW()
 }

@@ -215,10 +215,17 @@ func unionV(a, b AABB) AABB {
 
 var simdWidth atomicInt
 
-// PORT: cpuid/xgetbv AVX2 detection (B3_SIMD_HAS_WIDTH_8) is not ported: the only backend is
-// the laneCount wide scalar one.
+// PORT: cpuid/xgetbv AVX2 detection (B3_SIMD_HAS_WIDTH_8, b3HasAVX2) is not ported here: the
+// width 8 backend registers its kernels in wide8 (wide_kernels.go) from its init only when the CPU
+// has AVX2, so wide8 != nil stands for B3_SIMD_HAS_WIDTH_8 && b3HasAVX2(). Without it the width is
+// laneCount.
 
+// detectSIMDWidth is b3DetectSIMDWidth.
 func detectSIMDWidth() int {
+	if wide8 != nil {
+		return 8
+	}
+
 	return laneCount
 }
 
@@ -234,13 +241,13 @@ func GetSIMDWidth() int {
 }
 
 // IsAVX2Available returns true if the CPU supports AVX2.
-// PORT: always false; the width 8 backend is not ported.
+// PORT: true when the width 8 backend is built in and registered (see detectSIMDWidth).
 func IsAVX2Available() bool {
 	return detectSIMDWidth() == 8
 }
 
 // SetSIMDWidth sets the SIMD width. Use 0 to auto-detect.
-// PORT: width 8 falls back to 4 as on a CPU without AVX2.
+// PORT: width 8 falls back to 4 without the width 8 backend, as on a CPU without AVX2.
 func SetSIMDWidth(width int) {
 	assert(width == 0 || width == 4 || width == 8, "width == 0 || width == 4 || width == 8")
 	if width == 8 && detectSIMDWidth() != 8 {

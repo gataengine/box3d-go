@@ -16,8 +16,8 @@ import "unsafe"
 // and selected by simdNone (simd_scalar.go). The regions that depend on the lane count
 // (`#if B3_SIMD_WIDTH == 8`, B3_GATHER_LANES, the B3_SIMD_NONE variants) are in wide_lanes.go, so
 // this file only holds lane-count generic code. The void* constraint stream is
-// wideConstraintBuffer (at the end of this file); a b3ContactConstraintWide* into it is the pair
-// of positions (constraint index, manifold index), see getConstraintW.
+// wideConstraintBuffer (a wideBuffer, contact_solver.go); a b3ContactConstraintWide* into it is
+// the pair of positions (constraint index, manifold index), see getConstraintW.
 
 // vec2W is b3Vec2W: wide vec2
 type vec2W struct {
@@ -196,30 +196,9 @@ type convexConstraintWide struct {
 
 // wideConstraintBuffer is the typed form of upstream's `void*` wide constraint buffers
 // (b3StepContext.wideConstraints / wideMeshConstraints, b3GraphColor.wideConstraints /
-// wideMeshConstraints).
-//
-// PORT: upstream stores a heterogeneous byte stream: each b3ContactConstraintWide is followed by
-// its b3ContactManifoldWide array (one manifold for convex contacts, manifoldCount for mesh
-// contacts), and b3GetConstraintW / b3NextConstraintW / b3GetManifoldsW walk it with byte
-// offsets. Go keeps the two element types in two parallel slices instead, so the buffers are typed
-// and need no unsafe:
-//
-//   - constraint index i is constraints[i];
-//   - its manifolds start at manifolds[i*fixedManifoldCount] for convex constraints
-//     (fixedManifoldCount == 1) and at manifolds[manifoldStarts[i]-manifoldStarts[0]] for mesh
-//     constraints, exactly the offsets b3GetConstraintW computes;
-//   - a byte pointer into the stream (base + constraintIndex*sizeof(constraint) +
-//     manifoldIndex*sizeof(manifold), as solver.c slices the buffer per color) is the pair of
-//     sub-slices {constraints[constraintIndex:], manifolds[manifoldIndex:]};
-//   - NULL is the zero value.
-//
-// solver.c allocates the two slices with stackAlloc in place of one byte allocation sized with
-// b3GetWide*ByteCount. The kernels and their helpers (b3GetConstraintW and friends) carry the
-// constraint and manifold positions as indices into these slices.
-type wideConstraintBuffer struct {
-	constraints []contactConstraintWide
-	manifolds   []contactManifoldWide
-}
+// wideMeshConstraints) at this file's lane width.
+// PORT: see wideBuffer (contact_solver.go) for the layout.
+type wideConstraintBuffer = wideBuffer[contactConstraintWide, contactManifoldWide]
 
 // PORT: the layout _Static_asserts of the wide types are dropped (see contactManifoldWide).
 

@@ -183,7 +183,8 @@ type jointPrepareSpan struct {
 // stepContext is b3StepContext.
 // Context for a time step. Recreated each time step.
 // PORT: pointer + count pairs are slices with the count fields kept; the void* wide constraint
-// buffers are wideConstraintBuffer (contact_solver_wide.go); the false-sharing padding is kept.
+// buffers are wideConstraintBuffer (contact_solver_wide.go), or wideConstraintBuffer8 in the `8`
+// fields when the world runs at width 8; the false-sharing padding is kept.
 type stepContext struct {
 	// time step
 	dt float32
@@ -230,12 +231,14 @@ type stepContext struct {
 	// at wideContactCount. wideContactConstraints is the contiguous base
 	// pointer. Per-color slices live at colors[i].wideConstraints.
 	wideConstraints  wideConstraintBuffer
+	wideConstraints8 wideConstraintBuffer8
 	widePrepareSpans []widePrepareSpan
 	wideContactCount int32
 
 	// Similar for overflow contact constraints.
 	overflowSpans          []contactPrepareSpan
 	wideMeshConstraints    wideConstraintBuffer
+	wideMeshConstraints8   wideConstraintBuffer8
 	wideMeshManifoldStarts []int32
 	meshPrepareSpans       []meshPrepareSpan
 	jointPrepareSpans      []jointPrepareSpan
@@ -1736,10 +1739,17 @@ func solve(world *world, stepContext *stepContext) {
 
 		// PORT: upstream allocates one byte buffer of wideContactCount * b3GetWideContactConstraintByteCount
 		// (a b3ConvexConstraintWide each: the constraint followed by its single manifold). The typed
-		// buffer is the pair of slices (see wideConstraintBuffer), one manifold per constraint.
+		// buffer is the pair of slices (see wideBuffer), one manifold per constraint. At width 8 it
+		// is the wideConstraintBuffer8; the other buffer stays empty.
 		var wideConstraints wideConstraintBuffer
-		wideConstraints.constraints = stackAlloc[contactConstraintWide](&world.stack, wideContactCount, "wide contacts")
-		wideConstraints.manifolds = stackAlloc[contactManifoldWide](&world.stack, wideContactCount, "wide contact manifolds")
+		var wideConstraints8 wideConstraintBuffer8
+		if world.simdWidth == 8 {
+			wideConstraints8 = allocWideBuffer[contactConstraintWide8, contactManifoldWide8](&world.stack, wideContactCount,
+				wideContactCount, "wide contacts", "wide contact manifolds")
+		} else {
+			wideConstraints = allocWideBuffer[contactConstraintWide, contactManifoldWide](&world.stack, wideContactCount,
+				wideContactCount, "wide contacts", "wide contact manifolds")
+		}
 
 		meshLaneOrder := stackAlloc[int32](&world.stack, meshContactCount, "mesh lane order")
 		meshManifoldStarts := stackAlloc[int32](&world.stack, meshGroupCount+1, "mesh manifold starts")
@@ -1812,10 +1822,16 @@ func solve(world *world, stepContext *stepContext) {
 
 		// PORT: upstream allocates one byte buffer of meshGroupCount * b3GetWideMeshConstraintByteCount +
 		// meshSlotCount * b3GetWideMeshManifoldByteCount; the typed buffer holds meshGroupCount
-		// constraints and meshSlotCount manifolds (see wideConstraintBuffer).
+		// constraints and meshSlotCount manifolds (see wideBuffer), wideConstraintBuffer8 at width 8.
 		var wideMeshConstraints wideConstraintBuffer
-		wideMeshConstraints.constraints = stackAlloc[contactConstraintWide](&world.stack, meshGroupCount, "wide mesh constraints")
-		wideMeshConstraints.manifolds = stackAlloc[contactManifoldWide](&world.stack, meshSlotCount, "wide mesh manifolds")
+		var wideMeshConstraints8 wideConstraintBuffer8
+		if world.simdWidth == 8 {
+			wideMeshConstraints8 = allocWideBuffer[contactConstraintWide8, contactManifoldWide8](&world.stack, meshGroupCount,
+				meshSlotCount, "wide mesh constraints", "wide mesh manifolds")
+		} else {
+			wideMeshConstraints = allocWideBuffer[contactConstraintWide, contactManifoldWide](&world.stack, meshGroupCount,
+				meshSlotCount, "wide mesh constraints", "wide mesh manifolds")
+		}
 
 		overflow := &colors[overflowIndex]
 		overflowCount := len(overflow.contacts)
@@ -1857,15 +1873,19 @@ func solve(world *world, stepContext *stepContext) {
 
 				if colorConvexContactCount == 0 {
 					color.wideConstraints = wideConstraintBuffer{}
+					color.wideConstraints8 = wideConstraintBuffer8{}
 					color.wideConstraintCount = 0
 				} else {
 					colorContactCountW := ((colorConvexContactCount - 1) >> simdShift) + 1
 
 					// PORT: the byte offset wideBase * wideContactByteCount is constraint and manifold
 					// index wideBase; the sub-slices end at the color's last wide constraint.
-					color.wideConstraints = wideConstraintBuffer{
-						constraints: wideConstraints.constraints[wideBase : wideBase+colorContactCountW],
-						manifolds:   wideConstraints.manifolds[wideBase : wideBase+colorContactCountW],
+					if world.simdWidth == 8 {
+						color.wideConstraints8 = sliceWideBuffer(wideConstraints8, wideBase, colorContactCountW, wideBase,
+							wideBase+colorContactCountW)
+					} else {
+						color.wideConstraints = sliceWideBuffer(wideConstraints, wideBase, colorContactCountW, wideBase,
+							wideBase+colorContactCountW)
 					}
 
 					color.wideConstraintCount = int32(colorContactCountW)
@@ -1880,6 +1900,7 @@ func solve(world *world, stepContext *stepContext) {
 
 				if colorContactCount == 0 {
 					color.wideMeshConstraints = wideConstraintBuffer{}
+					color.wideMeshConstraints8 = wideConstraintBuffer8{}
 					color.wideMeshManifoldStarts = nil
 					color.wideMeshConstraintCount = 0
 				} else {
@@ -1891,9 +1912,12 @@ func solve(world *world, stepContext *stepContext) {
 					// end at the color's last group and its last manifold.
 					manifoldBase := int(meshManifoldStarts[meshGroupBase])
 					manifoldEnd := int(meshManifoldStarts[meshGroupBase+colorMeshGroupCount])
-					color.wideMeshConstraints = wideConstraintBuffer{
-						constraints: wideMeshConstraints.constraints[meshGroupBase : meshGroupBase+colorMeshGroupCount],
-						manifolds:   wideMeshConstraints.manifolds[manifoldBase:manifoldEnd],
+					if world.simdWidth == 8 {
+						color.wideMeshConstraints8 = sliceWideBuffer(wideMeshConstraints8, meshGroupBase, colorMeshGroupCount,
+							manifoldBase, manifoldEnd)
+					} else {
+						color.wideMeshConstraints = sliceWideBuffer(wideMeshConstraints, meshGroupBase, colorMeshGroupCount,
+							manifoldBase, manifoldEnd)
 					}
 					color.wideMeshManifoldStarts = meshManifoldStarts[meshGroupBase:]
 					color.wideMeshConstraintCount = int32(colorMeshGroupCount)
@@ -2051,10 +2075,12 @@ func solve(world *world, stepContext *stepContext) {
 		stepContext.stageCount = int32(stageCount)
 		stepContext.stages = stages
 		stepContext.wideConstraints = wideConstraints
+		stepContext.wideConstraints8 = wideConstraints8
 		stepContext.widePrepareSpans = widePrepareSpans[:]
 		stepContext.wideContactCount = int32(wideContactCount)
 		stepContext.overflowSpans = overflowSpans[:]
 		stepContext.wideMeshConstraints = wideMeshConstraints
+		stepContext.wideMeshConstraints8 = wideMeshConstraints8
 		stepContext.wideMeshManifoldStarts = meshManifoldStarts
 		stepContext.meshPrepareSpans = meshPrepareSpans[:]
 		stepContext.jointPrepareSpans = jointPrepareSpans[:]
@@ -2149,12 +2175,18 @@ func solve(world *world, stepContext *stepContext) {
 		stackFree(&world.stack, stages)
 		stackFree(&world.stack, overflow.manifoldConstraints)
 		stackFree(&world.stack, overflow.contactConstraints)
-		stackFree(&world.stack, wideMeshConstraints.manifolds)
-		stackFree(&world.stack, wideMeshConstraints.constraints)
+		if world.simdWidth == 8 {
+			freeWideBuffer(&world.stack, wideMeshConstraints8)
+		} else {
+			freeWideBuffer(&world.stack, wideMeshConstraints)
+		}
 		stackFree(&world.stack, meshManifoldStarts)
 		stackFree(&world.stack, meshLaneOrder)
-		stackFree(&world.stack, wideConstraints.manifolds)
-		stackFree(&world.stack, wideConstraints.constraints)
+		if world.simdWidth == 8 {
+			freeWideBuffer(&world.stack, wideConstraints8)
+		} else {
+			freeWideBuffer(&world.stack, wideConstraints)
+		}
 
 		world.profile.Transforms = GetMilliseconds(transformTicks)
 	}

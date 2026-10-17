@@ -1128,11 +1128,13 @@ func buildEdgeContact(manifold *LocalManifold, hullA, hullB *HullData,
 }
 
 // computeSeparatingAxisAtWidth is b3ComputeSeparatingAxisAtWidth.
-// PORT: the width 8 kernel (b3ComputeSeparatingAxisW8) is not ported; every width runs the one
-// lane kernel computeSeparatingAxisW.
+// PORT: the width 8 kernel (b3ComputeSeparatingAxisW8) is called through the wide8 table
+// (wide_kernels.go); simdWidth is 8 only when it is set.
 func computeSeparatingAxisAtWidth(hullA, hullB *HullData, xfB Transform, earlyReturn bool,
 	simdWidth int) axisQuery {
-	_ = simdWidth
+	if simdWidth == 8 {
+		return wide8.computeSeparatingAxis(hullA, hullB, xfB, earlyReturn)
+	}
 
 	return computeSeparatingAxisW(hullA, hullB, xfB, earlyReturn)
 }

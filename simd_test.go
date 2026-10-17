@@ -19,6 +19,16 @@ var _ = Describe("SIMDTest", func() {
 		ensure(IsAVX2Available() == false)
 	})
 
+	It("Width8UnavailableWithoutBackend", func() {
+		if wide8 != nil {
+			Skip("width 8 backend present")
+		}
+		ensure(GetSIMDWidth() == 4)
+		SetSIMDWidth(8)
+		ensure(GetSIMDWidth() == 4)
+		SetSIMDWidth(0)
+	})
+
 	It("Lanes", func() {
 		a := setW(1.0, -2.0, 3.0, -4.0)
 		b := splatW(0.5)

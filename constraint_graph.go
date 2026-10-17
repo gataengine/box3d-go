@@ -46,11 +46,15 @@ type graphColor struct {
 	contacts       []contactSpec
 
 	// These are used for convex contacts
-	// PORT: the void* wide constraint buffers are wideConstraintBuffer (contact_solver_wide.go).
+	// PORT: the void* wide constraint buffers are wideConstraintBuffer (contact_solver_wide.go);
+	// the `8` fields hold them when the world runs at width 8 (wideConstraintBuffer8). The counts
+	// and manifold starts do not depend on the width.
 	wideConstraints     wideConstraintBuffer
+	wideConstraints8    wideConstraintBuffer8
 	wideConstraintCount int32
 
 	wideMeshConstraints     wideConstraintBuffer
+	wideMeshConstraints8    wideConstraintBuffer8
 	wideMeshManifoldStarts  []int32
 	wideMeshConstraintCount int32
 
