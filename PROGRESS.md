@@ -110,7 +110,7 @@ each; both point at the same Go file.
 | src/spherical_joint.c | spherical_joint.go | todo | |  |
 | src/table.c | table.go | todo | |  |
 | src/table.h | table.go | todo | |  |
-| src/timer.c | timer.go | todo | |  |
+| src/timer.c | timer.go | tested | efca0c1 | no upstream test; timer_test.go (Go-only) |
 | src/triangle_manifold.c | triangle_manifold.go | todo | |  |
 | src/types.c | types.go | ported | efca0c1 |  |
 | src/verstable.h | verstable.go | todo | |  |
