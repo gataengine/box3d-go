@@ -40,14 +40,14 @@ func TestNoFusedMultiplyAdd(t *testing.T) {
 		t.Fatal("fusedOp matches a plain multiply")
 	}
 
-	// The box3d_simd targets check the archsimd lane backend (simd_x4.go): its mulAddW must stay
-	// a separate multiply and add. box3d_no8 leaves out the generated width 8 kernels until
-	// their lane backend exists.
+	// The box3d_simd targets check the archsimd lane backends (simd_x4.go and, on amd64, the
+	// width 8 backend simd_x8_amd64.go with the generated width 8 kernels): mulAddW and mulAddW8
+	// must stay a separate multiply and add.
 	targets := []struct{ goarch, goamd64, tags string }{
 		{"arm64", "", ""},
 		{"amd64", "v3", ""},
 		{"arm64", "", "box3d_simd"},
-		{"amd64", "v3", "box3d_simd,box3d_no8"},
+		{"amd64", "v3", "box3d_simd"},
 	}
 
 	for _, target := range targets {

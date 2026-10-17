@@ -189,7 +189,7 @@ func allLessEq3V(a, b v32) bool {
 // GetSIMDWidth and SetSIMDWidth are implemented below with simd.c.
 
 // PORT: the b3Vec3W4 type and functions are in simd_wide.go, next to the width-neutral names; the
-// b3Vec3W8 functions (B3_SIMD_AVX2) are not ported.
+// b3Vec3W8 ones (B3_SIMD_AVX2) are its generated width 8 copy (simd_wide8_gen.go).
 
 // testBoundsOverlap is b3TestBoundsOverlap.
 func testBoundsOverlap(nodeMin1, nodeMax1, nodeMin2, nodeMax2 v32) bool {
@@ -225,9 +225,10 @@ func unionV(a, b AABB) AABB {
 var simdWidth atomicInt
 
 // PORT: cpuid/xgetbv AVX2 detection (B3_SIMD_HAS_WIDTH_8, b3HasAVX2) is not ported here: the
-// width 8 backend registers its kernels in wide8 (wide_kernels.go) from its init only when the CPU
-// has AVX2, so wide8 != nil stands for B3_SIMD_HAS_WIDTH_8 && b3HasAVX2(). Without it the width is
-// laneCount.
+// width 8 backend (box3d_simd on amd64, wide_lanes8_amd64.go) registers its kernels in wide8
+// (wide_kernels.go) from its init only when archsimd reports AVX2, so wide8 != nil stands for
+// B3_SIMD_HAS_WIDTH_8 && b3HasAVX2(). Without it (the default build, arm64, box3d_no8 as
+// BOX3D_DISABLE_AVX2, or a CPU without AVX2) the width is laneCount.
 
 // detectSIMDWidth is b3DetectSIMDWidth.
 func detectSIMDWidth() int {
@@ -250,7 +251,9 @@ func GetSIMDWidth() int {
 }
 
 // IsAVX2Available returns true if the CPU supports AVX2.
-// PORT: true when the width 8 backend is built in and registered (see detectSIMDWidth).
+// PORT: true when the width 8 backend is built in and registered (see detectSIMDWidth), so false
+// on an AVX2 CPU in builds without it (the default build, box3d_no8), where upstream's
+// b3IsAVX2Available reports the CPU but b3DetectSIMDWidth still returns 4.
 func IsAVX2Available() bool {
 	return detectSIMDWidth() == 8
 }

@@ -11,22 +11,29 @@ import (
 
 var _ = Describe("SIMDTest", func() {
 	It("Width", func() {
-		ensure(GetSIMDWidth() == laneCount)
-		SetSIMDWidth(8)
-		ensure(GetSIMDWidth() == 4)
 		SetSIMDWidth(0)
-		ensure(GetSIMDWidth() == laneCount)
-		ensure(IsAVX2Available() == false)
+		ensure((GetSIMDWidth() == 8) == (wide8 != nil))
+		ensure(IsAVX2Available() == (wide8 != nil))
+		SetSIMDWidth(4)
+		ensure(GetSIMDWidth() == 4)
+		SetSIMDWidth(8)
+		if wide8 != nil {
+			ensure(GetSIMDWidth() == 8)
+		} else {
+			ensure(GetSIMDWidth() == 4)
+		}
+		SetSIMDWidth(suiteSIMDWidth)
 	})
 
 	It("Width8UnavailableWithoutBackend", func() {
 		if wide8 != nil {
 			Skip("width 8 backend present")
 		}
+		SetSIMDWidth(0)
 		ensure(GetSIMDWidth() == 4)
 		SetSIMDWidth(8)
 		ensure(GetSIMDWidth() == 4)
-		SetSIMDWidth(0)
+		SetSIMDWidth(suiteSIMDWidth)
 	})
 
 	It("Lanes", func() {

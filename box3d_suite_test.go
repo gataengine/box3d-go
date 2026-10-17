@@ -8,6 +8,7 @@
 package box3d
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -20,3 +21,18 @@ func TestBox3D(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Box3D Suite")
 }
+
+// suiteSIMDWidth is the SetSIMDWidth value specs restore after changing the width: 0 (auto-detect)
+// or 4 when BOX3D_TEST_FORCE_WIDTH4=1.
+// PORT: Go-only. BOX3D_TEST_FORCE_WIDTH4=1 runs the suite at width 4 on an AVX2 host, so the
+// width 4 kernels of the box3d_simd build are covered on amd64 as well (upstream covers them on
+// x86 with BOX3D_DISABLE_AVX2 builds). Specs that compare widths still set both explicitly.
+var suiteSIMDWidth = 0
+
+var _ = BeforeSuite(func() {
+	if os.Getenv("BOX3D_TEST_FORCE_WIDTH4") == "1" {
+		suiteSIMDWidth = 4
+	}
+	SetSIMDWidth(suiteSIMDWidth)
+	GinkgoWriter.Printf("SIMD width %d\n", GetSIMDWidth())
+})

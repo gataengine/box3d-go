@@ -96,9 +96,11 @@ Shape of the API:
 - Float32 only. `Pos` and `WorldTransform` are distinct types so a double precision mode can be
   added later.
 
-Not ported: the allocator hooks (`b3SetAllocator`), double precision, SIMD width 8 (the solver
-runs upstream's scalar 4-lane backend, or with `box3d_simd` its NEON / SSE one;
-`GetSIMDWidth()` is 4), Tracy, and the samples app. See
+Not ported: the allocator hooks (`b3SetAllocator`), double precision, Tracy, and the samples
+app. The default build runs upstream's scalar 4-lane backend (`GetSIMDWidth()` is 4); with
+`box3d_simd` (and `GOEXPERIMENT=simd`) it runs the NEON / SSE 4-lane one, and on amd64 with AVX2
+the AVX2 8-lane one (`GetSIMDWidth()` is 8; `box3d_no8` leaves it out, as upstream's
+`BOX3D_DISABLE_AVX2`). See
 [PARITY_REPORT.md](PARITY_REPORT.md#intentionally-not-ported).
 
 ## Determinism

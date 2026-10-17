@@ -513,7 +513,7 @@ func runSceneAtWidth(scene sceneFcn, width int, result *determinismResult) int {
 	GinkgoHelper()
 	SetSIMDWidth(width)
 	status := scene(1, result)
-	SetSIMDWidth(0)
+	SetSIMDWidth(suiteSIMDWidth)
 	return status
 }
 
@@ -524,6 +524,7 @@ func simdWidthTest() int {
 	nativeWidth := GetSIMDWidth()
 	if nativeWidth == 4 {
 		fmt.Fprintf(GinkgoWriter, "  subtest skipped: SIMDWidthTest, native SIMD width is 4\n")
+		SetSIMDWidth(suiteSIMDWidth)
 		return 0
 	}
 
@@ -559,8 +560,9 @@ var _ = Describe("DeterminismTest", func() {
 	It("SIMDWidthTest", func() { ensure(simdWidthTest() == 0) })
 
 	// PORT: Go-only. Upstream runs the rolling mix and mesh mix scenes only inside SIMDWidthTest,
-	// which skips at native width 4 (the only width this port has); here they run at 1, 2 and 4
-	// workers so the run to run agreement across schedules is still checked.
+	// which skips at native width 4 (the default build, and the box3d_simd build without AVX2);
+	// here they also run at 1, 2 and 4 workers so the run to run agreement across schedules is
+	// checked at every native width.
 	It("RollingMixAndMeshMixRepeatable", func() {
 		for _, scene := range []sceneFcn{singleRollingMixTest, singleMeshMixTest} {
 			reference := determinismResult{}

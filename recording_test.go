@@ -28,7 +28,7 @@ const recTestRecPath = "recording_allops_test.b3rec" // s_recPath
 func recTestValidateReplayAtWidth(rec *Recording, width int) int {
 	SetSIMDWidth(width)
 	valid := ValidateReplay(rec.GetData()[:rec.GetSize()], 1)
-	SetSIMDWidth(0)
+	SetSIMDWidth(suiteSIMDWidth)
 	if valid {
 		return 0
 	}
@@ -575,12 +575,15 @@ var _ = Describe("RecordingTest", func() {
 	})
 
 	// A recording made at the native SIMD width must replay at width 4 and vice versa.
-	// PORT: GetSIMDWidth is laneCount (4) and width 8 is not ported, so this always skips.
+	// PORT: the native width is 8 only in the box3d_simd build on amd64 with AVX2 (wide8 set);
+	// elsewhere this takes the skip branch, as upstream's width 4 builds. The spec restores
+	// suiteSIMDWidth (BOX3D_TEST_FORCE_WIDTH4) where upstream restores 0.
 	It("CrossWidthReplay", func() {
 		SetSIMDWidth(0)
 		nativeWidth := GetSIMDWidth()
 		if nativeWidth == 4 {
 			fmt.Printf("  subtest skipped: CrossWidthReplay, native SIMD width is 4\n")
+			SetSIMDWidth(suiteSIMDWidth)
 			return
 		}
 
@@ -645,7 +648,7 @@ var _ = Describe("RecordingTest", func() {
 
 		worldId.StopRecording()
 		worldId.Destroy()
-		SetSIMDWidth(0)
+		SetSIMDWidth(suiteSIMDWidth)
 
 		narrowStatus := recTestValidateReplayAtWidth(rec, 4)
 		nativeStatus := recTestValidateReplayAtWidth(rec, nativeWidth)
