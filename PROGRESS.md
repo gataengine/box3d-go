@@ -115,7 +115,7 @@ each; both point at the same Go file.
 | src/timer.c | timer.go | tested | efca0c1 | no upstream test; timer_test.go (Go-only) |
 | src/triangle_manifold.c | triangle_manifold.go | todo | |  |
 | src/types.c | types.go | ported | efca0c1 |  |
-| src/verstable.h | verstable.go | todo | | M2: first needed by hull.c/mesh.c. Upstream only does lookups/inserts plus one order-independent byte sum, so a generic open-addressing map with custom hash/compare suffices |
+| src/verstable.h | verstable.go | ported | efca0c1 | generic `verstable[K, V]` (linear probing) with the API subset upstream uses; Go-only verstable_test.go |
 | src/weld_joint.c | weld_joint.go | todo | |  |
 | src/wheel_joint.c | wheel_joint.go | todo | |  |
 | src/wide4.c | — | n/a | | dropped: includes the .inl kernels, ported once |
