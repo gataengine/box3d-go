@@ -14,14 +14,14 @@ each; both point at the same Go file.
 
 | upstream file | go file | status | ported at commit | notes |
 |---|---|---|---|---|
-| include/box3d/base.h | base.go | todo | |  |
+| include/box3d/base.h | base.go | ported | efca0c1 | assert/validate via build tags; allocator API not ported |
 | include/box3d/box3d.h | body.go, shape.go, joint.go, physics_world.go, … | todo | | b3Type_* functions live in the file of the object they act on |
 | include/box3d/collision.h | collision.go | todo | |  |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
-| include/box3d/constants.h | constants.go | todo | |  |
+| include/box3d/constants.h | constants.go | ported | efca0c1 |  |
 | include/box3d/id.h | id.go | tested | efca0c1 |  |
-| include/box3d/math_functions.h | math_functions.go | todo | |  |
-| include/box3d/types.h | types.go | todo | |  |
+| include/box3d/math_functions.h | math_functions.go | tested | efca0c1 |  |
+| include/box3d/types.h | types.go | ported | efca0c1 | blob header layout/accessors in M2 |
 | src/aabb.c | aabb.go | todo | |  |
 | src/aabb.h | aabb.go | todo | |  |
 | src/algorithm.h | — | n/a | | B3_SWAP becomes Go tuple assignment at call sites |
@@ -48,8 +48,8 @@ each; both point at the same Go file.
 | src/container.h | container.go | todo | |  |
 | src/convex_manifold.c | convex_manifold.go | todo | |  |
 | src/convex_manifold_wide.inl | convex_manifold_wide.go | todo | |  |
-| src/core.c | core.go | todo | |  |
-| src/core.h | core.go | todo | |  |
+| src/core.c | core.go | ported | efca0c1 |  |
+| src/core.h | core.go | ported | efca0c1 |  |
 | src/ctz.h | ctz.go | todo | |  |
 | src/distance.c | distance.go | todo | |  |
 | src/distance_joint.c | distance_joint.go | todo | |  |
@@ -66,8 +66,8 @@ each; both point at the same Go file.
 | src/joint.h | joint.go | todo | |  |
 | src/manifold.c | manifold.go | todo | |  |
 | src/manifold.h | manifold.go | todo | |  |
-| src/math_functions.c | math_functions.go | todo | |  |
-| src/math_internal.h | math_internal.go | todo | |  |
+| src/math_functions.c | math_functions.go | tested | efca0c1 |  |
+| src/math_internal.h | math_internal.go | ported | efca0c1 | declared functions land with their .c files |
 | src/mesh.c | mesh.go | todo | |  |
 | src/mesh_contact.c | mesh_contact.go | todo | |  |
 | src/motor_joint.c | motor_joint.go | todo | |  |
@@ -79,7 +79,7 @@ each; both point at the same Go file.
 | src/parallel_joint.c | parallel_joint.go | todo | |  |
 | src/physics_world.c | physics_world.go | todo | |  |
 | src/physics_world.h | physics_world.go | todo | |  |
-| src/platform.h | platform.go | todo | |  |
+| src/platform.h | platform.go | ported | efca0c1 |  |
 | src/prismatic_joint.c | prismatic_joint.go | todo | |  |
 | src/qsort.h | qsort.go | todo | |  |
 | src/rapidhash.h | rapidhash.go | tested | efca0c1 | no upstream test; rapidhash_test.go checks C reference values |
@@ -112,7 +112,7 @@ each; both point at the same Go file.
 | src/table.h | table.go | todo | |  |
 | src/timer.c | timer.go | todo | |  |
 | src/triangle_manifold.c | triangle_manifold.go | todo | |  |
-| src/types.c | types.go | todo | |  |
+| src/types.c | types.go | ported | efca0c1 |  |
 | src/verstable.h | verstable.go | todo | |  |
 | src/weld_joint.c | weld_joint.go | todo | |  |
 | src/wheel_joint.c | wheel_joint.go | todo | |  |
@@ -140,7 +140,7 @@ each; both point at the same Go file.
 | test/test_large_world.c | large_world_test.go | todo | |  |
 | test/test_macros.h | test_macros_test.go | ported | efca0c1 | ENSURE / ENSURE_SMALL helpers |
 | test/test_manifold.c | manifold_test.go | todo | |  |
-| test/test_math.c | math_test.go | todo | |  |
+| test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | todo | |  |
 | test/test_mover.c | mover_test.go | todo | |  |
 | test/test_name_cache.c | name_cache_test.go | todo | |  |
@@ -150,8 +150,8 @@ each; both point at the same Go file.
 | test/test_shape.c | shape_test.go | todo | |  |
 | test/test_table.c | table_test.go | todo | |  |
 | test/test_world.c | world_test.go | todo | |  |
-| shared/utils.c | utils_test.go | todo | | test random helpers (RandomFloat, …) |
-| shared/utils.h | utils_test.go | todo | | test random helpers (RandomFloat, …) |
+| shared/utils.c | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
+| shared/utils.h | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
 | shared/determinism.c | internal/scenes/determinism.go | todo | | test/benchmark scene helper |
 | shared/determinism.h | internal/scenes/determinism.go | todo | | test/benchmark scene helper |
 | shared/human.c | internal/scenes/human.go | todo | | test/benchmark scene helper |
