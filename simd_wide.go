@@ -7,6 +7,13 @@
 
 package box3d
 
+// PORT: B3_WIDE compiles the wide kernels once per width; Go has no macros, so tools/widegen
+// writes the width 8 copies (simd_wide8_gen.go, contact_solver_wide8_gen.go,
+// convex_manifold_wide8_gen.go) of the width generic sources, appending 8 to their package level
+// names and to those of the width 4 lane contract (simd_scalar.go, wide_lanes.go).
+//
+//go:generate go run ./tools/widegen
+
 // PORT: upstream maps the width-neutral names (b3FloatW, b3AddW, …) onto the W4 or W8 functions
 // with the B3_WIDE macro so the wide kernels compile twice. The Go port has one lane width
 // (laneCount in simd_scalar.go) and the lane functions already carry the width-neutral names:
