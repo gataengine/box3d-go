@@ -16,8 +16,7 @@ import (
 // PORT: the file statics capsule, sphere and box are prefixed (shapeTest…) so they cannot clash
 // with other test files; box is made in a BeforeEach as ShapeTest does before its subtests.
 // ShapeNameTest and ShapeFlagsTest need the world (body.c, physics_world.c and, for names,
-// name_cache.c); they live in shape_world_test.go behind the box3d_m3_integration build tag and
-// are pending (PIt) without it (shape_world_pending_test.go). The CheckCastHit / CheckInitialOverlap
+// name_cache.c); they live in shape_world_test.go. The CheckCastHit / CheckInitialOverlap
 // helpers fail the spec directly, so the `if ( Check… ) return 1;` wrappers are dropped.
 
 var (

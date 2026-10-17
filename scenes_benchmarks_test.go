@@ -12,8 +12,7 @@ import "math"
 
 // PORT: test scene helpers that test_world.c needs (CreateJunkyard / StepJunkyard from
 // benchmarks.c, CreateOverflowColorPile from overflow_color.c), in a _test.go file of package
-// box3d. Behind the box3d_m3_integration build tag until the milestone 3 world files are merged.
-// The rest of benchmarks.c lands with the benchmarks (milestone 6). BENCHMARK_DEBUG follows
+// box3d. The rest of benchmarks.c lands with the benchmarks (milestone 6). BENCHMARK_DEBUG follows
 // debugBuild (NDEBUG is box3d_noassert).
 
 // ---- benchmarks.c ----

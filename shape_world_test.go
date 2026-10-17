@@ -13,8 +13,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-// PORT: the test_shape.c subtests that need a world, behind the box3d_m3_integration build tag
-// until body.c, physics_world.c (and name_cache.c for the names) are merged. shape_test.go calls
+// PORT: the test_shape.c subtests that need a world (body.c, physics_world.c, name_cache.c),
+// kept in their own file from the parallel milestone 3 phase. shape_test.go calls
 // shapeWorldSpecs in upstream's RUN_SUBTEST order. const char* names are strings, NULL is "".
 
 // shapeCheckShapeName is CheckShapeName.
