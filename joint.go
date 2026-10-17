@@ -353,6 +353,15 @@ type jointSim struct {
 // the overflow color's joints exactly as upstream, which is a no-op while there are none. The
 // signatures are final; the owner of joint.c replaces the bodies in upstream order.
 
+// DefaultExplosionDef is b3DefaultExplosionDef.
+// PORT: pulled forward from joint.c (milestone 4) because b3World_Explode tests need it; it is
+// final, and it sits where joint.c defines it relative to the other placeholders.
+func DefaultExplosionDef() ExplosionDef {
+	def := ExplosionDef{}
+	def.MaskBits = DefaultMaskBits
+	return def
+}
+
 // getJointSim is b3GetJointSim.
 func getJointSim(world *world, joint *joint) *jointSim {
 	// PORT: placeholder until milestone 4 (joint.c)

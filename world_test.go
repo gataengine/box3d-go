@@ -1,5 +1,3 @@
-//go:build box3d_m3_integration
-
 // Port of test/test_world.c from Box3D (https://github.com/erincatto/box3d)
 // at commit efca0c184d40fd6a82016983f1601c4d23965867.
 //
@@ -13,11 +11,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-// PORT: behind the box3d_m3_integration build tag until every milestone 3 file is merged (the
-// tests reach body.c, shape.c, contact.c, solver.c, …). BodySimLocatorTest also creates a
-// spherical joint (milestone 4), and its hash comparison needs the real b3HashWorldState
-// (recording.c, milestone 5); with the stub both hashes are 0. The static helpers of
-// test_world.c are prefixed with world so they cannot clash in the one test package.
+// PORT: BodySimLocatorTest's LocatorTransferScene creates a spherical joint (joint.c, milestone 4);
+// the spec is pending until then and a Go-only spec runs the other four scenes meanwhile.
+// b3HashWorldState was pulled forward from recording.c, so the 1 vs 4 worker hash comparisons are
+// real. The static helpers of test_world.c are prefixed with world so they cannot clash in the one
+// test package.
 
 const worldBodyCount = 10 // BODY_COUNT
 
@@ -461,16 +459,23 @@ func worldLocatorTransferScene(workerCount int, failed *int) uint64 {
 		*failed = 1
 	}
 
-	jointDef := DefaultSphericalJointDef()
-	jointDef.Base.BodyIdA = sleeperId[0]
-	jointDef.Base.BodyIdB = sleeperId[1]
-	worldId.CreateSphericalJoint(&jointDef)
+	// PORT: the spherical joint needs joint.c (milestone 4). Restore these lines with it:
+	//	jointDef := DefaultSphericalJointDef()
+	//	jointDef.Base.BodyIdA = sleeperId[0]
+	//	jointDef.Base.BodyIdB = sleeperId[1]
+	//	worldId.CreateSphericalJoint(&jointDef)
+	worldNeedsJoints("LocatorTransferScene")
 
 	worldStepLocatorWorld(worldId, 30)
 
 	hash := hashWorldState(getWorldFromId(worldId))
 	worldId.Destroy()
 	return hash
+}
+
+// worldNeedsJoints panics: the caller needs joint.c (milestone 4). PORT: Go-only, remove with M4.
+func worldNeedsJoints(name string) {
+	panic("box3d: " + name + " needs joint.c (milestone 4)")
 }
 
 // worldLocatorFastFlagTest is LocatorFastFlagTest.
@@ -1646,7 +1651,7 @@ var _ = Describe("WorldTest", func() {
 		DestroyCompound(compound)
 	})
 
-	It("BodySimLocatorTest", func() {
+	PIt("BodySimLocatorTest (needs joint.c, milestone 4: LocatorTransferScene creates a spherical joint)", func() {
 		scenes := [5]func(workerCount int, failed *int) uint64{
 			worldLocatorSleepWakeScene,
 			worldLocatorAwakeNeighborScene,
@@ -1656,6 +1661,28 @@ var _ = Describe("WorldTest", func() {
 		}
 
 		for i := range 5 {
+			failed := 0
+			hash1 := scenes[i](1, &failed)
+			hash4 := scenes[i](4, &failed)
+			ensure(failed == 0)
+			ensure(hash1 == hash4)
+		}
+
+		ensure(worldLocatorFastFlagTest() == 0)
+	})
+
+	// PORT: Go-only stand-in for BodySimLocatorTest until joint.c (milestone 4): the four scenes
+	// without a joint and the fast flag test, exactly as upstream runs them. Delete it when
+	// BodySimLocatorTest is enabled.
+	It("BodySimLocatorTestWithoutJoints", func() {
+		scenes := [4]func(workerCount int, failed *int) uint64{
+			worldLocatorSleepWakeScene,
+			worldLocatorAwakeNeighborScene,
+			worldLocatorDestroyScene,
+			worldLocatorKinematicScene,
+		}
+
+		for i := range 4 {
 			failed := 0
 			hash1 := scenes[i](1, &failed)
 			hash4 := scenes[i](4, &failed)

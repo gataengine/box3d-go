@@ -1504,7 +1504,38 @@ func recAccumulateBounds(rec *Recording, bounds AABB) {
 // hashWorldState is b3HashWorldState.
 // Deterministic hash over all body transforms and velocities.
 // Called by both recorder and replayer to verify simulation reproduces exactly.
+// PORT: pulled forward from recording.c (milestone 5) at the milestone 3 integration; the world
+// tests compare it across worker counts. B3_HASH_FLOAT is written out with math.Float32bits.
 func hashWorldState(world *world) uint64 {
-	// PORT: stub until milestone 5 (recording.c)
-	return 0
+	hash := snapFnvInit
+	prime := snapFnvPrime
+
+	bodyCount := len(world.bodies)
+	for i := 0; i < bodyCount; i++ {
+		body := &world.bodies[i]
+		if int(body.id) != i {
+			// Free or never-used slot
+			continue
+		}
+
+		sim := getBodySim(world, body)
+
+		hash = fnvMixPosition(hash, sim.transform.P)
+		hash = (hash ^ uint64(math.Float32bits(sim.transform.Q.V.X))) * prime
+		hash = (hash ^ uint64(math.Float32bits(sim.transform.Q.V.Y))) * prime
+		hash = (hash ^ uint64(math.Float32bits(sim.transform.Q.V.Z))) * prime
+		hash = (hash ^ uint64(math.Float32bits(sim.transform.Q.S))) * prime
+
+		state := getBodyState(world, body)
+		if state != nil {
+			hash = (hash ^ uint64(math.Float32bits(state.linearVelocity.X))) * prime
+			hash = (hash ^ uint64(math.Float32bits(state.linearVelocity.Y))) * prime
+			hash = (hash ^ uint64(math.Float32bits(state.linearVelocity.Z))) * prime
+			hash = (hash ^ uint64(math.Float32bits(state.angularVelocity.X))) * prime
+			hash = (hash ^ uint64(math.Float32bits(state.angularVelocity.Y))) * prime
+			hash = (hash ^ uint64(math.Float32bits(state.angularVelocity.Z))) * prime
+		}
+	}
+
+	return hash
 }

@@ -7,23 +7,8 @@
 package box3d
 
 import (
-	"strings"
-
 	. "github.com/onsi/ginkgo/v2"
 )
-
-// PORT: bridge for the parallel milestone 3 phase. broad_phase_golden_test.go drives
-// b3UpdateBroadPhasePairs on a hand built world (bodies, shapes and proxies only, no id pools,
-// solver set bodies or contacts), and b3UpdateBroadPhasePairs ends with b3ValidateSolverSets. With
-// the real validation (box3d_validate) that partial world fails the solver set invariants, as it
-// would in the C build with BOX3D_VALIDATE. Skip the golden under box3d_validate until it is
-// switched to a real world (LOOSE_ENDS: broad_phase_golden_test.go b3CreateContact entry).
-// Integrator: remove this node when broad_phase_golden_test.go handles it.
-var _ = BeforeEach(func() {
-	if validateEnabled && strings.HasPrefix(CurrentSpecReport().FullText(), "BroadPhaseGoldenTest") {
-		Skip("hand built broad-phase world does not satisfy b3ValidateSolverSets (box3d_validate)")
-	}
-})
 
 // physicsWorldMinimal builds the part of b3CreateWorld that the functions under test touch: the
 // hull database and the three empty base solver sets with their id pool.

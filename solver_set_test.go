@@ -23,6 +23,7 @@ func solverSetTestWorld(dynamicCount int) *world {
 	w.islandIdPool = createIdPool()
 	w.solverSetIdPool = createIdPool()
 	createGraph(&w.constraintGraph, 16)
+	w.broadPhase.pairSet = createSet(32)
 	for i := 0; i < firstSleepingSet; i++ {
 		id := allocId(&w.solverSetIdPool)
 		w.solverSets = append(w.solverSets, solverSet{setIndex: int32(id)})
@@ -32,7 +33,7 @@ func solverSetTestWorld(dynamicCount int) *world {
 		id := allocId(&w.bodyIdPool)
 		b := body{
 			id: int32(id), islandId: NullIndex, islandIndex: NullIndex, headContactKey: NullIndex,
-			headJointKey: NullIndex, bodyMoveIndex: NullIndex,
+			headJointKey: NullIndex, bodyMoveIndex: NullIndex, headShapeId: NullIndex,
 		}
 		var set *solverSet
 		if i == 0 {
@@ -42,13 +43,14 @@ func solverSetTestWorld(dynamicCount int) *world {
 		} else {
 			b.setIndex = awakeSet
 			b.typ = DynamicBody
-			b.flags = isSpeedCapped
+			b.flags = isSpeedCapped | dynamicFlag
 			set = &w.solverSets[awakeSet]
 			state := arrayEmplace(&set.bodyStates)
 			*state = identityBodyState
+			state.flags = b.flags
 		}
 		b.localIndex = int32(len(set.bodySims))
-		arrayPush(&set.bodySims, bodySim{bodyId: int32(id)})
+		arrayPush(&set.bodySims, bodySim{bodyId: int32(id), flags: b.flags})
 		w.bodies = append(w.bodies, b)
 		if i > 0 {
 			isl := createIsland(w, awakeSet)
@@ -80,6 +82,8 @@ func solverSetTestContact(w *world, bodyIdA, bodyIdB int32, touching bool) int {
 		b.headContactKey = int32(id<<1 | edge)
 		b.contactCount += 1
 	}
+	// b3ValidateSolverSets counts one broad-phase pair per contact; the key only has to be unique.
+	addKey(&w.broadPhase.pairSet, shapePairKey(2*id, 2*id+1, 0))
 	c.encodedBodySimA = int32(encodeBodySimIndex(&w.bodies[bodyIdA]))
 	c.encodedBodySimB = int32(encodeBodySimIndex(&w.bodies[bodyIdB]))
 

@@ -1,4 +1,4 @@
-//go:build box3d_m3_integration
+//go:build box3d_m4_joints
 
 // Port of shared/determinism.h and shared/determinism.c from Box3D
 // (https://github.com/erincatto/box3d) at commit efca0c184d40fd6a82016983f1601c4d23965867.
@@ -13,8 +13,7 @@ import "unsafe"
 
 // PORT: test scene helper (spec: shared/ scenes are test helpers), in a _test.go file of package
 // box3d because the internal tests cannot import a package that imports box3d. Behind the
-// box3d_m3_integration build tag until the milestone 3 world files (and the milestone 4 joints the
-// ragdolls use) are merged. assert() from <assert.h> is ensure(). Products feeding an add are
+// box3d_m4_joints build tag until the joints the ragdolls use (human.c, milestone 4) are merged. assert() from <assert.h> is ensure(). Products feeding an add are
 // rounded explicitly (float32() / mulAdd) so the scenes match the C build bit for bit when the
 // determinism goldens arrive. b3Hash over a struct hashes its bytes (scenesBytesOf).
 

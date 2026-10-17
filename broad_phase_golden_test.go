@@ -7,10 +7,14 @@
 // (efca0c184d40fd6a82016983f1601c4d23965867) compiled with -ffp-contract=off. See
 // testdata/broad_phase_golden_gen.c; this file mirrors it line by line.
 //
-// createContact (contact.c) is a no-op placeholder until milestone 3, so the test performs the
-// one effect the broad-phase depends on after each update: the gathered keys are sorted with
-// qsort, duplicates skipped, and each key is recorded and added to the pair set, exactly as the
-// C generator's b3CreateContact stub does when b3UpdateBroadPhasePairs calls it.
+// The test runs the real b3CreateContact (contact.c); the created pairs are read back from the
+// world's contacts in creation order. The C generator replaces b3CreateContact with a stub that
+// records the key and adds it to the pair set, which is the only effect the broad-phase depends
+// on, so the outputs agree.
+//
+// PORT: the C generator also stubs b3ValidateSolverSets (the hand assembled world has no solver
+// set bodies, islands or id pools), so its BOX3D_VALIDATE build checks only the broad-phase. Go
+// cannot replace a function for one test, so under box3d_validate the golden is skipped.
 //
 // SPDX-License-Identifier: MIT
 // Go port: github.com/gataengine/box3d-go authors.
@@ -108,25 +112,13 @@ func nodePairBytes(pairs []nodePair) []byte {
 	return unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(pairs))), len(pairs)*int(unsafe.Sizeof(nodePair{})))
 }
 
-// emulateCreateContacts does what b3UpdateBroadPhasePairs does after its pair search when
-// contact.c exists: gather the worker keys, sort them, skip duplicates and create one contact per
-// key. The C generator's b3CreateContact stub records the key and adds it to the pair set.
-func (g *bpGoldenGen) emulateCreateContacts(w *world) {
-	var pairKeys []uint64
-	for i := 0; i < int(w.workerCount); i++ {
-		pairKeys = append(pairKeys, w.taskContexts[i].pairKeys...)
-	}
-	qsort(len(pairKeys), func(i, j int) bool {
-		return pairKeys[i] < pairKeys[j]
-	}, func(i, j int) {
-		pairKeys[i], pairKeys[j] = pairKeys[j], pairKeys[i]
-	})
-	for i, key := range pairKeys {
-		if i > 0 && key == pairKeys[i-1] {
-			continue
-		}
-		g.created = append(g.created, key)
-		addKey(&w.broadPhase.pairSet, key)
+// collectCreatedContacts records the pair keys of the contacts the real b3CreateContact made
+// during the last b3UpdateBroadPhasePairs, in creation order (no contact is destroyed here, so
+// contact ids are sequential).
+func (g *bpGoldenGen) collectCreatedContacts(w *world, firstContact int) {
+	for i := firstContact; i < len(w.contacts); i++ {
+		c := &w.contacts[i]
+		g.created = append(g.created, shapePairKey(int(c.shapeIdA), int(c.shapeIdB), int(c.childIndex)))
 	}
 }
 
@@ -167,7 +159,9 @@ func (g *bpGoldenGen) run(workerCount int, enqueue EnqueueTaskCallback, finish F
 		bodySims[i].transform.P = ToPos(g.randomVec(-10.0, 10.0))
 		bodySims[i].transform.Q = compoundRotations[i]
 	}
-	w.solverSets = []solverSet{{bodySims: bodySims}}
+	w.solverSets = []solverSet{{bodySims: bodySims}, {}, {}}
+	w.contactIdPool = createIdPool()
+	initializeContactRegisters()
 	w.compoundShapeCount = bpGoldenCompoundBodies
 
 	// Bodies
@@ -189,6 +183,7 @@ func (g *bpGoldenGen) run(workerCount int, enqueue EnqueueTaskCallback, finish F
 		body.headJointKey = NullIndex
 		body.jointCount = 0
 		body.headShapeId = NullIndex
+		body.headContactKey = NullIndex
 	}
 
 	// Joints between dynamic bodies, linked as b3CreateJoint links them
@@ -369,6 +364,7 @@ func (g *bpGoldenGen) run(workerCount int, enqueue EnqueueTaskCallback, finish F
 		w.activeTaskCount = 0
 		g.created = g.created[:0]
 
+		firstContact := len(w.contacts)
 		updateBroadPhasePairs(w)
 
 		// Finish the tree task, as b3World_Step does before the next broad-phase update.
@@ -378,7 +374,7 @@ func (g *bpGoldenGen) run(workerCount int, enqueue EnqueueTaskCallback, finish F
 			w.activeTaskCount -= 1
 		}
 
-		g.emulateCreateContacts(w)
+		g.collectCreatedContacts(w, firstContact)
 
 		if withArrival {
 			g.printf("round %d arrival |", round)
@@ -456,6 +452,12 @@ func bpGoldenCompare(got string, keep func(line string) bool) {
 }
 
 var _ = Describe("BroadPhaseGoldenTest", func() {
+	BeforeEach(func() {
+		if validateEnabled {
+			Skip("the hand assembled world does not satisfy b3ValidateSolverSets, which the C generator stubs out")
+		}
+	})
+
 	It("MatchesC", func() {
 		// The generator's setup: two workers on the serial default task system.
 		g := bpGoldenGen{seed: 0x2545F491}

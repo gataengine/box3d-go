@@ -1,5 +1,3 @@
-//go:build box3d_m3_integration
-
 // Port of shared/benchmarks.c (the junkyard scene and the ground shape id) and
 // shared/overflow_color.h / shared/overflow_color.c from Box3D (https://github.com/erincatto/box3d)
 // at commit efca0c184d40fd6a82016983f1601c4d23965867.

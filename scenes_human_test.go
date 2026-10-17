@@ -1,4 +1,4 @@
-//go:build box3d_m3_integration
+//go:build box3d_m4_joints
 
 // Port of shared/human.h and shared/human.c from Box3D (https://github.com/erincatto/box3d)
 // at commit efca0c184d40fd6a82016983f1601c4d23965867.
@@ -11,8 +11,9 @@ package box3d
 
 // PORT: test scene helper (spec: shared/ scenes are test helpers). It lives in a _test.go file of
 // package box3d because the internal tests cannot import a package that imports box3d. Behind the
-// box3d_m3_integration build tag until body.c, shape.c (milestone 3) and the joints (milestone 4)
-// are merged. assert() from <assert.h> is ensure(). The #if 0 pose control block is not ported.
+// box3d_m4_joints build tag until joint.c and the joint types (milestone 4) are merged; the joint
+// API names used here (DefaultRevoluteJointDef, WorldID.CreateRevoluteJoint, …) are the ones
+// milestone 4 is expected to provide. assert() from <assert.h> is ensure(). The #if 0 pose control block is not ported.
 
 // ---- human.h ----
 
