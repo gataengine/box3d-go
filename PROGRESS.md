@@ -69,8 +69,8 @@ each; both point at the same Go file.
 | src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
 | src/distance.c | distance.go | verified | efca0c1 | GJK, shape cast, TOI; covered by hull_golden_test.go |
 | src/distance_joint.c | distance_joint.go | todo | |  |
-| src/dynamic_tree.c | dynamic_tree.go | todo | |  |
-| src/dynamic_tree.h | dynamic_tree.go | todo | |  |
+| src/dynamic_tree.c | dynamic_tree.go | verified | efca0c1 | insert/rotate, churn, moved marks, sweep and fallback refit, partial/full rebuild, save/load bytes, query/closest/ray/box cast order in dynamic_tree_golden_test.go (C scalar and NEON builds agree) |
+| src/dynamic_tree.h | dynamic_tree.go | verified | efca0c1 | node flag helpers, treeView |
 | src/height_field.c | height_field.go | todo | |  |
 | src/hull.c | hull.go | verified | efca0c1 | quickhull builder, box hulls, 2D hull; hull_golden_test.go matches C bytes/hashes |
 | src/hull.h | hull.go | verified | efca0c1 | hullMap = verstable[*HullData, int] |
@@ -87,7 +87,7 @@ each; both point at the same Go file.
 | src/mesh.c | mesh.go | todo | |  |
 | src/mesh_contact.c | mesh_contact.go | todo | |  |
 | src/motor_joint.c | motor_joint.go | todo | |  |
-| src/mover.c | mover.go | todo | |  |
+| src/mover.c | mover.go | verified | efca0c1 | SolvePlanes (delta, iterations, pushes) and ClipVector in mover_golden_test.go |
 | src/name_cache.c | name_cache.go | todo | |  |
 | src/name_cache.h | name_cache.go | todo | |  |
 | src/parallel_for.c | parallel_for.go | todo | |  |
@@ -147,7 +147,7 @@ each; both point at the same Go file.
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
 | test/test_determinism.c | determinism_test.go | todo | |  |
 | test/test_distance.c | distance_test.go | tested | efca0c1 |  |
-| test/test_dynamic_tree.c | dynamic_tree_test.go | todo | |  |
+| test/test_dynamic_tree.c | dynamic_tree_test.go | tested | efca0c1 |  |
 | test/test_hash.c | hash_test.go | todo | |  |
 | test/test_height_field.c | height_field_test.go | todo | |  |
 | test/test_hull.c | hull_test.go | tested | efca0c1 |  |
@@ -158,7 +158,7 @@ each; both point at the same Go file.
 | test/test_manifold.c | manifold_test.go | tested | efca0c1 | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | todo | |  |
-| test/test_mover.c | mover_test.go | todo | |  |
+| test/test_mover.c | mover_test.go | tested | efca0c1 | 12 of 22 tests; 10 pending (PIt) on mesh.c, height_field.c, compound.c, body.c, shape.c, physics_world.c (b3CollideMoverAndMesh/HeightField, b3World_CollideMover, b3Body_CollideMover) |
 | test/test_name_cache.c | name_cache_test.go | todo | |  |
 | test/test_recording.c | recording_test.go | todo | |  |
 | test/test_restitution.c | restitution_test.go | todo | |  |
