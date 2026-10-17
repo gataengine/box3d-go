@@ -50,7 +50,7 @@ each; both point at the same Go file.
 | src/convex_manifold_wide.inl | convex_manifold_wide.go | todo | |  |
 | src/core.c | core.go | ported | efca0c1 |  |
 | src/core.h | core.go | ported | efca0c1 |  |
-| src/ctz.h | ctz.go | todo | |  |
+| src/ctz.h | ctz.go | tested | efca0c1 | math/bits; tested by test_bitset TestBitMath |
 | src/distance.c | distance.go | todo | |  |
 | src/distance_joint.c | distance_joint.go | todo | |  |
 | src/dynamic_tree.c | dynamic_tree.go | todo | |  |
