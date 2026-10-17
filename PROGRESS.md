@@ -82,7 +82,7 @@ each; both point at the same Go file.
 | src/platform.h | platform.go | todo | |  |
 | src/prismatic_joint.c | prismatic_joint.go | todo | |  |
 | src/qsort.h | qsort.go | todo | |  |
-| src/rapidhash.h | rapidhash.go | todo | |  |
+| src/rapidhash.h | rapidhash.go | tested | efca0c1 | no upstream test; rapidhash_test.go checks C reference values |
 | src/recording.c | recording.go | todo | |  |
 | src/recording.h | recording.go | todo | |  |
 | src/recording_ops.inl | recording_ops.go | todo | |  |
