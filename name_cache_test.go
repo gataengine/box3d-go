@@ -56,9 +56,9 @@ var _ = Describe("NameCacheTest", func() {
 	})
 
 	// PORT: the round trip and rollback subtests record a world and replay it (recording.c,
-	// replay.c, world_snapshot.c from milestone 5, plus the milestone 3 world files).
-	PIt("NameRoundTrip (needs recording.c, replay.c, world_snapshot.c and the milestone 3 world files)")
-	PIt("RollbackNames (needs recording.c, replay.c, world_snapshot.c and the milestone 3 world files)")
+	// replay.c, world_snapshot.c from milestone 5).
+	PIt("NameRoundTrip (needs recording.c, replay.c, world_snapshot.c, milestone 5)")
+	PIt("RollbackNames (needs recording.c, replay.c, world_snapshot.c, milestone 5)")
 })
 
 var _ = Describe("NameCacheHash32", func() {

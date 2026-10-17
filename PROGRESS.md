@@ -8,8 +8,10 @@
   solver, scheduler, sensor, physics_world; name_cache pulled forward from M5) is ported and its
   test file ported; test_body.c, test_shape.c, test_world.c, test_body_query.c,
   test_large_world.c, test_restitution.c and test_hash.c run, and the M2 specs that waited for the
-  world run too. Specs that need joint.c (M4) or recording/replay (M5) are pending (`PIt`) and name
-  the missing file. Two functions from later milestones were pulled forward because world tests
+  world run too (test_mover.c 22/22, test_compound.c 34/34, test_broad_phase.c 1/2). Four specs
+  are pending (`PIt`) and name the missing file: BroadPhaseStressTest and test_world.c's
+  BodySimLocatorTest need joint.c (M4), test_name_cache.c's NameRoundTrip and RollbackNames need
+  recording/replay (M5). Two functions from later milestones were pulled forward because world tests
   need them: b3HashWorldState (recording.c) and b3DefaultExplosionDef (joint.c). The other
   recording.c functions are still stubs and the joint.c functions M3 calls are placeholders; both
   are listed in `LOOSE_ENDS.md`. The shared/ human and determinism scenes are ported behind the
@@ -167,28 +169,28 @@ each; both point at the same Go file.
 | test/test_allocator.c | allocator_test.go | tested | efca0c1 | alignment ENSURE checks Go alignment of T |
 | test/test_bitset.c | bitset_test.go | tested | efca0c1 |  |
 | test/test_body.c | body_test.go | tested | efca0c1 | all 11 tests |
-| test/test_body_query.c | body_query_test.go | todo | |  |
-| test/test_broad_phase.c | broad_phase_test.go | blocked (needs the M3 world files, joint.c, weld_joint.c) | efca0c1 | 0 of 2 tests; StaticRebuildKeepsMarks and BroadPhaseStressTest pending (PIt); broad_phase_golden_test.go covers the broad-phase meanwhile |
+| test/test_body_query.c | body_query_test.go | tested | efca0c1 | all 31 tests; the MoverTOIMatchesSweep random loop matches a C build bit for bit (hit count, seed, hashed fractions and points; arm64 and amd64) |
+| test/test_broad_phase.c | broad_phase_test.go | blocked (needs joint.c, weld_joint.c) | efca0c1 | 1 of 2 tests; StaticRebuildKeepsMarks passes; BroadPhaseStressTest pending (PIt) on weld joints (M4); broad_phase_golden_test.go also covers the broad-phase |
 | test/test_collision.c | collision_test.go | tested | efca0c1 | 4 of 4 tests; the BOX3D_DOUBLE_PRECISION halves are compiled out as in upstream's float build |
-| test/test_compound.c | compound_test.go | tested | efca0c1 | 33 of 34 tests; CompoundMeshContactMaterial pending (PIt) on the world (M3); byte-level serialize tests port as written |
+| test/test_compound.c | compound_test.go | tested | efca0c1 | all 34 tests; byte-level serialize tests port as written |
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
 | test/test_determinism.c | determinism_test.go | todo | |  |
 | test/test_distance.c | distance_test.go | tested | efca0c1 |  |
 | test/test_dynamic_tree.c | dynamic_tree_test.go | tested | efca0c1 |  |
-| test/test_hash.c | hash_test.go | todo | |  |
+| test/test_hash.c | hash_test.go | tested | efca0c1 | all 13 tests |
 | test/test_height_field.c | height_field_test.go | tested | efca0c1 | round trip file in a temp dir |
 | test/test_hull.c | hull_test.go | tested | efca0c1 |  |
 | test/test_id.c | id_test.go | tested | efca0c1 |  |
 | test/test_joint.c | joint_test.go | todo | |  |
-| test/test_large_world.c | large_world_test.go | todo | |  |
+| test/test_large_world.c | large_world_test.go | tested | efca0c1 | all 3 tests; double-precision halves not ported (as collision_test.go); the origin runs print the same values as a C build |
 | test/test_macros.h | test_macros_test.go | ported | efca0c1 | ENSURE / ENSURE_SMALL helpers |
 | test/test_manifold.c | manifold_test.go | tested | efca0c1 | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
 | test/test_mesh.c | mesh_test.go | tested | efca0c1 | strided input via `fatPositions` (unsafe.Slice over the interleaved array) |
-| test/test_mover.c | mover_test.go | tested | efca0c1 | 17 of 22 tests; 5 pending (PIt) on body.c, shape.c, physics_world.c (b3World_CollideMover, b3Body_CollideMover) |
+| test/test_mover.c | mover_test.go | tested | efca0c1 | all 22 tests |
 | test/test_name_cache.c | name_cache_test.go | tested | efca0c1 | CacheUnit passes; NameRoundTrip and RollbackNames pending (PIt) until recording.c, replay.c, world_snapshot.c (M5) |
 | test/test_recording.c | recording_test.go | todo | |  |
-| test/test_restitution.c | restitution_test.go | todo | |  |
+| test/test_restitution.c | restitution_test.go | tested | efca0c1 | all 14 subtests (one It each); the measurements match a C build line for line, WorkerParityTest hashes included (1, 2, 4 workers) |
 | test/test_sat.c | sat_test.go | tested | efca0c1 | oracle stats print identical to the C build (NEON and BOX3D_DISABLE_SIMD) |
 | test/test_shape.c | shape_test.go, shape_world_test.go | tested | efca0c1 | all 20 subtests (PointInShapeTest is #if 0 upstream); ShapeNameTest and ShapeFlagsTest are in shape_world_test.go |
 | test/test_table.c | table_test.go | tested | efca0c1 |  |
