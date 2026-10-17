@@ -58,8 +58,8 @@ each; both point at the same Go file.
 | src/height_field.c | height_field.go | todo | |  |
 | src/hull.c | hull.go | todo | |  |
 | src/hull.h | hull.go | todo | |  |
-| src/id_pool.c | id_pool.go | todo | |  |
-| src/id_pool.h | id_pool.go | todo | |  |
+| src/id_pool.c | id_pool.go | ported | efca0c1 | no upstream test |
+| src/id_pool.h | id_pool.go | ported | efca0c1 |  |
 | src/island.c | island.go | todo | |  |
 | src/island.h | island.go | todo | |  |
 | src/joint.c | joint.go | todo | |  |

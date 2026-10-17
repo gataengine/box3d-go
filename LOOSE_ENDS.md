@@ -47,3 +47,4 @@ site. Upstream bugs are ported as is and listed here too.
 | timer.go | `b3Hash( hash, data, count )` | `Hash(hash, data []byte)`; always little endian loads | pointer + count is a slice; matches upstream's big-endian byte swap |
 | table.go | `b3_probeCount`, `#if B3_DEBUG` | counted when `debugBuild` (assertions on) | NDEBUG ≙ `box3d_noassert` |
 | table_test.go | `printf` timing lines | `GinkgoWriter.Printf` | shown with `-v` / on failure |
+| id_pool.go | `b3FreeId` todo comment | ported as is: the `id == nextIndex` branch is unreachable under the assertion above it | upstream bug kept |
