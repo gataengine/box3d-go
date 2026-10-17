@@ -45,7 +45,7 @@ each; both point at the same Go file.
 | src/contact_solver.c | contact_solver.go | todo | |  |
 | src/contact_solver.h | contact_solver.go | todo | |  |
 | src/contact_solver_wide.inl | contact_solver_wide.go | todo | |  |
-| src/container.h | container.go | todo | |  |
+| src/container.h | container.go | tested | efca0c1 | b3Array(T) is []T; generic arrayPush/arrayPop/… keep growth policy |
 | src/convex_manifold.c | convex_manifold.go | todo | |  |
 | src/convex_manifold_wide.inl | convex_manifold_wide.go | todo | |  |
 | src/core.c | core.go | ported | efca0c1 |  |
@@ -128,7 +128,7 @@ each; both point at the same Go file.
 | test/test_broad_phase.c | broad_phase_test.go | todo | |  |
 | test/test_collision.c | collision_test.go | todo | |  |
 | test/test_compound.c | compound_test.go | todo | |  |
-| test/test_container.c | container_test.go | todo | |  |
+| test/test_container.c | container_test.go | tested | efca0c1 |  |
 | test/test_determinism.c | determinism_test.go | todo | |  |
 | test/test_distance.c | distance_test.go | todo | |  |
 | test/test_dynamic_tree.c | dynamic_tree_test.go | todo | |  |
