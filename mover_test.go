@@ -13,9 +13,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-// PORT: the tests that need world, body, shape, mesh, height field or compound code are pending
-// (PIt) until those files land; each names the missing upstream files. Port their bodies from
-// test/test_mover.c then.
+// PORT: the static helpers of test_mover.c are prefixed with mover (or shared, see makeFlatField)
+// so they cannot clash in the one test package.
+
+// moverMakeMaterial is MakeMaterial from test_mover.c.
+// PORT: renamed; test_compound.c has a static function of the same name.
+func moverMakeMaterial(friction float32, userId uint64) SurfaceMaterial {
+	m := DefaultSurfaceMaterial()
+	m.Friction = friction
+	m.UserMaterialId = userId
+	return m
+}
 
 // moverMakeTwoMaterialMesh is MakeTwoMaterialMesh from test_mover.c.
 // PORT: renamed; test_compound.c has a static function of the same name.
@@ -36,6 +44,24 @@ func moverMakeTwoMaterialMesh() *MeshData {
 	def.TriangleCount = 2
 
 	return CreateMesh(&def, nil)
+}
+
+// moverPlaneCapture is PlaneCapture.
+type moverPlaneCapture struct {
+	planes [16]PlaneResult
+	count  int
+}
+
+// moverCapturePlaneFcn is CapturePlaneFcn.
+func moverCapturePlaneFcn(shapeId ShapeID, planes []PlaneResult, context any) bool {
+	_ = shapeId
+	capture := context.(*moverPlaneCapture)
+	planeCount := len(planes)
+	for i := 0; i < planeCount && capture.count < 16; i++ {
+		capture.planes[capture.count] = planes[i]
+		capture.count++
+	}
+	return true
 }
 
 var _ = Describe("MoverTest", func() {
@@ -228,10 +254,225 @@ var _ = Describe("MoverTest", func() {
 	// b3PlaneResult::materialIndex follows different paths per shape type. Meshes
 	// report the per triangle material index. Compounds remap the child result
 	// through the child material table. Convex shapes report index 0.
-	PIt("MoverWorldMeshMaterials (needs body.c, shape.c, physics_world.c)")
-	PIt("MoverWorldCompoundMeshMaterials (needs body.c, shape.c, physics_world.c)")
-	PIt("MoverBodyMaterialIndices (needs body.c, shape.c, physics_world.c)")
-	PIt("MoverBodySkipsMeshAndCompound (needs body.c, shape.c, physics_world.c)")
+	It("MoverWorldMeshMaterials", func() {
+		worldDef := DefaultWorldDef()
+		worldId := CreateWorld(&worldDef)
+
+		bodyDef := DefaultBodyDef()
+		bodyDef.Type = StaticBody
+		bodyId := worldId.CreateBody(&bodyDef)
+
+		mesh := moverMakeTwoMaterialMesh()
+		ensure(mesh != nil)
+		ensure(mesh.MaterialCount == 2)
+
+		materials := [2]SurfaceMaterial{moverMakeMaterial(0.2, 1), moverMakeMaterial(0.8, 2)}
+		shapeDef := DefaultShapeDef()
+		shapeDef.Materials = materials[:]
+		shapeDef.MaterialCount = 2
+		bodyId.CreateMeshShape(&shapeDef, mesh, Vec3{1.0, 1.0, 1.0})
+
+		worldId.Step(1.0/60.0, 1)
+
+		bakedMaterialIndices := GetMeshMaterialIndices(mesh)
+
+		// Mover hanging just above the first triangle so its radius reaches 0.05 into the surface
+		mover := Capsule{Vec3{-2.0, 0.15, 0.0}, Vec3{-2.0, 0.35, 0.0}, 0.2}
+
+		capture := moverPlaneCapture{}
+		worldId.CollideMover(PosZero, &mover, DefaultQueryFilter(), moverCapturePlaneFcn, &capture)
+
+		ensure(capture.count == 1)
+		ensure(capture.planes[0].Plane.Normal.Y > 0.99)
+		ensureSmall(capture.planes[0].Plane.Offset-0.05, 1e-4)
+		ensureSmall(capture.planes[0].Point.Y, 1e-4)
+		ensure(capture.planes[0].MaterialIndex == 0)
+		ensure(capture.planes[0].TriangleIndex >= 0)
+		ensure(capture.planes[0].TriangleIndex < mesh.TriangleCount)
+		ensure(bakedMaterialIndices[capture.planes[0].TriangleIndex] == 0)
+
+		// Same mover over the second triangle
+		mover2 := Capsule{Vec3{2.0, 0.15, 0.0}, Vec3{2.0, 0.35, 0.0}, 0.2}
+
+		capture2 := moverPlaneCapture{}
+		worldId.CollideMover(PosZero, &mover2, DefaultQueryFilter(), moverCapturePlaneFcn, &capture2)
+
+		ensure(capture2.count == 1)
+		ensure(capture2.planes[0].Plane.Normal.Y > 0.99)
+		ensure(capture2.planes[0].MaterialIndex == 1)
+		ensure(bakedMaterialIndices[capture2.planes[0].TriangleIndex] == 1)
+
+		worldId.Destroy()
+		DestroyMesh(mesh)
+	})
+
+	It("MoverWorldCompoundMeshMaterials", func() {
+		worldDef := DefaultWorldDef()
+		worldId := CreateWorld(&worldDef)
+
+		bodyDef := DefaultBodyDef()
+		bodyDef.Type = StaticBody
+		bodyId := worldId.CreateBody(&bodyDef)
+
+		mesh := moverMakeTwoMaterialMesh()
+
+		// The hull material and the two mesh materials are distinct, so the compound material
+		// table gets one slot per material. Children bake in hull then mesh order.
+		meshMaterials := [2]SurfaceMaterial{moverMakeMaterial(0.3, 101), moverMakeMaterial(0.6, 202)}
+		hullMaterial := moverMakeMaterial(0.9, 303)
+
+		meshChild := CompoundMeshDef{
+			MeshData:      mesh,
+			Transform:     TransformIdentity,
+			Scale:         Vec3{1.0, 1.0, 1.0},
+			Materials:     meshMaterials[:],
+			MaterialCount: 2,
+		}
+
+		box := MakeBoxHull(0.5, 0.5, 0.5)
+		hullChild := CompoundHullDef{
+			Hull:      &box.Base,
+			Transform: Transform{P: Vec3{-8.0, 0.0, 0.0}, Q: QuatIdentity},
+			Material:  hullMaterial,
+		}
+
+		compoundDef := CompoundDef{
+			Hulls:     []CompoundHullDef{hullChild},
+			HullCount: 1,
+			Meshes:    []CompoundMeshDef{meshChild},
+			MeshCount: 1,
+		}
+		compound := CreateCompound(&compoundDef)
+		ensure(compound != nil)
+		ensure(compound.MaterialCount == 3)
+
+		bakedMaterials := GetCompoundMaterials(compound)
+		ensure(bakedMaterials[0].UserMaterialId == 303)
+		ensure(bakedMaterials[1].UserMaterialId == 101)
+		ensure(bakedMaterials[2].UserMaterialId == 202)
+
+		shapeDef := DefaultShapeDef()
+		bodyId.CreateBakedCompoundShape(&shapeDef, compound)
+
+		worldId.Step(1.0/60.0, 1)
+
+		// Mover on top of the hull child face at y = 0.5
+		hullMover := Capsule{Vec3{-8.0, 0.65, 0.0}, Vec3{-8.0, 0.85, 0.0}, 0.2}
+
+		hullCapture := moverPlaneCapture{}
+		worldId.CollideMover(PosZero, &hullMover, DefaultQueryFilter(), moverCapturePlaneFcn, &hullCapture)
+
+		ensure(hullCapture.count == 1)
+		ensure(hullCapture.planes[0].Plane.Normal.Y > 0.99)
+		ensure(hullCapture.planes[0].ChildIndex == 0)
+		ensure(hullCapture.planes[0].MaterialIndex == 0)
+		ensure(bakedMaterials[hullCapture.planes[0].MaterialIndex].UserMaterialId == 303)
+
+		// Mover over the second mesh triangle. The mesh reports triangle material 1, which the
+		// compound remaps through the child material table to the shared slot of meshMaterials[1].
+		meshMover := Capsule{Vec3{2.0, 0.15, 0.0}, Vec3{2.0, 0.35, 0.0}, 0.2}
+
+		meshCapture := moverPlaneCapture{}
+		worldId.CollideMover(PosZero, &meshMover, DefaultQueryFilter(), moverCapturePlaneFcn, &meshCapture)
+
+		ensure(meshCapture.count == 1)
+		ensure(meshCapture.planes[0].Plane.Normal.Y > 0.99)
+		ensure(meshCapture.planes[0].ChildIndex == 1)
+		ensure(meshCapture.planes[0].MaterialIndex == 2)
+		ensure(bakedMaterials[meshCapture.planes[0].MaterialIndex].UserMaterialId == 202)
+
+		worldId.Destroy()
+		DestroyCompound(compound)
+		DestroyMesh(mesh)
+	})
+
+	It("MoverBodyMaterialIndices", func() {
+		worldDef := DefaultWorldDef()
+		worldId := CreateWorld(&worldDef)
+
+		bodyDef := DefaultBodyDef()
+		bodyId := worldId.CreateBody(&bodyDef)
+
+		// One shape of each convex type, spaced out along X
+		shapeDef := DefaultShapeDef()
+
+		sphere := Sphere{Vec3{0.0, 0.5, 0.0}, 0.5}
+		bodyId.CreateSphereShape(&shapeDef, &sphere)
+
+		box := MakeTransformedBoxHull(0.5, 0.5, 0.5, Transform{P: Vec3{5.0, 0.0, 0.0}, Q: QuatIdentity})
+		bodyId.CreateHullShape(&shapeDef, &box.Base)
+
+		capsule := Capsule{Vec3{9.0, 0.0, 0.0}, Vec3{11.0, 0.0, 0.0}, 0.3}
+		bodyId.CreateCapsuleShape(&shapeDef, &capsule)
+
+		bodyTransform := WorldTransform{P: PosZero, Q: QuatIdentity}
+
+		// Convex shapes report the base material as index 0
+		movers := [3]Capsule{
+			{Vec3{0.0, 1.15, 0.0}, Vec3{0.0, 1.35, 0.0}, 0.2},
+			{Vec3{5.0, 0.65, 0.0}, Vec3{5.0, 0.85, 0.0}, 0.2},
+			{Vec3{10.0, 0.45, 0.0}, Vec3{10.0, 0.65, 0.0}, 0.2},
+		}
+
+		for i := 0; i < 3; i++ {
+			var planes [4]BodyPlaneResult
+			count := bodyId.CollideMover(planes[:4], PosZero, &movers[i], DefaultQueryFilter(), bodyTransform)
+
+			ensure(count == 1)
+			ensure(planes[0].ShapeId.IsValid())
+			ensure(planes[0].Result.Plane.Normal.Y > 0.99)
+			ensure(planes[0].Result.MaterialIndex == 0)
+			ensure(planes[0].Result.ChildIndex == 0)
+		}
+
+		worldId.Destroy()
+	})
+
+	It("MoverBodySkipsMeshAndCompound", func() {
+		// The body level mover query handles convex shapes only. Mesh and compound shapes are
+		// skipped, so their material indices are only available through b3World_CollideMover.
+		worldDef := DefaultWorldDef()
+		worldId := CreateWorld(&worldDef)
+
+		bodyDef := DefaultBodyDef()
+		bodyId := worldId.CreateBody(&bodyDef)
+
+		shapeDef := DefaultShapeDef()
+
+		mesh := moverMakeTwoMaterialMesh()
+		ensure(mesh != nil)
+		bodyId.CreateMeshShape(&shapeDef, mesh, Vec3{1.0, 1.0, 1.0})
+
+		box := MakeBoxHull(0.5, 0.5, 0.5)
+		hullChild := CompoundHullDef{
+			Hull:      &box.Base,
+			Transform: Transform{P: Vec3{10.0, 0.0, 0.0}, Q: QuatIdentity},
+		}
+		compoundDef := CompoundDef{
+			Hulls:     []CompoundHullDef{hullChild},
+			HullCount: 1,
+		}
+		compound := CreateCompound(&compoundDef)
+		ensure(compound != nil)
+		bodyId.CreateBakedCompoundShape(&shapeDef, compound)
+
+		bodyTransform := WorldTransform{P: PosZero, Q: QuatIdentity}
+
+		// Mover over the mesh triangle and mover over the compound hull child both find nothing
+		meshMover := Capsule{Vec3{-2.0, 0.15, 0.0}, Vec3{-2.0, 0.35, 0.0}, 0.2}
+		compoundMover := Capsule{Vec3{10.0, 0.65, 0.0}, Vec3{10.0, 0.85, 0.0}, 0.2}
+
+		movers := [2]Capsule{meshMover, compoundMover}
+		for i := 0; i < 2; i++ {
+			var planes [4]BodyPlaneResult
+			count := bodyId.CollideMover(planes[:4], PosZero, &movers[i], DefaultQueryFilter(), bodyTransform)
+			ensure(count == 0)
+		}
+
+		worldId.Destroy()
+		DestroyCompound(compound)
+		DestroyMesh(mesh)
+	})
 
 	// One sided mover collision.
 	// Mover queries keep only triangles facing the mover. The front side follows the
@@ -350,5 +591,34 @@ var _ = Describe("MoverTest", func() {
 
 	// A mesh can be baked with more materials than the shape carries. The reported index must stay
 	// inside the shape's material array.
-	PIt("MoverWorldMeshMaterialClamp (needs body.c, shape.c, physics_world.c)")
+	It("MoverWorldMeshMaterialClamp", func() {
+		worldDef := DefaultWorldDef()
+		worldId := CreateWorld(&worldDef)
+
+		bodyDef := DefaultBodyDef()
+		bodyDef.Type = StaticBody
+		bodyId := worldId.CreateBody(&bodyDef)
+
+		mesh := moverMakeTwoMaterialMesh()
+		ensure(mesh.MaterialCount == 2)
+
+		// Base material only
+		shapeDef := DefaultShapeDef()
+		shapeId := bodyId.CreateMeshShape(&shapeDef, mesh, Vec3{1.0, 1.0, 1.0})
+		shapeMaterialCount := shapeId.GetMeshMaterialCount()
+		ensure(shapeMaterialCount == 1)
+
+		worldId.Step(1.0/60.0, 1)
+
+		// Over the triangle baked with material 1
+		mover := Capsule{Vec3{2.0, 0.15, 0.0}, Vec3{2.0, 0.35, 0.0}, 0.2}
+		capture := moverPlaneCapture{}
+		worldId.CollideMover(PosZero, &mover, DefaultQueryFilter(), moverCapturePlaneFcn, &capture)
+
+		ensure(capture.count == 1)
+		ensure(capture.planes[0].MaterialIndex == int32(shapeMaterialCount-1))
+
+		worldId.Destroy()
+		DestroyMesh(mesh)
+	})
 })

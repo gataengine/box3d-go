@@ -133,6 +133,41 @@ func cloneCompoundBytes(compound *CompoundData) []byte {
 	return buffer
 }
 
+// makeFlatMaterial5Mesh is MakeFlatMaterial5Mesh.
+// Flat quad with every triangle on material index 5, so the mesh has six materials
+func makeFlatMaterial5Mesh() *MeshData {
+	vertices := [4]Vec3{
+		{-5.0, 0.0, -5.0},
+		{-5.0, 0.0, 5.0},
+		{5.0, 0.0, -5.0},
+		{5.0, 0.0, 5.0},
+	}
+	indices := [6]int32{0, 1, 3, 3, 2, 0}
+	materialIndices := [2]uint8{5, 5}
+
+	def := MeshDef{}
+	def.Vertices = vertices[:]
+	def.Stride = int(unsafe.Sizeof(Vec3{}))
+	def.Indices = indices[:]
+	def.MaterialIndices = materialIndices[:]
+	def.VertexCount = 4
+	def.TriangleCount = 2
+
+	return CreateMesh(&def, nil)
+}
+
+// compoundContactMaterialId is s_compoundContactMaterialId.
+var compoundContactMaterialId uint64
+
+// compoundContactFrictionCallback is CompoundContactFrictionCallback.
+func compoundContactFrictionCallback(frictionA float32, userMaterialIdA uint64, frictionB float32,
+	userMaterialIdB uint64) float32 {
+	if userMaterialIdA == 6 || userMaterialIdB == 6 {
+		compoundContactMaterialId = 6
+	}
+	return 0.5 * (frictionA + frictionB)
+}
+
 var _ = Describe("CompoundTest", func() {
 	It("CompoundCreateMixed", func() {
 		mat := DefaultSurfaceMaterial()
@@ -818,7 +853,59 @@ var _ = Describe("CompoundTest", func() {
 		DestroyMesh(md)
 	})
 
-	PIt("CompoundMeshContactMaterial (needs body.c, shape.c, contact.c, mesh_contact.c, physics_world.c)")
+	It("CompoundMeshContactMaterial", func() {
+		compoundContactMaterialId = 0
+
+		worldDef := DefaultWorldDef()
+		worldId := CreateWorld(&worldDef)
+		worldId.SetFrictionCallback(compoundContactFrictionCallback)
+
+		groundBodyDef := DefaultBodyDef()
+		groundBodyDef.Type = StaticBody
+		groundBodyId := worldId.CreateBody(&groundBodyDef)
+
+		md := makeFlatMaterial5Mesh()
+		ensure(md.MaterialCount == 6)
+
+		var meshMats [6]SurfaceMaterial
+		for i := 0; i < 6; i++ {
+			meshMats[i] = compoundMakeMaterial(0.5, uint64(i+1))
+		}
+
+		meshChild := CompoundMeshDef{
+			MeshData:      md,
+			Transform:     TransformIdentity,
+			Scale:         Vec3{1.0, 1.0, 1.0},
+			Materials:     meshMats[:],
+			MaterialCount: 6,
+		}
+		compoundDef := CompoundDef{Meshes: []CompoundMeshDef{meshChild}, MeshCount: 1}
+		compound := CreateCompound(&compoundDef)
+		ensure(compound != nil)
+
+		groundShapeDef := DefaultShapeDef()
+		compoundShapeId := groundBodyId.CreateBakedCompoundShape(&groundShapeDef, compound)
+		ensure(compoundShapeId.GetCompound() == compound)
+
+		sphereBodyDef := DefaultBodyDef()
+		sphereBodyDef.Type = DynamicBody
+		sphereBodyDef.Position = Pos{0.0, 3.0, 0.0}
+		sphereBodyId := worldId.CreateBody(&sphereBodyDef)
+		sphereShapeDef := DefaultShapeDef()
+		sphereShapeDef.Density = 1.0
+		sphere := Sphere{Vec3{0.0, 0.0, 0.0}, 0.5}
+		sphereBodyId.CreateSphereShape(&sphereShapeDef, &sphere)
+
+		for i := 0; i < 120; i++ {
+			worldId.Step(1.0/60.0, 4)
+		}
+
+		ensure(compoundContactMaterialId == 6)
+
+		worldId.Destroy()
+		DestroyCompound(compound)
+		DestroyMesh(md)
+	})
 
 	It("CompoundOverlap", func() {
 		mat := DefaultSurfaceMaterial()
