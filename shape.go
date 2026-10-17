@@ -169,9 +169,49 @@ func isConvex(typ ShapeType) bool {
 
 // ---- shape.c ----
 
-// PORT: only b3MakeLocalProxy and b3ComputeProxyAABB are ported so far. mesh.c, height_field.c
-// and compound.c need them in milestone 2; the rest of shape.c lands in milestone 3 and goes
-// around these two in upstream order.
+// PORT: only b3ComputeShapeAABB, b3ComputeFatShapeAABB, b3MakeLocalProxy and b3ComputeProxyAABB
+// are ported so far. mesh.c, height_field.c and compound.c need the proxy helpers and
+// test_collision.c needs the fat AABB in milestone 2; the rest of shape.c lands in milestone 3 and
+// goes around these four in upstream order.
+
+// computeShapeAABB is b3ComputeShapeAABB.
+func computeShapeAABB(shape *shape, transform Transform) AABB {
+	switch shape.typ {
+	case CapsuleShape:
+		return ComputeCapsuleAABB(&shape.capsule, transform)
+
+	case CompoundShape:
+		return ComputeCompoundAABB(shape.compound, transform)
+
+	case HeightShape:
+		return ComputeHeightFieldAABB(shape.heightField, transform)
+
+	case HullShape:
+		return ComputeHullAABB(shape.hull, transform)
+
+	case MeshShape:
+		return ComputeMeshAABB(shape.mesh.Data, transform, shape.mesh.Scale)
+
+	case SphereShape:
+		return ComputeSphereAABB(&shape.sphere, transform)
+
+	default:
+		assert(false, "false")
+		empty := AABB{transform.P, transform.P}
+		return empty
+	}
+}
+
+// computeFatShapeAABB is b3ComputeFatShapeAABB.
+// PORT: only the single precision branch (BOX3D_DOUBLE_PRECISION is not ported). There
+// b3WorldTransform is a typedef of b3Transform; here the world transform is converted exactly.
+func computeFatShapeAABB(shape *shape, transform WorldTransform, extra float32) AABB {
+	r := Vec3{extra, extra, extra}
+	aabb := computeShapeAABB(shape, Transform{ToVec3(transform.P), transform.Q})
+	aabb.LowerBound = Sub(aabb.LowerBound, r)
+	aabb.UpperBound = Add(aabb.UpperBound, r)
+	return aabb
+}
 
 // makeLocalProxy is b3MakeLocalProxy.
 // PORT: buffer is the caller's [MaxShapeCastPoints]Vec3 array; the returned proxy points into it.

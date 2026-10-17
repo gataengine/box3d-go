@@ -3,7 +3,7 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **2 — Collision** (parts A–D done; remaining: broad_phase.c, test_broad_phase.c, test_collision.c).
+- Current milestone: **2 — Collision** (parts A–D done; remaining: broad_phase.c, test_broad_phase.c).
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
@@ -114,7 +114,7 @@ each; both point at the same Go file.
 | src/scheduler.h | scheduler.go | todo | |  |
 | src/sensor.c | sensor.go | todo | |  |
 | src/sensor.h | sensor.go | todo | |  |
-| src/shape.c | shape.go | todo | | b3MakeLocalProxy and b3ComputeProxyAABB ported early (needed by mesh/height field/compound); the rest is M3 |
+| src/shape.c | shape.go | todo | | b3ComputeShapeAABB, b3ComputeFatShapeAABB, b3MakeLocalProxy and b3ComputeProxyAABB ported early (needed by mesh/height field/compound and test_collision); the rest is M3 |
 | src/shape.h | shape.go | ported | efca0c1 | b3Shape (union members all present), b3ShapeFlags, filter/convex inlines, b3GetHeightFieldTriangleCount, b3GetMeshTriangle; declared functions land with shape.c (M3) |
 | src/simd.c | simd.go | ported | efca0c1 | also holds IsAVX2Available / Get/SetSIMDWidth; Go-only simd_test.go |
 | src/simd.h | simd.go | ported | efca0c1 | b3V32 non-SSE2 path as `v32`; b3Vec3W4 as `vec3W` |
@@ -147,7 +147,7 @@ each; both point at the same Go file.
 | test/test_body.c | body_test.go | todo | |  |
 | test/test_body_query.c | body_query_test.go | todo | |  |
 | test/test_broad_phase.c | broad_phase_test.go | todo | |  |
-| test/test_collision.c | collision_test.go | todo | |  |
+| test/test_collision.c | collision_test.go | tested | efca0c1 | 4 of 4 tests; the BOX3D_DOUBLE_PRECISION halves are compiled out as in upstream's float build |
 | test/test_compound.c | compound_test.go | tested | efca0c1 | 33 of 34 tests; CompoundMeshContactMaterial pending (PIt) on the world (M3); byte-level serialize tests port as written |
 | test/test_container.c | container_test.go | tested | efca0c1 |  |
 | test/test_determinism.c | determinism_test.go | todo | |  |
