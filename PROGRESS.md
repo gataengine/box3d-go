@@ -108,8 +108,8 @@ each; both point at the same Go file.
 | src/solver_set.h | solver_set.go | todo | |  |
 | src/sphere.c | sphere.go | todo | |  |
 | src/spherical_joint.c | spherical_joint.go | todo | |  |
-| src/table.c | table.go | todo | |  |
-| src/table.h | table.go | todo | |  |
+| src/table.c | table.go | tested | efca0c1 | hashSet keeps upstream slot order |
+| src/table.h | table.go | tested | efca0c1 |  |
 | src/timer.c | timer.go | tested | efca0c1 | no upstream test; timer_test.go (Go-only) |
 | src/triangle_manifold.c | triangle_manifold.go | todo | |  |
 | src/types.c | types.go | ported | efca0c1 |  |
@@ -148,7 +148,7 @@ each; both point at the same Go file.
 | test/test_restitution.c | restitution_test.go | todo | |  |
 | test/test_sat.c | sat_test.go | todo | |  |
 | test/test_shape.c | shape_test.go | todo | |  |
-| test/test_table.c | table_test.go | todo | |  |
+| test/test_table.c | table_test.go | tested | efca0c1 |  |
 | test/test_world.c | world_test.go | todo | |  |
 | shared/utils.c | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
 | shared/utils.h | utils_test.go | tested | efca0c1 | test random helpers (RandomFloat, …) |
