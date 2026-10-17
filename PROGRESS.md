@@ -95,8 +95,8 @@ each; both point at the same Go file.
 | src/mover.c | mover.go | verified | efca0c1 | SolvePlanes (delta, iterations, pushes) and ClipVector in mover_golden_test.go |
 | src/name_cache.c | name_cache.go | todo | |  |
 | src/name_cache.h | name_cache.go | ported | efca0c1 | header types only; inline b3FindNameWithDefault lands with name_cache.c (M5) |
-| src/parallel_for.c | parallel_for.go | todo | |  |
-| src/parallel_for.h | parallel_for.go | todo | |  |
+| src/parallel_for.c | parallel_for.go | tested | efca0c1 | no upstream test; parallel_for_test.go (Go-only) checks the block partition, claiming with goroutines, the serial default task system and the B3_MAX_TASKS fallback |
+| src/parallel_for.h | parallel_for.go | tested | efca0c1 |  |
 | src/parallel_joint.c | parallel_joint.go | todo | |  |
 | src/physics_world.c | physics_world.go | todo | |  |
 | src/physics_world.h | physics_world.go | ported | efca0c1 | header types only (b3SetType, b3DebugPoint/Line, b3TaskContext, b3World); inline b3AllocateManifolds/b3FreeManifolds land with physics_world.c (M3). physics_world.go also holds a no-op validateSolverSets placeholder |

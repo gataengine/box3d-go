@@ -174,3 +174,4 @@ site. Upstream bugs are ported as is and listed here too.
 | contact.go | `b3CreateContact` (contact.c) | placeholder that panics | needs the contact registers and collide functions of contact.c (M3); unreachable without a world |
 | physics_world.go | `b3ValidateSolverSets` (physics_world.c) | no-op placeholder | assertion-only function over world state that cannot exist before milestone 3 |
 | broad_phase.go | `B3_PROXY_TYPE`, `B3_PROXY_ID`, `B3_PROXY_KEY` macros; `b3BroadPhase_MarkProxyMoved*` inlines | functions `proxyType`, `proxyId`, `proxyKey`; methods on `*broadPhase` | Go has no macros; spec naming rule `b3Type_Method` |
+| parallel_for.go | `b3ParallelForShared shared`, `b3ParallelForTask tasks[]` on the C stack | Go locals that escape to the heap (one small allocation per call) | the task system receives pointers to them; revisit for no-allocation `Step` |
