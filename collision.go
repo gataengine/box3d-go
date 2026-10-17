@@ -11,8 +11,7 @@ import "unsafe"
 
 // PORT: collision.h declares functions implemented in dynamic_tree.c, hull.c, mesh.c,
 // height_field.c, compound.c, sphere.c, capsule.c, distance.c, manifold.c, mover.c and others;
-// each is ported with its .c file. The mesh and height field blob accessors land with mesh.c and
-// height_field.c.
+// each is ported with its .c file.
 
 // ---- Geometry blobs (Go helpers, no upstream counterpart) ----
 
@@ -121,6 +120,44 @@ func GetHullEdgeCosines(hull *HullData) []float32 {
 // CreateCylinder, CreateCone, CreateRock, CreateComplexHull, CreateHull, CloneHull,
 // CloneAndTransformHull, DestroyHull, MakeCubeHull, MakeBoxHull, MakeOffsetBoxHull,
 // MakeTransformedBoxHull, MakeScaledBoxHull and ScaleBox are implemented in hull.go.
+
+// Mesh
+
+// meshBytes is the byte image of a mesh: (uint8_t*)mesh with mesh->byteCount bytes.
+func meshBytes(mesh *MeshData) []byte {
+	return blobBytes(unsafe.Pointer(mesh), mesh.ByteCount)
+}
+
+// GetMeshNodes gets read only mesh BVH nodes.
+// PORT: returns NodeCount nodes (nil when the offset is 0).
+func GetMeshNodes(mesh *MeshData) []MeshNode {
+	return blobSlice[MeshNode](unsafe.Pointer(mesh), mesh.NodeOffset, int(mesh.NodeCount))
+}
+
+// GetMeshVertices gets read only mesh vertices.
+// PORT: returns VertexCount vertices (nil when the offset is 0).
+func GetMeshVertices(mesh *MeshData) []Vec3 {
+	return blobSlice[Vec3](unsafe.Pointer(mesh), mesh.VertexOffset, int(mesh.VertexCount))
+}
+
+// GetMeshTriangles gets read only mesh triangles.
+// PORT: returns TriangleCount triangles (nil when the offset is 0).
+func GetMeshTriangles(mesh *MeshData) []MeshTriangle {
+	return blobSlice[MeshTriangle](unsafe.Pointer(mesh), mesh.TriangleOffset, int(mesh.TriangleCount))
+}
+
+// GetMeshMaterialIndices gets read only mesh materials. The count is equal to the triangle count.
+func GetMeshMaterialIndices(mesh *MeshData) []uint8 {
+	return blobSlice[uint8](unsafe.Pointer(mesh), mesh.MaterialOffset, int(mesh.TriangleCount))
+}
+
+// GetMeshFlags gets read only mesh flags. The count is equal to the triangle count.
+func GetMeshFlags(mesh *MeshData) []uint8 {
+	return blobSlice[uint8](unsafe.Pointer(mesh), mesh.FlagsOffset, int(mesh.TriangleCount))
+}
+
+// CreateGridMesh, CreateWaveMesh, CreateTorusMesh, CreateBoxMesh, CreateHollowBoxMesh,
+// CreatePlatformMesh, CreateMesh, DestroyMesh and GetHeight are implemented in mesh.go.
 
 // Query
 

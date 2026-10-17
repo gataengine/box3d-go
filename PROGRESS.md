@@ -3,7 +3,7 @@
 - Upstream: [erincatto/box3d](https://github.com/erincatto/box3d) at `efca0c184d40fd6a82016983f1601c4d23965867`
   (submodule `third_party/box3d`).
 - Design: `docs/superpowers/specs/2026-10-17-box3d-go-port-design.md` in the gata monorepo.
-- Current milestone: **2 — Collision** (part A in progress).
+- Current milestone: **2 — Collision** (part D in progress: mesh, height field, compound).
 - Determinism status: no world goldens yet (they arrive with milestones 3 and 5). Foundation math
   matches the C build (`-ffp-contract=off`) bit for bit on 1500 golden lines
   (`math_golden_test.go`, verified on darwin/arm64 and darwin/amd64 under Rosetta). Hull
@@ -13,7 +13,10 @@
   (fresh, cached and manual SAT modes) and b3ComputeSeparatingAxis match the C build on 361
   golden lines (`manifold_golden_test.go`, darwin/arm64 and amd64, with both the B3_SIMD_NONE and
   the lane SAT edge loop). The C output itself is identical for the NEON, SSE2 (x86_64),
-  BOX3D_DISABLE_SIMD and BOX3D_VALIDATE builds.
+  BOX3D_DISABLE_SIMD and BOX3D_VALIDATE builds. Mesh creation (blob byte count and hash),
+  mesh triangles, AABBs, ray casts, shape casts, overlaps, mover planes and queries match the C
+  build on the lines of `geometry_golden_test.go` (darwin/arm64 and amd64; the C output is
+  identical for NEON, SSE2, BOX3D_DISABLE_SIMD and BOX3D_VALIDATE).
 - Geometry blobs: the byte image is canonical. A blob is one 8-byte aligned `[]uint64`
   allocation (`blobAlloc` in collision.go) and `*HullData` points at its first word; the
   header structs have C layout, offsets are byte offsets from the header as upstream, and the
@@ -32,7 +35,7 @@ each; both point at the same Go file.
 |---|---|---|---|---|
 | include/box3d/base.h | base.go | ported | efca0c1 | assert/validate via build tags; allocator API not ported |
 | include/box3d/box3d.h | body.go, shape.go, joint.go, physics_world.go, … | todo | | b3Type_* functions live in the file of the object they act on |
-| include/box3d/collision.h | collision.go | ported | efca0c1 | blob helpers + hull accessors done; mesh/height field accessors land with mesh.c / height_field.c |
+| include/box3d/collision.h | collision.go | ported | efca0c1 | blob helpers + hull and mesh accessors done; height field accessors land with height_field.c |
 | include/box3d/config.h | — | n/a | | compile options; Go uses build tags (box3d_noassert, box3d_validate). Double precision and SIMD-disable not ported |
 | include/box3d/constants.h | constants.go | ported | efca0c1 |  |
 | include/box3d/id.h | id.go | tested | efca0c1 |  |
@@ -84,7 +87,7 @@ each; both point at the same Go file.
 | src/manifold.h | manifold.go | ported | efca0c1 | separating axis / clip types; b3ComputeSeparatingAxis*, b3CollideHullsAtWidth are in convex_manifold.go (W4 → computeSeparatingAxisW in convex_manifold_wide.go) |
 | src/math_functions.c | math_functions.go | tested | efca0c1 |  |
 | src/math_internal.h | math_internal.go | ported | efca0c1 | declared functions land with their .c files |
-| src/mesh.c | mesh.go | todo | |  |
+| src/mesh.c | mesh.go | verified | efca0c1 | creators, CreateMesh (weld, stride, SAH/median, clockwise, degenerates, edge flags), queries, ray/shape casts, overlap, mover in geometry_golden_test.go (blob hashes match C) |
 | src/mesh_contact.c | mesh_contact.go | todo | |  |
 | src/motor_joint.c | motor_joint.go | todo | |  |
 | src/mover.c | mover.go | verified | efca0c1 | SolvePlanes (delta, iterations, pushes) and ClipVector in mover_golden_test.go |
@@ -109,8 +112,8 @@ each; both point at the same Go file.
 | src/scheduler.h | scheduler.go | todo | |  |
 | src/sensor.c | sensor.go | todo | |  |
 | src/sensor.h | sensor.go | todo | |  |
-| src/shape.c | shape.go | todo | |  |
-| src/shape.h | shape.go | ported | efca0c1 | b3Shape (union members all present), b3ShapeFlags, filter/convex inlines, b3GetHeightFieldTriangleCount; b3GetMeshTriangle lands with mesh.c; declared functions land with shape.c (M3) |
+| src/shape.c | shape.go | todo | | b3MakeLocalProxy and b3ComputeProxyAABB ported early (needed by mesh/height field/compound); the rest is M3 |
+| src/shape.h | shape.go | ported | efca0c1 | b3Shape (union members all present), b3ShapeFlags, filter/convex inlines, b3GetHeightFieldTriangleCount, b3GetMeshTriangle; declared functions land with shape.c (M3) |
 | src/simd.c | simd.go | ported | efca0c1 | also holds IsAVX2Available / Get/SetSIMDWidth; Go-only simd_test.go |
 | src/simd.h | simd.go | ported | efca0c1 | b3V32 non-SSE2 path as `v32`; b3Vec3W4 as `vec3W` |
 | src/simd_avx2.h | — | n/a | | dropped: scalar lanes only (see spec, SIMD lane layer) |
@@ -157,8 +160,8 @@ each; both point at the same Go file.
 | test/test_macros.h | test_macros_test.go | ported | efca0c1 | ENSURE / ENSURE_SMALL helpers |
 | test/test_manifold.c | manifold_test.go | tested | efca0c1 | exercises b3Collide* from convex_manifold.c and triangle_manifold.c |
 | test/test_math.c | math_test.go | tested | efca0c1 |  |
-| test/test_mesh.c | mesh_test.go | todo | |  |
-| test/test_mover.c | mover_test.go | tested | efca0c1 | 12 of 22 tests; 10 pending (PIt) on mesh.c, height_field.c, compound.c, body.c, shape.c, physics_world.c (b3CollideMoverAndMesh/HeightField, b3World_CollideMover, b3Body_CollideMover) |
+| test/test_mesh.c | mesh_test.go | tested | efca0c1 | strided input via `fatPositions` (unsafe.Slice over the interleaved array) |
+| test/test_mover.c | mover_test.go | tested | efca0c1 | 14 of 22 tests; 8 pending (PIt) on height_field.c, compound.c, body.c, shape.c, physics_world.c (b3CollideMoverAndHeightField, b3World_CollideMover, b3Body_CollideMover) |
 | test/test_name_cache.c | name_cache_test.go | todo | |  |
 | test/test_recording.c | recording_test.go | todo | |  |
 | test/test_restitution.c | restitution_test.go | todo | |  |

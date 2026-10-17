@@ -8,12 +8,35 @@
 package box3d
 
 import (
+	"unsafe"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
 // PORT: the tests that need world, body, shape, mesh, height field or compound code are pending
 // (PIt) until those files land; each names the missing upstream files. Port their bodies from
 // test/test_mover.c then.
+
+// moverMakeTwoMaterialMesh is MakeTwoMaterialMesh from test_mover.c.
+// PORT: renamed; test_compound.c has a static function of the same name.
+func moverMakeTwoMaterialMesh() *MeshData {
+	vertices := [6]Vec3{
+		{-3.0, 0.0, -1.0}, {-2.0, 0.0, 1.0}, {-1.0, 0.0, -1.0},
+		{1.0, 0.0, -1.0}, {2.0, 0.0, 1.0}, {3.0, 0.0, -1.0},
+	}
+	indices := [6]int32{0, 1, 2, 3, 4, 5}
+	materialIndices := [2]uint8{0, 1}
+
+	def := MeshDef{}
+	def.Vertices = vertices[:]
+	def.Stride = int(unsafe.Sizeof(Vec3{}))
+	def.Indices = indices[:]
+	def.MaterialIndices = materialIndices[:]
+	def.VertexCount = 6
+	def.TriangleCount = 2
+
+	return CreateMesh(&def, nil)
+}
 
 var _ = Describe("MoverTest", func() {
 	It("GamePlanes", func() {
@@ -214,8 +237,50 @@ var _ = Describe("MoverTest", func() {
 	// Mover queries keep only triangles facing the mover. The front side follows the
 	// baked winding: up for a default mesh or height field, down when the height
 	// field carries clockwiseWinding. A mirror in the mesh scale must not flip it.
-	PIt("MoverMeshBackside (needs mesh.c)")
-	PIt("MoverMeshMirroredScale (needs mesh.c)")
+	It("MoverMeshBackside", func() {
+		mesh := moverMakeTwoMaterialMesh()
+		shape := Mesh{Data: mesh, Scale: Vec3{1.0, 1.0, 1.0}}
+
+		var planes [4]PlaneResult
+
+		// On the front of the left triangle, so a plane comes back
+		above := Capsule{Vec3{-2.0, 0.15, 0.0}, Vec3{-2.0, 0.35, 0.0}, 0.2}
+		count := collideMoverAndMesh(planes[:4], &shape, &above)
+		ensure(count == 1)
+		ensure(planes[0].Plane.Normal.Y > 0.99)
+		ensure(planes[0].ChildIndex == 0)
+		ensure(planes[0].TriangleIndex >= 0 && planes[0].TriangleIndex < mesh.TriangleCount)
+
+		// The same spot seen from behind the face is culled
+		below := Capsule{Vec3{-2.0, -0.35, 0.0}, Vec3{-2.0, -0.15, 0.0}, 0.2}
+		count = collideMoverAndMesh(planes[:4], &shape, &below)
+		ensure(count == 0)
+
+		DestroyMesh(mesh)
+	})
+
+	It("MoverMeshMirroredScale", func() {
+		mesh := moverMakeTwoMaterialMesh()
+
+		// Reflecting the scale flips the triangle winding, the collision swaps it back,
+		// so the front stays up. Local x = -2 maps onto the source right triangle, material 1.
+		shape := Mesh{Data: mesh, Scale: Vec3{-1.0, 1.0, 1.0}}
+
+		var planes [4]PlaneResult
+
+		above := Capsule{Vec3{-2.0, 0.15, 0.0}, Vec3{-2.0, 0.35, 0.0}, 0.2}
+		count := collideMoverAndMesh(planes[:4], &shape, &above)
+		ensure(count == 1)
+		ensure(planes[0].Plane.Normal.Y > 0.99)
+		ensure(planes[0].MaterialIndex == 1)
+		ensure(GetMeshMaterialIndices(mesh)[planes[0].TriangleIndex] == 1)
+
+		below := Capsule{Vec3{-2.0, -0.35, 0.0}, Vec3{-2.0, -0.15, 0.0}, 0.2}
+		count = collideMoverAndMesh(planes[:4], &shape, &below)
+		ensure(count == 0)
+
+		DestroyMesh(mesh)
+	})
 	PIt("MoverHeightFieldBackside (needs height_field.c)")
 	PIt("MoverHeightFieldReport (needs height_field.c)")
 	PIt("MoverHeightFieldClockwise (needs height_field.c)")
